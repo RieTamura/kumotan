@@ -103,3 +103,18 @@ export interface BlueskyApiError {
   error: string;
   message: string;
 }
+
+/**
+ * Bluesky user profile information
+ */
+export interface BlueskyProfile {
+  did: string;
+  handle: string;
+  displayName?: string;
+  description?: string;
+  avatar?: string;
+  banner?: string;
+  followersCount?: number;
+  followsCount?: number;
+  postsCount?: number;
+}

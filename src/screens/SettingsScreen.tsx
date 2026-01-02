@@ -12,6 +12,8 @@ import {
   Pressable,
   Alert,
   Linking,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -21,6 +23,8 @@ import { APP_INFO, EXTERNAL_LINKS } from '../constants/config';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/common/Button';
 import { hasApiKey } from '../services/dictionary/deepl';
+import { getProfile } from '../services/bluesky/auth';
+import { BlueskyProfile } from '../types/bluesky';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 /**
@@ -96,6 +100,32 @@ export function SettingsScreen(): React.JSX.Element {
   const { user, logout, isLoading } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
+  const [profile, setProfile] = useState<BlueskyProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  /**
+   * Fetch user profile on mount and when screen gains focus
+   */
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setIsLoadingProfile(true);
+      const result = await getProfile();
+      if (result.success) {
+        setProfile(result.data);
+      } else {
+        console.error('Failed to load profile:', result.error);
+      }
+      setIsLoadingProfile(false);
+    };
+
+    fetchProfile();
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchProfile();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   /**
    * Check API key status on mount and when screen gains focus
@@ -218,16 +248,68 @@ export function SettingsScreen(): React.JSX.Element {
         {/* Account Section */}
         <SettingsSection title="アカウント">
           <View style={styles.accountInfo}>
-            <View style={styles.accountAvatar}>
-              <Text style={styles.accountAvatarText}>
-                {user?.handle?.[0]?.toUpperCase() ?? '?'}
-              </Text>
-            </View>
-            <View style={styles.accountDetails}>
-              <Text style={styles.accountHandle}>
-                @{user?.handle ?? 'unknown'}
-              </Text>
-            </View>
+            {isLoadingProfile ? (
+              <View style={styles.accountLoading}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.accountLoadingText}>読み込み中...</Text>
+              </View>
+            ) : (
+              <>
+                {/* Avatar */}
+                {profile?.avatar ? (
+                  <Image
+                    source={{ uri: profile.avatar }}
+                    style={styles.accountAvatar}
+                  />
+                ) : (
+                  <View style={styles.accountAvatarPlaceholder}>
+                    <Text style={styles.accountAvatarText}>
+                      {profile?.handle?.[0]?.toUpperCase() ?? '?'}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Profile Details */}
+                <View style={styles.accountDetails}>
+                  {profile?.displayName && (
+                    <Text style={styles.accountDisplayName}>
+                      {profile.displayName}
+                    </Text>
+                  )}
+                  <Text style={styles.accountHandle}>
+                    @{profile?.handle ?? user?.handle ?? 'unknown'}
+                  </Text>
+                  {profile?.description && (
+                    <Text style={styles.accountDescription} numberOfLines={2}>
+                      {profile.description}
+                    </Text>
+                  )}
+                  {/* Stats */}
+                  {(profile?.followersCount !== undefined || profile?.followsCount !== undefined) && (
+                    <View style={styles.accountStats}>
+                      {profile.postsCount !== undefined && (
+                        <Text style={styles.accountStat}>
+                          <Text style={styles.accountStatValue}>{profile.postsCount}</Text>
+                          {' 投稿'}
+                        </Text>
+                      )}
+                      {profile.followersCount !== undefined && (
+                        <Text style={styles.accountStat}>
+                          <Text style={styles.accountStatValue}>{profile.followersCount}</Text>
+                          {' フォロワー'}
+                        </Text>
+                      )}
+                      {profile.followsCount !== undefined && (
+                        <Text style={styles.accountStat}>
+                          <Text style={styles.accountStatValue}>{profile.followsCount}</Text>
+                          {' フォロー中'}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </>
+            )}
           </View>
         </SettingsSection>
 
@@ -372,28 +454,71 @@ const styles = StyleSheet.create({
   },
   accountInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
     padding: Spacing.lg,
   },
+  accountLoading: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
+  },
+  accountLoadingText: {
+    marginLeft: Spacing.sm,
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+  },
   accountAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+  },
+  accountAvatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   accountAvatarText: {
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.xxl,
     fontWeight: '700',
     color: Colors.textInverse,
   },
   accountDetails: {
     marginLeft: Spacing.md,
     flex: 1,
+    justifyContent: 'center',
+  },
+  accountDisplayName: {
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 2,
   },
   accountHandle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.md,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  accountDescription: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  accountStats: {
+    flexDirection: 'row',
+    marginTop: Spacing.sm,
+    gap: Spacing.md,
+  },
+  accountStat: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+  },
+  accountStatValue: {
     fontWeight: '600',
     color: Colors.text,
   },

@@ -6,7 +6,7 @@
 import { BskyAgent } from '@atproto/api';
 import * as SecureStore from 'expo-secure-store';
 import { Result } from '../../types/result';
-import { BlueskySession, StoredAuth } from '../../types/bluesky';
+import { BlueskySession, StoredAuth, BlueskyProfile } from '../../types/bluesky';
 import { AppError, ErrorCode, authError } from '../../utils/errors';
 import { STORAGE_KEYS, API } from '../../constants/config';
 
@@ -315,4 +315,61 @@ export async function getCurrentDid(): Promise<string | null> {
 export function hasActiveSession(): boolean {
   const bskyAgent = getAgent();
   return bskyAgent.session !== undefined;
+}
+
+/**
+ * Get user profile information
+ */
+export async function getProfile(actor?: string): Promise<Result<BlueskyProfile, AppError>> {
+  try {
+    const bskyAgent = getAgent();
+    
+    // If no actor specified, use current user's DID
+    let actorId = actor;
+    if (!actorId) {
+      const did = await getCurrentDid();
+      if (!did) {
+        return {
+          success: false,
+          error: authError('ユーザー情報が見つかりません。'),
+        };
+      }
+      actorId = did;
+    }
+
+    const response = await bskyAgent.getProfile({ actor: actorId });
+    
+    const profile: BlueskyProfile = {
+      did: response.data.did,
+      handle: response.data.handle,
+      displayName: response.data.displayName,
+      description: response.data.description,
+      avatar: response.data.avatar,
+      banner: response.data.banner,
+      followersCount: response.data.followersCount,
+      followsCount: response.data.followsCount,
+      postsCount: response.data.postsCount,
+    };
+
+    if (__DEV__) {
+      console.log('Profile fetched:', profile.handle);
+    }
+
+    return { success: true, data: profile };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    if (__DEV__) {
+      console.error('Failed to fetch profile:', errorMessage);
+    }
+
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.BLUESKY_ERROR,
+        'プロフィール情報の取得に失敗しました。',
+        error
+      ),
+    };
+  }
 }
