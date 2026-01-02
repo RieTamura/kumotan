@@ -486,8 +486,14 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.xl,
     alignItems: 'center',
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4, // Android用
   },
   todayProgressTitle: {
     fontSize: FontSizes.lg,
