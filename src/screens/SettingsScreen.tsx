@@ -229,15 +229,6 @@ export function SettingsScreen(): React.JSX.Element {
               </Text>
             </View>
           </View>
-
-          <Button
-            title={isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
-            onPress={handleLogout}
-            variant="outline"
-            fullWidth
-            loading={isLoggingOut}
-            disabled={isLoading || isLoggingOut}
-          />
         </SettingsSection>
 
         {/* API Settings Section */}
@@ -281,6 +272,18 @@ export function SettingsScreen(): React.JSX.Element {
             onPress={() => openLink(EXTERNAL_LINKS.DEEPL_DOCS)}
           />
         </SettingsSection>
+
+        {/* Logout Button */}
+        <View style={styles.logoutButtonContainer}>
+          <Button
+            title={isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
+            onPress={handleLogout}
+            variant="outline"
+            fullWidth
+            loading={isLoggingOut}
+            disabled={isLoading || isLoggingOut}
+          />
+        </View>
 
         {/* App Info */}
         <View style={styles.appInfo}>
@@ -371,8 +374,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
   },
   accountAvatar: {
     width: 48,
@@ -395,6 +396,10 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: '600',
     color: Colors.text,
+  },
+  logoutButtonContainer: {
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   appInfo: {
     alignItems: 'center',
