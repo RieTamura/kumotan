@@ -86,7 +86,8 @@ export function HomeScreen(): React.JSX.Element {
    * Close word popup
    */
   const closeWordPopup = useCallback(() => {
-    setWordPopup(initialWordPopupState);
+    // Keep postUri to allow PostCard to clear selection before full reset
+    setWordPopup(prev => ({ ...prev, visible: false }));
   }, []);
 
   /**
@@ -124,10 +125,18 @@ export function HomeScreen(): React.JSX.Element {
    * Render individual post item
    */
   const renderPost = useCallback(
-    ({ item }: { item: TimelinePost }) => (
-      <PostCard post={item} onWordSelect={handleWordSelect} />
-    ),
-    [handleWordSelect]
+    ({ item }: { item: TimelinePost }) => {
+      // Only clear selection for the post that had a word selected
+      const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri;
+      return (
+        <PostCard 
+          post={item} 
+          onWordSelect={handleWordSelect} 
+          clearSelection={shouldClearSelection}
+        />
+      );
+    },
+    [handleWordSelect, wordPopup.visible, wordPopup.postUri]
   );
 
   /**

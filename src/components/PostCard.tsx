@@ -3,7 +3,7 @@
  * Displays a single post from the Bluesky timeline
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { formatRelativeTime } from '../services/bluesky/feed';
 interface PostCardProps {
   post: TimelinePost;
   onWordSelect?: (word: string, postUri: string, postText: string) => void;
+  clearSelection?: boolean;
 }
 
 /**
@@ -62,9 +63,18 @@ function parseTextIntoTokens(text: string): TextToken[] {
 /**
  * PostCard Component
  */
-export function PostCard({ post, onWordSelect }: PostCardProps): React.JSX.Element {
+export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps): React.JSX.Element {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+
+  /**
+   * Clear selection when clearSelection prop changes to true
+   */
+  useEffect(() => {
+    if (clearSelection) {
+      setSelectedWord(null);
+    }
+  }, [clearSelection]);
 
   /**
    * Handle image load error
