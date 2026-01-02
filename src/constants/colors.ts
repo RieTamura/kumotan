@@ -1,0 +1,147 @@
+/**
+ * Color constants for the application
+ * Following Bluesky's design language with custom accents
+ */
+
+export const Colors = {
+  // Primary colors
+  primary: '#1DA1F2', // Bluesky blue
+  primaryDark: '#0d8bd9',
+  primaryLight: '#4db5f5',
+
+  // Background colors
+  background: '#FFFFFF',
+  backgroundSecondary: '#F7F9FA',
+  backgroundTertiary: '#EFF3F4',
+
+  // Text colors
+  text: '#14171A',
+  textSecondary: '#657786',
+  textTertiary: '#AAB8C2',
+  textInverse: '#FFFFFF',
+
+  // Border colors
+  border: '#E1E8ED',
+  borderLight: '#EFF3F4',
+
+  // Status colors
+  success: '#17BF63',
+  successLight: '#E8F9EE',
+  warning: '#FFAD1F',
+  warningLight: '#FFF8E6',
+  error: '#E0245E',
+  errorLight: '#FDEEF2',
+
+  // Interactive states
+  hover: '#E8F5FE',
+  pressed: '#CCE4F7',
+  disabled: '#AAB8C2',
+
+  // Card colors
+  card: '#FFFFFF',
+  cardShadow: 'rgba(0, 0, 0, 0.1)',
+
+  // Tab bar colors
+  tabActive: '#1DA1F2',
+  tabInactive: '#657786',
+
+  // Read/Unread status
+  read: '#17BF63',
+  unread: '#AAB8C2',
+
+  // Offline banner
+  offline: '#F59E0B',
+  offlineText: '#FFFFFF',
+
+  // Overlay
+  overlay: 'rgba(0, 0, 0, 0.5)',
+
+  // Input
+  inputBackground: '#F7F9FA',
+  inputBorder: '#E1E8ED',
+  inputFocus: '#1DA1F2',
+  inputError: '#E0245E',
+
+  // Placeholder
+  placeholder: '#AAB8C2',
+
+  // Divider
+  divider: '#E1E8ED',
+
+  // Skeleton loading
+  skeleton: '#E1E8ED',
+  skeletonHighlight: '#F7F9FA',
+} as const;
+
+/**
+ * Spacing constants
+ */
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+} as const;
+
+/**
+ * Font sizes
+ */
+export const FontSizes = {
+  xs: 10,
+  sm: 12,
+  md: 14,
+  lg: 16,
+  xl: 18,
+  xxl: 24,
+  xxxl: 32,
+} as const;
+
+/**
+ * Font weights
+ */
+export const FontWeights = {
+  normal: '400' as const,
+  medium: '500' as const,
+  semibold: '600' as const,
+  bold: '700' as const,
+};
+
+/**
+ * Border radius
+ */
+export const BorderRadius = {
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  full: 9999,
+} as const;
+
+/**
+ * Shadow styles
+ */
+export const Shadows = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+} as const;

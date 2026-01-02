@@ -1,0 +1,90 @@
+/**
+ * 単語関連の型定義
+ */
+
+/**
+ * 単語データ
+ */
+export interface Word {
+  id: number;
+  english: string;
+  japanese: string | null;
+  definition: string | null;
+  postUrl: string | null;
+  postText: string | null;
+  isRead: boolean;
+  createdAt: string;
+  readAt: string | null;
+}
+
+/**
+ * 単語の新規作成用データ
+ */
+export interface CreateWordInput {
+  english: string;
+  japanese?: string | null;
+  definition?: string | null;
+  postUrl?: string | null;
+  postText?: string | null;
+}
+
+/**
+ * 単語一覧のフィルター条件
+ */
+export interface WordFilter {
+  isRead?: boolean | null;
+  sortBy: 'created_at' | 'english';
+  sortOrder: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * 日別学習統計
+ */
+export interface DailyStats {
+  date: string;
+  wordsReadCount: number;
+}
+
+/**
+ * 全体統計
+ */
+export interface Stats {
+  totalWords: number;
+  readWords: number;
+  readPercentage: number;
+  thisWeekDays: number;
+  streak: number;
+  todayCount: number;
+}
+
+/**
+ * 辞書API（Free Dictionary）のレスポンス
+ */
+export interface DictionaryResult {
+  word: string;
+  phonetic?: string;
+  definition: string;
+  example?: string;
+  partOfSpeech: string;
+  audio?: string;
+}
+
+/**
+ * 翻訳API（DeepL）のレスポンス
+ */
+export interface TranslateResult {
+  text: string;
+  detectedLanguage: string;
+}
+
+/**
+ * DeepL API使用量情報
+ */
+export interface UsageInfo {
+  used: number;
+  limit: number;
+  percentage: number;
+  remaining: number;
+}

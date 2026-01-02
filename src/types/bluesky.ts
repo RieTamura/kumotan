@@ -1,0 +1,105 @@
+/**
+ * Bluesky API related type definitions
+ */
+
+/**
+ * Bluesky author information
+ */
+export interface BlueskyAuthor {
+  did: string;
+  handle: string;
+  displayName?: string;
+  avatar?: string;
+}
+
+/**
+ * Bluesky post record
+ */
+export interface BlueskyPostRecord {
+  text: string;
+  createdAt: string;
+  $type: string;
+}
+
+/**
+ * Bluesky post
+ */
+export interface BlueskyPost {
+  uri: string;
+  cid: string;
+  author: BlueskyAuthor;
+  record: BlueskyPostRecord;
+  replyCount?: number;
+  repostCount?: number;
+  likeCount?: number;
+  indexedAt: string;
+}
+
+/**
+ * Timeline feed item
+ */
+export interface TimelineFeedItem {
+  post: BlueskyPost;
+}
+
+/**
+ * Timeline response from Bluesky API
+ */
+export interface TimelineResponse {
+  feed: TimelineFeedItem[];
+  cursor?: string;
+}
+
+/**
+ * Simplified post for display in the app
+ */
+export interface TimelinePost {
+  uri: string;
+  text: string;
+  author: {
+    handle: string;
+    displayName: string;
+    avatar?: string;
+  };
+  createdAt: string;
+  likeCount?: number;
+  repostCount?: number;
+  replyCount?: number;
+}
+
+/**
+ * Session data returned from login
+ */
+export interface BlueskySession {
+  accessJwt: string;
+  refreshJwt: string;
+  handle: string;
+  did: string;
+  email?: string;
+}
+
+/**
+ * Stored authentication data
+ */
+export interface StoredAuth {
+  accessToken: string;
+  refreshToken: string;
+  did: string;
+  handle: string;
+}
+
+/**
+ * Login credentials
+ */
+export interface LoginCredentials {
+  identifier: string;
+  password: string;
+}
+
+/**
+ * Bluesky API error response
+ */
+export interface BlueskyApiError {
+  error: string;
+  message: string;
+}
