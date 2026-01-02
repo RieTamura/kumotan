@@ -519,6 +519,111 @@ const renderPost = useCallback(
 
 ---
 
+## 6. 進捗ページの「今日の進捗」カードの文字が見づらい問題
+
+### 発生日
+2026年1月2日
+
+### 症状
+- 進捗ページの下部にある「今日の進捗」カードの文字が非常に見づらい
+- 青い背景（`primaryLight`）に対して文字色が薄く、コントラストが低い
+- フォントサイズが小さく、読みにくい
+
+### 原因
+「今日の進捗」カードのスタイル設定に以下の問題があった：
+- タイトルの文字色が`Colors.textSecondary`（薄いグレー）で、青い背景とのコントラストが非常に低かった
+- 値の文字色が`Colors.primary`（青）で、青い背景（`Colors.primaryLight`）と区別しにくかった
+- フォントサイズが小さめ（タイトル：`md`、値：`xl`）で読みにくかった
+- パディングが`lg`と控えめで、テキストが窮屈に見えた
+
+### 解決策
+
+**ProgressScreen.tsxの修正（第1段階）：**
+
+フォントサイズ、フォントウェイト、パディングを改善：
+
+```typescript
+// 変更前
+todayProgress: {
+  backgroundColor: Colors.primaryLight,
+  borderRadius: BorderRadius.lg,
+  padding: Spacing.lg,
+  alignItems: 'center',
+  borderLeftWidth: 4,
+  borderLeftColor: Colors.primary,
+},
+todayProgressTitle: {
+  fontSize: FontSizes.md,
+  color: Colors.textSecondary,
+  marginBottom: Spacing.xs,
+},
+todayProgressValue: {
+  fontSize: FontSizes.xl,
+  fontWeight: '700',
+  color: Colors.primary,
+},
+
+// 変更後
+todayProgress: {
+  backgroundColor: Colors.primaryLight,
+  borderRadius: BorderRadius.lg,
+  padding: Spacing.xl,  // lg → xl に拡大
+  alignItems: 'center',
+  borderLeftWidth: 4,
+  borderLeftColor: Colors.primary,
+},
+todayProgressTitle: {
+  fontSize: FontSizes.lg,  // md → lg に拡大
+  fontWeight: '600',  // 太字を追加
+  color: Colors.text,  // textSecondary → text に変更
+  marginBottom: Spacing.sm,  // xs → sm に拡大
+},
+todayProgressValue: {
+  fontSize: FontSizes.xxl,  // xl → xxl に拡大
+  fontWeight: '700',
+  color: Colors.text,  // primary → text に変更
+},
+```
+
+**ProgressScreen.tsxの修正（第2段階 - 最終版）：**
+
+文字色を白色に変更して、青い背景とのコントラストを最大化：
+
+```typescript
+todayProgressTitle: {
+  fontSize: FontSizes.lg,
+  fontWeight: '600',
+  color: Colors.textInverse,  // text → textInverse（白色）に変更
+  marginBottom: Spacing.sm,
+},
+todayProgressValue: {
+  fontSize: FontSizes.xxl,
+  fontWeight: '700',
+  color: Colors.textInverse,  // text → textInverse（白色）に変更
+},
+```
+
+### 最終的な改善内容
+1. **タイトルの色** - 薄いグレー → 白色（コントラスト大幅向上）
+2. **タイトルのフォントサイズ** - `md`(14px) → `lg`(16px)
+3. **タイトルのフォントウェイト** - 通常 → `'600'`（太字）
+4. **値のフォントサイズ** - `xl`(18px) → `xxl`(24px)
+5. **値の色** - 青 → 白色（背景との区別明確化）
+6. **カードのパディング** - `lg`(16px) → `xl`(24px)
+7. **タイトルと値の間隔** - `xs`(4px) → `sm`(8px)
+
+### 関連ファイル
+- `src/screens/ProgressScreen.tsx` - 進捗画面
+- `src/constants/colors.ts` - カラー定義（`Colors.textInverse`を使用）
+
+### 教訓
+- 背景色と文字色のコントラストは視認性に重要
+- 薄い色の背景に薄い文字色を使うとコントラストが低くなる
+- 青い背景に対しては、白色の文字が最も読みやすい
+- フォントサイズとフォントウェイトを適切に設定することで、情報の階層性と読みやすさが向上する
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：
