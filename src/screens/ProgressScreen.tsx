@@ -11,8 +11,10 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Share, BookOpen, CheckCircle, BarChart3, Calendar, Flame } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
@@ -24,13 +26,15 @@ import { Button } from '../components/common/Button';
 interface StatsCardProps {
   title: string;
   value: string | number;
-  icon: string;
+  Icon: React.ComponentType<{ size?: number; color?: string }>;
 }
 
-function StatsCard({ title, value, icon }: StatsCardProps): React.JSX.Element {
+function StatsCard({ title, value, Icon }: StatsCardProps): React.JSX.Element {
   return (
     <View style={styles.statsCard}>
-      <Text style={styles.statsIcon}>{icon}</Text>
+      <View style={styles.statsIconContainer}>
+        <Icon size={24} color={Colors.primary} />
+      </View>
       <Text style={styles.statsValue}>{value}</Text>
       <Text style={styles.statsTitle}>{title}</Text>
     </View>
@@ -216,13 +220,16 @@ export function ProgressScreen(): React.JSX.Element {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>進捗</Text>
-        <Button
-          title="シェア"
+        <TouchableOpacity
           onPress={handleShare}
-          variant="ghost"
-          size="small"
           disabled={!isConnected}
-        />
+          style={styles.shareButton}
+        >
+          <Share 
+            size={24} 
+            color={isConnected ? Colors.primary : Colors.textSecondary} 
+          />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -288,22 +295,22 @@ export function ProgressScreen(): React.JSX.Element {
             <StatsCard
               title="総単語"
               value={stats.totalWords}
-              icon="📚"
+              Icon={BookOpen}
             />
             <StatsCard
               title="既読"
               value={stats.readWords}
-              icon="✅"
+              Icon={CheckCircle}
             />
             <StatsCard
               title="既読率"
               value={`${stats.readPercentage}%`}
-              icon="📊"
+              Icon={BarChart3}
             />
             <StatsCard
               title="今週の学習日"
               value={`${stats.thisWeekDays}日`}
-              icon="📅"
+              Icon={Calendar}
             />
           </View>
 
@@ -311,7 +318,7 @@ export function ProgressScreen(): React.JSX.Element {
             <StatsCard
               title="連続学習日数"
               value={`${stats.streak}日`}
-              icon="🔥"
+              Icon={Flame}
             />
           </View>
         </View>
@@ -339,6 +346,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xl,
     fontWeight: '700',
     color: Colors.text,
+  },
+  shareButton: {
+    padding: Spacing.sm,
   },
   scrollView: {
     flex: 1,
@@ -369,8 +379,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Shadows.sm,
   },
-  statsIcon: {
-    fontSize: 24,
+  statsIconContainer: {
     marginBottom: Spacing.sm,
   },
   statsValue: {

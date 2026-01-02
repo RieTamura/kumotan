@@ -15,6 +15,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { RefreshCw } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
@@ -243,7 +244,7 @@ export function HomeScreen(): React.JSX.Element {
             style={styles.refreshButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.refreshIcon}>🔄</Text>
+            <RefreshCw size={24} color={Colors.primary} />
           </Pressable>
         )}
       </View>
@@ -338,9 +339,6 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     padding: Spacing.sm,
-  },
-  refreshIcon: {
-    fontSize: FontSizes.xl,
   },
   listContent: {
     flexGrow: 1,

@@ -11,6 +11,7 @@ import {
 } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
+import { Home, BookOpen, BarChart3, Settings } from 'lucide-react-native';
 
 import { Colors, FontSizes } from '../constants/colors';
 import { useAuthStore } from '../store/authStore';
@@ -52,15 +53,16 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
  * Tab bar icon component
  */
 interface TabIconProps {
-  icon: string;
+  Icon: React.ComponentType<{ size?: number; color?: string }>;
   focused: boolean;
 }
 
-function TabIcon({ icon, focused }: TabIconProps): React.JSX.Element {
+function TabIcon({ Icon, focused }: TabIconProps): React.JSX.Element {
   return (
-    <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-      {icon}
-    </Text>
+    <Icon 
+      size={24} 
+      color={focused ? Colors.tabActive : Colors.tabInactive} 
+    />
   );
 }
 
@@ -85,7 +87,7 @@ function MainTabs(): React.JSX.Element {
         options={{
           tabBarLabel: 'ホーム',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="🏠" focused={focused} />
+            <TabIcon Icon={Home} focused={focused} />
           ),
         }}
       />
@@ -95,7 +97,7 @@ function MainTabs(): React.JSX.Element {
         options={{
           tabBarLabel: '単語帳',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📚" focused={focused} />
+            <TabIcon Icon={BookOpen} focused={focused} />
           ),
         }}
       />
@@ -105,7 +107,7 @@ function MainTabs(): React.JSX.Element {
         options={{
           tabBarLabel: '進捗',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📊" focused={focused} />
+            <TabIcon Icon={BarChart3} focused={focused} />
           ),
         }}
       />
@@ -115,7 +117,7 @@ function MainTabs(): React.JSX.Element {
         options={{
           tabBarLabel: '設定',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="⚙️" focused={focused} />
+            <TabIcon Icon={Settings} focused={focused} />
           ),
         }}
       />
@@ -228,13 +230,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     fontWeight: '500',
     marginTop: 2,
-  },
-  tabIcon: {
-    fontSize: 24,
-    opacity: 0.6,
-  },
-  tabIconFocused: {
-    opacity: 1,
   },
 });
 

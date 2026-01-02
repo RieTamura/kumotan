@@ -11,6 +11,7 @@ import {
   Image,
   Pressable,
 } from 'react-native';
+import { MessageCircle, Repeat2, Heart } from 'lucide-react-native';
 import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { formatRelativeTime } from '../services/bluesky/feed';
@@ -163,15 +164,15 @@ export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps):
       {/* Engagement metrics */}
       <View style={styles.metricsRow}>
         <View style={styles.metric}>
-          <Text style={styles.metricIcon}>💬</Text>
+          <MessageCircle size={16} color={Colors.textSecondary} />
           <Text style={styles.metricText}>{post.replyCount ?? 0}</Text>
         </View>
         <View style={styles.metric}>
-          <Text style={styles.metricIcon}>🔁</Text>
+          <Repeat2 size={16} color={Colors.textSecondary} />
           <Text style={styles.metricText}>{post.repostCount ?? 0}</Text>
         </View>
         <View style={styles.metric}>
-          <Text style={styles.metricIcon}>❤️</Text>
+          <Heart size={16} color={Colors.textSecondary} />
           <Text style={styles.metricText}>{post.likeCount ?? 0}</Text>
         </View>
       </View>
@@ -252,9 +253,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-  },
-  metricIcon: {
-    fontSize: FontSizes.md,
   },
   metricText: {
     fontSize: FontSizes.sm,

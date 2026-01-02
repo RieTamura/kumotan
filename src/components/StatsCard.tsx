@@ -10,6 +10,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
+import { LucideIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame, Star } from 'lucide-react-native';
 import {
   Colors,
   Spacing,
@@ -24,7 +25,7 @@ import {
 interface StatsCardProps {
   title: string;
   value: string | number;
-  icon: string;
+  Icon: LucideIcon;
   subtitle?: string;
   color?: string;
   style?: ViewStyle;
@@ -36,7 +37,7 @@ interface StatsCardProps {
 export function StatsCard({
   title,
   value,
-  icon,
+  Icon,
   subtitle,
   color = Colors.primary,
   style,
@@ -44,7 +45,7 @@ export function StatsCard({
   return (
     <View style={[styles.container, style]}>
       <View style={[styles.iconContainer, { backgroundColor: `${color}20` }]}>
-        <Text style={styles.icon}>{icon}</Text>
+        <Icon size={24} color={color} />
       </View>
       <Text style={styles.value}>{value}</Text>
       <Text style={styles.title}>{title}</Text>
@@ -95,20 +96,20 @@ export function StatsSummary({
         <StatsCard
           title="総単語数"
           value={totalWords}
-          icon="📚"
+          Icon={BookOpen}
           style={styles.cardFlex}
         />
         <StatsCard
           title="既読単語"
           value={readWords}
-          icon="✅"
+          Icon={CheckCircle}
           color={Colors.success}
           style={styles.cardFlex}
         />
         <StatsCard
           title="既読率"
           value={`${readPercentage}%`}
-          icon="📊"
+          Icon={BarChart3}
           color={Colors.warning}
           style={styles.cardFlex}
         />
@@ -119,21 +120,21 @@ export function StatsSummary({
         <StatsCard
           title="今週の学習"
           value={`${thisWeekDays}日`}
-          icon="📅"
+          Icon={Calendar}
           color={Colors.primary}
           style={styles.cardFlex}
         />
         <StatsCard
           title="連続学習"
           value={`${streak}日`}
-          icon="🔥"
+          Icon={Flame}
           color={Colors.error}
           style={styles.cardFlex}
         />
         <StatsCard
           title="今日"
           value={todayCount}
-          icon="⭐"
+          Icon={Star}
           subtitle="単語"
           color={Colors.success}
           style={styles.cardFlex}
@@ -202,9 +203,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.sm,
-  },
-  icon: {
-    fontSize: 24,
   },
   value: {
     fontSize: FontSizes.xxl,

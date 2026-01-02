@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BookOpen, Check } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { Word, WordFilter } from '../types/word';
 import { Loading } from '../components/common/Loading';
@@ -147,7 +148,7 @@ export function WordListScreen(): React.JSX.Element {
                 item.isRead && styles.checkboxChecked,
               ]}
             >
-              {item.isRead && <Text style={styles.checkmark}>✓</Text>}
+              {item.isRead && <Check size={16} color={Colors.card} />}
             </View>
           </View>
           <View style={styles.wordContent}>
@@ -173,7 +174,9 @@ export function WordListScreen(): React.JSX.Element {
 
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>📚</Text>
+        <View style={styles.emptyIconContainer}>
+          <BookOpen size={64} color={Colors.textSecondary} />
+        </View>
         <Text style={styles.emptyTitle}>単語がまだ登録されていません</Text>
         <Text style={styles.emptyMessage}>
           HOMEからBlueskyの投稿で{'\n'}
@@ -377,11 +380,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success,
     borderColor: Colors.success,
   },
-  checkmark: {
-    color: Colors.textInverse,
-    fontSize: FontSizes.md,
-    fontWeight: '700',
-  },
   wordContent: {
     flex: 1,
   },
@@ -408,8 +406,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xxl,
     marginTop: Spacing.xxl,
   },
-  emptyIcon: {
-    fontSize: 48,
+  emptyIconContainer: {
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
