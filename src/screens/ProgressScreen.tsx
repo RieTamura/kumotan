@@ -484,20 +484,21 @@ const styles = StyleSheet.create({
   todayProgress: {
     backgroundColor: Colors.primaryLight,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.xl,
     alignItems: 'center',
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
   },
   todayProgressTitle: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+    color: Colors.textInverse,
+    marginBottom: Spacing.sm,
   },
   todayProgressValue: {
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.xxl,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.textInverse,
   },
 });
 

@@ -292,6 +292,233 @@ legendDot: {
 
 ---
 
+## 4. 単語登録時にタッチした単語ではなく先頭の単語が選択される問題
+
+### 発生日
+2026年1月2日
+
+### 症状
+- 投稿文の単語を長押しして選択しようとすると、タッチした単語ではなく投稿文の先頭の英語単語が選択されてしまう
+- 例：「overpriced」を選択したかったが「in」が選択された
+
+### 調査過程
+
+1. **WordPopup.tsxの確認** - ポップアップコンポーネントを確認したが、ここは単語を受け取って表示するだけで、単語選択の処理は行っていなかった
+
+2. **PostCard.tsxの確認** - 投稿カードコンポーネントを確認したところ、`handleLongPress`関数で単語選択処理が行われていた
+
+3. **問題のコードを特定** - 以下のコードが原因だった：
+   ```typescript
+   const words = post.text.split(/\s+/).filter((word) => {
+     return /^[a-zA-Z][a-zA-Z'-]*$/.test(word);
+   });
+   if (words.length > 0 && onWordSelect) {
+     // For demo purposes, show the first English word
+     const word = words[0];  // ← 常に最初の単語を選択
+     ...
+   }
+   ```
+
+### 原因
+`PostCard.tsx`の`handleLongPress`関数で、タッチ位置（`locationX`, `locationY`）を取得していたにもかかわらず、実際には使用せず、常に投稿文中の**最初の英語単語**を選択する仮実装になっていた。コメントに「For demo purposes」と記載があり、開発途中の暫定実装だった。
+
+### 解決策（第1段階）
+タッチ位置から文字位置を推定して、最も近い単語を選択するように修正：
+
+```typescript
+const handleLongPress = useCallback(
+  (event: GestureResponderEvent) => {
+    const { locationX } = event.nativeEvent;
+    const averageCharWidth = 8; // 推定文字幅
+    const approxCharPosition = Math.floor(locationX / averageCharWidth);
+    
+    // 最も近い単語を選択
+    for (const wordObj of words) {
+      const wordCenter = (wordObj.start + wordObj.end) / 2;
+      const distance = Math.abs(wordCenter - approxCharPosition);
+      if (distance < minDistance) {
+        selectedWordObj = wordObj;
+      }
+    }
+  },
+  [post.text, post.uri, onWordSelect]
+);
+```
+
+しかし、この方法では文字幅が固定値のため精度が低く、隣の単語が選択されることがあった。
+
+### 解決策（第2段階 - 最終版）
+各英語単語を個別のタッチ可能な`<Text>`要素としてレンダリングする方式に変更：
+
+**テキストをトークンに分割する関数を追加：**
+```typescript
+interface TextToken {
+  text: string;
+  isEnglishWord: boolean;
+  index: number;
+}
+
+function parseTextIntoTokens(text: string): TextToken[] {
+  const tokens: TextToken[] = [];
+  const regex = /([a-zA-Z][a-zA-Z'-]*)|([^a-zA-Z]+)/g;
+  let match;
+  let index = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    const isEnglishWord = match[1] !== undefined;
+    tokens.push({
+      text: match[0],
+      isEnglishWord,
+      index: index++,
+    });
+  }
+  return tokens;
+}
+```
+
+**各単語を個別のタッチ可能要素としてレンダリング：**
+```typescript
+const renderText = () => {
+  const tokens = parseTextIntoTokens(post.text);
+
+  return (
+    <Text style={styles.postText}>
+      {tokens.map((token) => {
+        if (token.isEnglishWord) {
+          const isSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
+          return (
+            <Text
+              key={token.index}
+              style={isSelected ? styles.highlightedWord : styles.selectableWord}
+              onLongPress={() => handleWordLongPress(token.text)}
+              suppressHighlighting={false}
+            >
+              {token.text}
+            </Text>
+          );
+        }
+        return <Text key={token.index}>{token.text}</Text>;
+      })}
+    </Text>
+  );
+};
+```
+
+**カード全体のonLongPressを削除：**
+```typescript
+// 変更前
+<Pressable onLongPress={handleLongPress} delayLongPress={500}>
+
+// 変更後
+<Pressable onPress={handlePress}>  // onLongPressを削除
+```
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+- `src/screens/HomeScreen.tsx` - ホーム画面
+
+### 教訓
+- タッチ位置から文字位置を推定する方法は、フォントサイズや文字幅が可変のため精度が低い
+- 各単語を個別のタッチ可能要素にすることで、100%正確な単語選択が可能になる
+- React Nativeの`<Text>`コンポーネントは入れ子にでき、内側の`<Text>`に個別の`onLongPress`を設定できる
+- 「For demo purposes」などの仮実装コメントがある箇所は、本番前に必ず見直す
+
+---
+
+## 5. ポップアップを閉じても青い選択範囲が残る問題
+
+### 発生日
+2026年1月2日
+
+### 症状
+- 投稿文の単語を長押しして選択すると、青い背景色で単語がハイライトされる
+- 単語登録ポップアップから「キャンセル」ボタンを押す、または背景をタップしてポップアップを閉じる
+- ポップアップは消えるが、青い選択範囲（ハイライト）が残ったままになる
+
+### 調査過程
+
+1. **PostCard.tsxの確認** - `selectedWord`という状態で選択中の単語を管理していた。しかし、ポップアップが閉じた時にこの状態をクリアする仕組みがなかった。
+
+2. **HomeScreen.tsxの確認** - ポップアップの開閉は`wordPopup.visible`で管理されていたが、ポップアップを閉じた時にPostCardの選択状態をクリアする処理がなかった。
+
+3. **親子コンポーネント間の状態管理** - PostCardはFlatListでレンダリングされており、個々のPostCardの選択状態を親から制御する仕組みが必要だった。
+
+### 原因
+- PostCardコンポーネント内で`selectedWord`状態を管理していたが、ポップアップが閉じた時にこの状態をリセットする仕組みがなかった
+- PostCardとWordPopupは独立したコンポーネントで、ポップアップの開閉状態がPostCardに伝わっていなかった
+- HomeScreenの`closeWordPopup`関数で`wordPopup`状態を完全にリセットしていたため、どのPostCardの選択をクリアすべきかの情報が失われていた
+
+### 解決策
+
+**1. PostCard.tsxの修正：**
+
+`clearSelection` propを追加して、外部から選択状態をクリアできるようにした：
+
+```typescript
+// Props interfaceに追加
+interface PostCardProps {
+  post: TimelinePost;
+  onWordSelect?: (word: string, postUri: string, postText: string) => void;
+  clearSelection?: boolean;  // 追加
+}
+
+// useEffectをインポート
+import React, { useState, useCallback, useEffect } from 'react';
+
+// useEffectで選択をクリア
+useEffect(() => {
+  if (clearSelection) {
+    setSelectedWord(null);
+  }
+}, [clearSelection]);
+```
+
+**2. HomeScreen.tsxの修正：**
+
+ポップアップを閉じる際に`postUri`を保持し、該当するPostCardだけに`clearSelection={true}`を渡すように修正：
+
+```typescript
+// closeWordPopup関数の修正
+const closeWordPopup = useCallback(() => {
+  // Keep postUri to allow PostCard to clear selection before full reset
+  setWordPopup(prev => ({ ...prev, visible: false }));
+}, []);
+
+// renderPost関数の修正
+const renderPost = useCallback(
+  ({ item }: { item: TimelinePost }) => {
+    // Only clear selection for the post that had a word selected
+    const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri;
+    return (
+      <PostCard 
+        post={item} 
+        onWordSelect={handleWordSelect} 
+        clearSelection={shouldClearSelection}
+      />
+    );
+  },
+  [handleWordSelect, wordPopup.visible, wordPopup.postUri]
+);
+```
+
+### 実装のポイント
+- `closeWordPopup`で`visible`のみを`false`にし、`postUri`は保持することで、どのPostCardの選択をクリアすべきかの情報を維持
+- `renderPost`で`!wordPopup.visible && wordPopup.postUri === item.uri`の条件により、ポップアップが閉じられ、かつ該当する投稿のみに`clearSelection={true}`を渡す
+- この方式により、不要な全PostCardの再レンダリングを避け、該当するPostCardのみを効率的に更新
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+- `src/screens/HomeScreen.tsx` - ホーム画面
+
+### 教訓
+- 親子コンポーネント間で状態を同期する必要がある場合、propsを通じて制御する仕組みを設計する
+- FlatListでレンダリングされるコンポーネントの状態管理では、どのアイテムに対する操作かを識別する情報（この場合は`postUri`）を保持することが重要
+- React Nativeの`useEffect`は、propsの変化を監視して副作用を実行するのに適している
+- パフォーマンスを考慮し、該当するコンポーネントのみを更新する条件分岐を実装する
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：
