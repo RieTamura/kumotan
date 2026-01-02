@@ -75,10 +75,10 @@ export const PAGINATION = {
  * App information
  */
 export const APP_INFO = {
-  NAME: 'ソラたん',
-  NAME_EN: 'Soratan',
+  NAME: 'くもたん',
+  NAME_EN: 'Kumotan',
   VERSION: '1.0.0',
-  DESCRIPTION: '空から学ぶ、あなたの単語帳',
+  DESCRIPTION: '雲から学ぶ、あなたの単語帳',
 } as const;
 
 /**
@@ -96,7 +96,7 @@ export const EXTERNAL_LINKS = {
  * Database configuration
  */
 export const DATABASE = {
-  NAME: 'soratan.db',
+  NAME: 'kumotan.db',
   VERSION: 1,
 } as const;
 

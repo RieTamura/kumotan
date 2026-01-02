@@ -1,5 +1,5 @@
 /**
- * Soratan - Main App Entry Point
+ * Kumotan - Main App Entry Point
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
