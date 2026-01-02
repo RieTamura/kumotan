@@ -107,6 +107,191 @@ export default function App(): React.JSX.Element {
 
 ---
 
+## 2. 進捗ページのカレンダーで今日の日付が見づらい問題
+
+### 発生日
+2026年1月2日
+
+### 症状
+- 進捗ページのカレンダーで、今日の日付が薄い青の楕円形で表示される
+- 文字色が青のままで、背景色との差が小さく見づらい
+
+### 調査過程
+
+1. **src/components/Calendar.tsx を修正** - 最初は共通コンポーネントのCalendar.tsxを修正したが、変更が反映されなかった
+
+2. **キャッシュクリアを試行** - `npx expo start --clear`でキャッシュをクリアし、Expo GOアプリも再起動したが、変更は反映されなかった
+
+3. **実際に使用されているコンポーネントの特定** - ProgressScreen.tsxを確認したところ、共通コンポーネントをインポートせず、画面内に独自の`CalendarDay`コンポーネントが定義されていた
+
+### 原因
+`src/screens/ProgressScreen.tsx`内に独自の`CalendarDay`コンポーネントとスタイルが定義されており、`src/components/Calendar.tsx`の共通コンポーネントは使用されていなかった。
+
+### 解決策
+ProgressScreen.tsx内の`CalendarDay`コンポーネントとスタイルを修正：
+
+**コンポーネントの修正：**
+```typescript
+// 変更前
+function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX.Element {
+  return (
+    <View style={[styles.calendarDay, isToday && styles.calendarDayToday]}>
+      <Text style={[styles.calendarDayText, isToday && styles.calendarDayTextToday]}>
+        {day}
+      </Text>
+      {hasActivity && <View style={styles.calendarDayDot} />}
+    </View>
+  );
+}
+
+// 変更後 - 内側にViewを追加して円形背景を実現
+function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX.Element {
+  return (
+    <View style={styles.calendarDay}>
+      <View style={[styles.calendarDayInner, isToday && styles.calendarDayInnerToday]}>
+        <Text style={[styles.calendarDayText, isToday && styles.calendarDayTextToday]}>
+          {day}
+        </Text>
+      </View>
+      {hasActivity && <View style={styles.calendarDayDot} />}
+    </View>
+  );
+}
+```
+
+**スタイルの修正：**
+```typescript
+// 変更前
+calendarDayToday: {
+  backgroundColor: Colors.primaryLight,
+  borderRadius: BorderRadius.full,
+},
+calendarDayTextToday: {
+  fontWeight: '700',
+  color: Colors.primary,
+},
+
+// 変更後 - 固定サイズの円形コンテナと白文字
+calendarDayInner: {
+  width: 32,
+  height: 32,
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderRadius: 16,
+},
+calendarDayInnerToday: {
+  backgroundColor: Colors.primary,
+},
+calendarDayTextToday: {
+  fontWeight: '700',
+  color: Colors.card,  // 白色
+},
+```
+
+### 関連ファイル
+- `src/screens/ProgressScreen.tsx` - 進捗画面（実際に修正したファイル）
+- `src/components/Calendar.tsx` - 共通カレンダーコンポーネント（未使用）
+
+### 教訓
+- 修正が反映されない場合、修正しているファイルが実際に使用されているか確認する
+- 共通コンポーネントとして作成されていても、画面内に独自実装がある場合がある
+- コンポーネントの構造を変更する際は、親要素のflex/aspectRatioが子要素のサイズ指定を上書きしないよう注意する
+
+---
+
+## 3. 進捗ページのカレンダーで「学習した日」の表示を変更
+
+### 発生日
+2026年1月2日
+
+### 要望
+- 学習した日が緑色の小さな点で表示されていた
+- これを緑の円形背景＋白文字に変更したい
+
+### 調査過程
+
+1. **src/components/Calendar.tsx を修正** - 最初は共通コンポーネントのCalendar.tsxを修正したが、変更が反映されなかった
+
+2. **トラブルシューティング#2の教訓を活用** - 前回の経験から、実際に使用されているのは`ProgressScreen.tsx`内の独自コンポーネントであることを把握していた
+
+### 解決策
+ProgressScreen.tsx内の`CalendarDay`コンポーネントとスタイルを修正：
+
+**コンポーネントの修正：**
+```typescript
+// 変更前 - 緑の点で学習日を表示
+function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX.Element {
+  return (
+    <View style={styles.calendarDay}>
+      <View style={[styles.calendarDayInner, isToday && styles.calendarDayInnerToday]}>
+        <Text style={[styles.calendarDayText, isToday && styles.calendarDayTextToday]}>
+          {day}
+        </Text>
+      </View>
+      {hasActivity && <View style={styles.calendarDayDot} />}
+    </View>
+  );
+}
+
+// 変更後 - 緑の円形背景で学習日を表示
+function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX.Element {
+  return (
+    <View style={styles.calendarDay}>
+      <View
+        style={[
+          styles.calendarDayInner,
+          isToday && styles.calendarDayInnerToday,
+          hasActivity && !isToday && styles.calendarDayInnerActivity,
+        ]}
+      >
+        <Text
+          style={[
+            styles.calendarDayText,
+            isToday && styles.calendarDayTextToday,
+            hasActivity && !isToday && styles.calendarDayTextActivity,
+          ]}
+        >
+          {day}
+        </Text>
+      </View>
+    </View>
+  );
+}
+```
+
+**スタイルの追加：**
+```typescript
+// 学習した日用のスタイルを追加
+calendarDayInnerActivity: {
+  backgroundColor: Colors.success,  // 緑色の背景
+},
+calendarDayTextActivity: {
+  fontWeight: '600',
+  color: Colors.card,  // 白文字
+},
+```
+
+**凡例のスタイル修正：**
+```typescript
+// 凡例の点も緑色に統一
+legendDot: {
+  width: 8,
+  height: 8,
+  borderRadius: 4,
+  backgroundColor: Colors.success,
+},
+```
+
+### 関連ファイル
+- `src/screens/ProgressScreen.tsx` - 進捗画面（実際に修正したファイル）
+- `src/components/Calendar.tsx` - 共通カレンダーコンポーネント（未使用だが同様に修正済み）
+
+### 教訓
+- 今日の日付（青の円形）と学習した日（緑の円形）で一貫したデザインを適用
+- `!isToday`条件を追加することで、今日かつ学習した日の場合は今日のスタイル（青）を優先
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

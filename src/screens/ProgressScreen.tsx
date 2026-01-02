@@ -52,21 +52,24 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
   }
 
   return (
-    <View
-      style={[
-        styles.calendarDay,
-        isToday && styles.calendarDayToday,
-      ]}
-    >
-      <Text
+    <View style={styles.calendarDay}>
+      <View
         style={[
-          styles.calendarDayText,
-          isToday && styles.calendarDayTextToday,
+          styles.calendarDayInner,
+          isToday && styles.calendarDayInnerToday,
+          hasActivity && !isToday && styles.calendarDayInnerActivity,
         ]}
       >
-        {day}
-      </Text>
-      {hasActivity && <View style={styles.calendarDayDot} />}
+        <Text
+          style={[
+            styles.calendarDayText,
+            isToday && styles.calendarDayTextToday,
+            hasActivity && !isToday && styles.calendarDayTextActivity,
+          ]}
+        >
+          {day}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -297,7 +300,7 @@ export function ProgressScreen(): React.JSX.Element {
           {/* Legend */}
           <View style={styles.legend}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.calendarDayDot]} />
+              <View style={styles.legendDot} />
               <Text style={styles.legendText}>学習した日</Text>
             </View>
           </View>
@@ -433,9 +436,15 @@ const styles = StyleSheet.create({
     width: '14.28%',
     aspectRatio: 1,
   },
-  calendarDayToday: {
-    backgroundColor: Colors.primaryLight,
-    borderRadius: BorderRadius.full,
+  calendarDayInner: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+  },
+  calendarDayInnerToday: {
+    backgroundColor: Colors.primary,
   },
   calendarDayText: {
     fontSize: FontSizes.md,
@@ -443,15 +452,14 @@ const styles = StyleSheet.create({
   },
   calendarDayTextToday: {
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.card,
   },
-  calendarDayDot: {
-    position: 'absolute',
-    bottom: 4,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  calendarDayInnerActivity: {
     backgroundColor: Colors.success,
+  },
+  calendarDayTextActivity: {
+    fontWeight: '600',
+    color: Colors.card,
   },
   legend: {
     flexDirection: 'row',
@@ -464,10 +472,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   legendDot: {
-    position: 'relative',
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: Colors.success,
   },
   legendText: {
     fontSize: FontSizes.sm,

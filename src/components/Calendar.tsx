@@ -70,27 +70,28 @@ function CalendarDay({
 
   return (
     <Pressable
-      style={[
-        styles.dayContainer,
-        isToday && styles.dayContainerToday,
-      ]}
+      style={styles.dayContainer}
       onPress={onPress}
       disabled={!isCurrentMonth}
     >
-      <Text
-        style={[
-          styles.dayText,
-          !isCurrentMonth && styles.dayTextOtherMonth,
-          isToday && styles.dayTextToday,
-          isSunday && isCurrentMonth && styles.dayTextSunday,
-          isSaturday && isCurrentMonth && styles.dayTextSaturday,
-        ]}
-      >
-        {dayNumber}
-      </Text>
-      {hasActivity && isCurrentMonth && (
-        <View style={styles.activityDot} />
-      )}
+      <View style={[
+        styles.dayInner,
+        isToday && styles.dayInnerToday,
+        hasActivity && isCurrentMonth && !isToday && styles.dayInnerActivity,
+      ]}>
+        <Text
+          style={[
+            styles.dayText,
+            !isCurrentMonth && styles.dayTextOtherMonth,
+            isToday && styles.dayTextToday,
+            hasActivity && isCurrentMonth && !isToday && styles.dayTextActivity,
+            isSunday && isCurrentMonth && !isToday && !hasActivity && styles.dayTextSunday,
+            isSaturday && isCurrentMonth && !isToday && !hasActivity && styles.dayTextSaturday,
+          ]}
+        >
+          {dayNumber}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -226,7 +227,7 @@ export function Calendar({
       {/* Legend */}
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
+          <View style={[styles.legendDot, { backgroundColor: Colors.success }]} />
           <Text style={styles.legendText}>学習した日</Text>
         </View>
       </View>
@@ -297,10 +298,16 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: BorderRadius.sm,
   },
-  dayContainerToday: {
-    backgroundColor: Colors.primaryLight,
+  dayInner: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+  },
+  dayInnerToday: {
+    backgroundColor: Colors.primary,
   },
   dayText: {
     fontSize: FontSizes.md,
@@ -310,7 +317,7 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
   },
   dayTextToday: {
-    color: Colors.primary,
+    color: Colors.card,
     fontWeight: '700',
   },
   dayTextSunday: {
@@ -319,13 +326,12 @@ const styles = StyleSheet.create({
   dayTextSaturday: {
     color: Colors.primary,
   },
-  activityDot: {
-    position: 'absolute',
-    bottom: 4,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
+  dayInnerActivity: {
+    backgroundColor: Colors.success,
+  },
+  dayTextActivity: {
+    color: Colors.card,
+    fontWeight: '600',
   },
   legend: {
     flexDirection: 'row',
