@@ -230,38 +230,13 @@ export function ProgressScreen(): React.JSX.Element {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Stats Section */}
+        {/* Today's Progress */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>【統計】</Text>
-          <View style={styles.statsGrid}>
-            <StatsCard
-              title="総単語"
-              value={stats.totalWords}
-              icon="📚"
-            />
-            <StatsCard
-              title="既読"
-              value={stats.readWords}
-              icon="✅"
-            />
-            <StatsCard
-              title="既読率"
-              value={`${stats.readPercentage}%`}
-              icon="📊"
-            />
-            <StatsCard
-              title="今週の学習日"
-              value={`${stats.thisWeekDays}日`}
-              icon="📅"
-            />
-          </View>
-
-          <View style={styles.streakContainer}>
-            <StatsCard
-              title="連続学習日数"
-              value={`${stats.streak}日`}
-              icon="🔥"
-            />
+          <View style={styles.todayProgress}>
+            <Text style={styles.todayProgressTitle}>今日の進捗</Text>
+            <Text style={styles.todayProgressValue}>
+              {stats.todayCount}個の単語を学習
+            </Text>
           </View>
         </View>
 
@@ -306,13 +281,38 @@ export function ProgressScreen(): React.JSX.Element {
           </View>
         </View>
 
-        {/* Today's Progress */}
+        {/* Stats Section */}
         <View style={styles.section}>
-          <View style={styles.todayProgress}>
-            <Text style={styles.todayProgressTitle}>今日の進捗</Text>
-            <Text style={styles.todayProgressValue}>
-              {stats.todayCount}個の単語を学習
-            </Text>
+          <Text style={styles.sectionTitle}>【統計】</Text>
+          <View style={styles.statsGrid}>
+            <StatsCard
+              title="総単語"
+              value={stats.totalWords}
+              icon="📚"
+            />
+            <StatsCard
+              title="既読"
+              value={stats.readWords}
+              icon="✅"
+            />
+            <StatsCard
+              title="既読率"
+              value={`${stats.readPercentage}%`}
+              icon="📊"
+            />
+            <StatsCard
+              title="今週の学習日"
+              value={`${stats.thisWeekDays}日`}
+              icon="📅"
+            />
+          </View>
+
+          <View style={styles.streakContainer}>
+            <StatsCard
+              title="連続学習日数"
+              value={`${stats.streak}日`}
+              icon="🔥"
+            />
           </View>
         </View>
       </ScrollView>

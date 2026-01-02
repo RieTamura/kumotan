@@ -624,6 +624,88 @@ todayProgressValue: {
 
 ---
 
+## 7. 進捗ページのレイアウト順序の問題
+
+### 発生日
+2026年1月2日
+
+### 症状
+- 進捗ページのコンテンツが「統計」→「カレンダー」→「今日の進捗」の順序で表示されていた
+- 最も重要な「今日の進捗」が一番下にあり、ユーザーがスクロールしないと見えない
+- レイアウトの優先順位が使いやすさを考慮していなかった
+
+### 原因
+ProgressScreen.tsxのScrollView内のセクション配置順序が、情報の重要度や使用頻度を考慮していなかった。
+
+### 解決策
+
+**ProgressScreen.tsxの修正：**
+
+ScrollView内のセクション順序を以下のように変更：
+
+```typescript
+// 変更前の順序
+<ScrollView ...>
+  {/* Stats Section */}
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>【統計】</Text>
+    ...
+  </View>
+
+  {/* Calendar Section */}
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>【カレンダー】</Text>
+    ...
+  </View>
+
+  {/* Today's Progress */}
+  <View style={styles.section}>
+    <View style={styles.todayProgress}>
+      <Text style={styles.todayProgressTitle}>今日の進捗</Text>
+      ...
+    </View>
+  </View>
+</ScrollView>
+
+// 変更後の順序
+<ScrollView ...>
+  {/* Today's Progress */}
+  <View style={styles.section}>
+    <View style={styles.todayProgress}>
+      <Text style={styles.todayProgressTitle}>今日の進捗</Text>
+      ...
+    </View>
+  </View>
+
+  {/* Calendar Section */}
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>【カレンダー】</Text>
+    ...
+  </View>
+
+  {/* Stats Section */}
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>【統計】</Text>
+    ...
+  </View>
+</ScrollView>
+```
+
+### 最終的なレイアウト順序
+1. **今日の進捗** - ページトップに配置（スクロール不要で即座に確認可能）
+2. **カレンダー** - 学習履歴の視覚的な確認に便利
+3. **統計** - 詳細な数値情報（必要に応じてスクロールして確認）
+
+### 関連ファイル
+- `src/screens/ProgressScreen.tsx` - 進捗画面
+
+### 教訓
+- ユーザーインターフェースでは、最も重要な情報を最初に配置する
+- 使用頻度の高い情報は、スクロールせずに見える位置（above the fold）に配置する
+- レイアウトの優先順位は、ユーザーの行動パターンと情報の重要度を考慮して決定する
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：
