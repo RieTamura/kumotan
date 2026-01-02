@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Image,
   Pressable,
-  GestureResponderEvent,
 } from 'react-native';
 import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
@@ -30,6 +29,37 @@ interface PostCardProps {
 const DEFAULT_AVATAR = 'https://cdn.bsky.app/img/avatar/plain/did:plc:default/avatar@jpeg';
 
 /**
+ * Token type for text parsing
+ */
+interface TextToken {
+  text: string;
+  isEnglishWord: boolean;
+  index: number;
+}
+
+/**
+ * Parse text into tokens (words and non-words)
+ */
+function parseTextIntoTokens(text: string): TextToken[] {
+  const tokens: TextToken[] = [];
+  // Match English words or any other characters/sequences
+  const regex = /([a-zA-Z][a-zA-Z'-]*)|([^a-zA-Z]+)/g;
+  let match;
+  let index = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    const isEnglishWord = match[1] !== undefined;
+    tokens.push({
+      text: match[0],
+      isEnglishWord,
+      index: index++,
+    });
+  }
+
+  return tokens;
+}
+
+/**
  * PostCard Component
  */
 export function PostCard({ post, onWordSelect }: PostCardProps): React.JSX.Element {
@@ -44,30 +74,15 @@ export function PostCard({ post, onWordSelect }: PostCardProps): React.JSX.Eleme
   }, []);
 
   /**
-   * Handle long press on text to select a word
+   * Handle word long press - triggered on the specific word element
    */
-  const handleLongPress = useCallback(
-    (event: GestureResponderEvent) => {
-      // Get the pressed position
-      const { locationX, locationY } = event.nativeEvent;
-
-      // For now, we'll show a simple word extraction
-      // In a real implementation, you'd use text layout measurements
-      // to determine which word was pressed
-      const words = post.text.split(/\s+/).filter((word) => {
-        // Filter to only English words (basic check)
-        return /^[a-zA-Z][a-zA-Z'-]*$/.test(word);
-      });
-
-      if (words.length > 0 && onWordSelect) {
-        // For demo purposes, show the first English word
-        // In production, implement proper word detection at touch position
-        const word = words[0];
-        setSelectedWord(word);
-        onWordSelect(word, post.uri, post.text);
-      }
+  const handleWordLongPress = useCallback(
+    (word: string) => {
+      if (!onWordSelect) return;
+      setSelectedWord(word);
+      onWordSelect(word, post.uri, post.text);
     },
-    [post.text, post.uri, onWordSelect]
+    [post.uri, post.text, onWordSelect]
   );
 
   /**
@@ -78,27 +93,29 @@ export function PostCard({ post, onWordSelect }: PostCardProps): React.JSX.Eleme
   }, []);
 
   /**
-   * Render post text with potential highlighting
+   * Render post text with touchable words
    */
   const renderText = () => {
-    if (!selectedWord) {
-      return <Text style={styles.postText}>{post.text}</Text>;
-    }
-
-    // Highlight selected word
-    const parts = post.text.split(new RegExp(`(${selectedWord})`, 'gi'));
+    const tokens = parseTextIntoTokens(post.text);
 
     return (
       <Text style={styles.postText}>
-        {parts.map((part, index) =>
-          part.toLowerCase() === selectedWord.toLowerCase() ? (
-            <Text key={index} style={styles.highlightedWord}>
-              {part}
-            </Text>
-          ) : (
-            <Text key={index}>{part}</Text>
-          )
-        )}
+        {tokens.map((token) => {
+          if (token.isEnglishWord) {
+            const isSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
+            return (
+              <Text
+                key={token.index}
+                style={isSelected ? styles.highlightedWord : styles.selectableWord}
+                onLongPress={() => handleWordLongPress(token.text)}
+                suppressHighlighting={false}
+              >
+                {token.text}
+              </Text>
+            );
+          }
+          return <Text key={token.index}>{token.text}</Text>;
+        })}
       </Text>
     );
   };
@@ -107,8 +124,6 @@ export function PostCard({ post, onWordSelect }: PostCardProps): React.JSX.Eleme
     <Pressable
       style={styles.container}
       onPress={handlePress}
-      onLongPress={handleLongPress}
-      delayLongPress={500}
     >
       {/* Author row */}
       <View style={styles.authorRow}>
@@ -206,6 +221,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     color: Colors.text,
     lineHeight: 24,
+  },
+  selectableWord: {
+    // Selectable words have same style as regular text but are touchable
   },
   highlightedWord: {
     backgroundColor: Colors.primaryLight,
