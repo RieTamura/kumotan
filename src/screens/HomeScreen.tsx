@@ -23,7 +23,9 @@ import { PostCard } from '../components/PostCard';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { Loading } from '../components/common/Loading';
 import { Button } from '../components/common/Button';
+import { WordPopup } from '../components/WordPopup';
 import { TimelinePost } from '../types/bluesky';
+import { addWord } from '../services/database/words';
 
 /**
  * Word popup state interface
@@ -94,24 +96,35 @@ export function HomeScreen(): React.JSX.Element {
   /**
    * Handle add word to vocabulary
    */
-  const handleAddWord = useCallback(async () => {
-    // TODO: Implement word addition with API calls
-    Alert.alert(
-      '単語を追加',
-      `"${wordPopup.word}" を単語帳に追加しますか？`,
-      [
-        { text: 'キャンセル', style: 'cancel' },
-        {
-          text: '追加',
-          onPress: () => {
-            // TODO: Call word service to add word
-            Alert.alert('成功', '単語を追加しました！');
-            closeWordPopup();
-          },
-        },
-      ]
-    );
-  }, [wordPopup.word, closeWordPopup]);
+  const handleAddWord = useCallback(
+    async (
+      word: string,
+      japanese: string | null,
+      definition: string | null,
+      postUri: string | null,
+      postText: string | null
+    ) => {
+      try {
+        const result = await addWord(
+          word,
+          japanese ?? undefined,
+          definition ?? undefined,
+          postUri ?? undefined,
+          postText ?? undefined
+        );
+
+        if (result.success) {
+          Alert.alert('成功', '単語を追加しました！');
+        } else {
+          Alert.alert('エラー', result.error.message);
+        }
+      } catch (error) {
+        Alert.alert('エラー', '単語の追加に失敗しました');
+        console.error('Failed to add word:', error);
+      }
+    },
+    []
+  );
 
   /**
    * Handle end reached for infinite scroll
@@ -274,45 +287,14 @@ export function HomeScreen(): React.JSX.Element {
         windowSize={5}
       />
 
-      <Modal
+      <WordPopup
         visible={wordPopup.visible}
-        transparent
-        animationType="slide"
-        onRequestClose={closeWordPopup}
-      >
-        <Pressable style={styles.modalOverlay} onPress={closeWordPopup}>
-          <Pressable style={styles.modalContent} onPress={() => {}}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalWord}>{wordPopup.word}</Text>
-
-            <View style={styles.modalSection}>
-              <Text style={styles.modalSectionTitle}>日本語訳</Text>
-              <Text style={styles.modalSectionContent}>読み込み中...</Text>
-            </View>
-
-            <View style={styles.modalSection}>
-              <Text style={styles.modalSectionTitle}>英語定義</Text>
-              <Text style={styles.modalSectionContent}>読み込み中...</Text>
-            </View>
-
-            <View style={styles.modalButtons}>
-              <Button
-                title="単語帳に追加"
-                onPress={handleAddWord}
-                fullWidth
-                size="large"
-              />
-              <Button
-                title="キャンセル"
-                onPress={closeWordPopup}
-                variant="ghost"
-                fullWidth
-                style={styles.cancelButton}
-              />
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        word={wordPopup.word}
+        postUri={wordPopup.postUri}
+        postText={wordPopup.postText}
+        onClose={closeWordPopup}
+        onAddToWordList={handleAddWord}
+      />
     </SafeAreaView>
   );
 }

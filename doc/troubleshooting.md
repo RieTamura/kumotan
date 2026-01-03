@@ -706,6 +706,181 @@ ScrollView内のセクション順序を以下のように変更：
 
 ---
 
+## 8. 単語登録ポップアップで辞書APIから英語定義が取得できない問題
+
+### 発生日
+2026年1月4日
+
+### 症状
+- 投稿文の単語を長押しして選択すると、単語登録ポップアップが表示される
+- ポップアップに単語名は表示されるが、「日本語訳」と「英語の定義」が「読み込み中...」のままで、いつまでも表示されない
+- Free Dictionary APIとDeepL APIは正常に動作しており、直接APIを叩くとデータが取得できることを確認済み
+- デバッグコンソールに追加したログも全く表示されない
+
+### 調査過程
+
+1. **WordPopup.tsxの確認とデバッグログ追加** - 最初にWordPopupコンポーネントにデバッグログを追加したが、ログが全く表示されなかった
+
+2. **useEffectの依存配列の修正** - `fetchWordData`関数がuseEffectの依存配列に含まれていなかったため追加したが、それでも動作しなかった
+
+3. **APIの動作確認** - ターミナルから直接APIを叩いて、Free Dictionary APIが正常に動作することを確認した
+
+4. **HomeScreen.tsxの確認** - HomeScreenを確認したところ、**WordPopupコンポーネントを全く使用していない**ことが判明。独自のModalを実装していた
+
+### 原因
+- HomeScreen.tsxでWordPopupコンポーネントをインポートもレンダリングもしていなかった
+- 代わりに、HomeScreen.tsx内に独自の`<Modal>`コンポーネントが実装されており、この中で「読み込み中...」がハードコードされていた
+- WordPopup.tsxに追加したデバッグログや修正が全く反映されなかったのは、そもそもこのコンポーネントが使用されていなかったため
+
+### 解決策
+
+**1. HomeScreen.tsxの修正 - インポートの追加：**
+
+```typescript
+// 追加
+import { WordPopup } from '../components/WordPopup';
+import { addWord } from '../services/database/words';
+```
+
+**2. handleAddWord関数の修正：**
+
+WordPopupコンポーネントの`onAddToWordList` propsに対応する形に修正：
+
+```typescript
+// 変更前 - 独自実装
+const handleAddWord = useCallback(async () => {
+  Alert.alert(
+    '単語を追加',
+    `"${wordPopup.word}" を単語帳に追加しますか？`,
+    [
+      { text: 'キャンセル', style: 'cancel' },
+      {
+        text: '追加',
+        onPress: () => {
+          Alert.alert('成功', '単語を追加しました！');
+          closeWordPopup();
+        },
+      },
+    ]
+  );
+}, [wordPopup.word, closeWordPopup]);
+
+// 変更後 - WordPopup対応
+const handleAddWord = useCallback(
+  async (
+    word: string,
+    japanese: string | null,
+    definition: string | null,
+    postUri: string | null,
+    postText: string | null
+  ) => {
+    try {
+      const result = await addWord(
+        word,
+        japanese ?? undefined,
+        definition ?? undefined,
+        postUri ?? undefined,
+        postText ?? undefined
+      );
+
+      if (result.success) {
+        Alert.alert('成功', '単語を追加しました！');
+      } else {
+        Alert.alert('エラー', result.error.message);
+      }
+    } catch (error) {
+      Alert.alert('エラー', '単語の追加に失敗しました');
+      console.error('Failed to add word:', error);
+    }
+  },
+  []
+);
+```
+
+**3. 独自実装のModalをWordPopupコンポーネントに置き換え：**
+
+```typescript
+// 変更前 - 独自のModal実装（40行以上）
+<Modal
+  visible={wordPopup.visible}
+  transparent
+  animationType="slide"
+  onRequestClose={closeWordPopup}
+>
+  <Pressable style={styles.modalOverlay} onPress={closeWordPopup}>
+    <Pressable style={styles.modalContent} onPress={() => {}}>
+      <View style={styles.modalHandle} />
+      <Text style={styles.modalWord}>{wordPopup.word}</Text>
+
+      <View style={styles.modalSection}>
+        <Text style={styles.modalSectionTitle}>日本語訳</Text>
+        <Text style={styles.modalSectionContent}>読み込み中...</Text>
+      </View>
+
+      <View style={styles.modalSection}>
+        <Text style={styles.modalSectionTitle}>英語定義</Text>
+        <Text style={styles.modalSectionContent}>読み込み中...</Text>
+      </View>
+
+      <View style={styles.modalButtons}>
+        <Button ... />
+        <Button ... />
+      </View>
+    </Pressable>
+  </Pressable>
+</Modal>
+
+// 変更後 - WordPopupコンポーネントを使用
+<WordPopup
+  visible={wordPopup.visible}
+  word={wordPopup.word}
+  postUri={wordPopup.postUri}
+  postText={wordPopup.postText}
+  onClose={closeWordPopup}
+  onAddToWordList={handleAddWord}
+/>
+```
+
+**4. WordPopup.tsxの品詞表示の修正：**
+
+品詞（noun, verb等）の文字色が見づらかったため、白色に変更：
+
+```typescript
+// 変更前
+posText: {
+  fontSize: FontSizes.xs,
+  color: Colors.primary,  // 青色
+  fontWeight: '600',
+},
+
+// 変更後
+posText: {
+  fontSize: FontSizes.xs,
+  color: '#FFFFFF',  // 白色
+  fontWeight: '600',
+},
+```
+
+### 実装のポイント
+- WordPopupコンポーネントは既に完全に実装されており、辞書APIとDeepL APIの取得処理も含まれていた
+- HomeScreenで独自実装していたModalを削除し、WordPopupコンポーネントを使用することで、40行以上のコードを削減
+- `addWord`データベース関数を使用して、実際に単語をデータベースに保存する機能も追加
+
+### 関連ファイル
+- `src/screens/HomeScreen.tsx` - ホーム画面（主な修正箇所）
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント（品詞の色を修正）
+- `src/services/dictionary/freeDictionary.ts` - Free Dictionary API連携
+- `src/services/dictionary/deepl.ts` - DeepL API連携
+- `src/services/database/words.ts` - 単語データベース操作
+
+### 教訓
+- 修正が反映されない場合、そのコンポーネントが実際に使用されているか必ず確認する
+- プロジェクト内に同じ機能の独自実装と共通コンポーネントが混在している場合がある
+- 共通コンポーネントとして作成された機能は、積極的に再利用してコードの重複を避ける
+- デバッグログが表示されない場合、コンポーネント自体がレンダリングされていない可能性を疑う
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

@@ -118,9 +118,13 @@ export function WordPopup({
    * Fetch word data when popup opens
    */
   useEffect(() => {
+    console.log(`WordPopup useEffect: visible=${visible}, word="${word}"`);
+    
     if (visible && word) {
+      console.log('WordPopup useEffect: Calling fetchWordData');
       fetchWordData();
     } else {
+      console.log('WordPopup useEffect: Resetting state');
       // Reset state when closed
       setDefinition(null);
       setTranslation(null);
@@ -128,7 +132,7 @@ export function WordPopup({
       setTranslationError(null);
       setIsAdding(false);
     }
-  }, [visible, word]);
+  }, [visible, word, fetchWordData]);
 
   /**
    * Check API key availability
@@ -141,26 +145,44 @@ export function WordPopup({
    * Fetch definition and translation
    */
   const fetchWordData = useCallback(async () => {
-    if (!word) return;
+    if (!word) {
+      console.log('WordPopup: No word provided');
+      return;
+    }
+
+    console.log(`WordPopup: Fetching data for word "${word}"`);
 
     // Reset errors
     setDefinitionError(null);
     setTranslationError(null);
 
     // Fetch definition
+    console.log(`WordPopup: Starting dictionary lookup for "${word}"`);
     updateLoading('definition', true);
-    const defResult = await lookupWord(word);
-    updateLoading('definition', false);
+    
+    try {
+      const defResult = await lookupWord(word);
+      updateLoading('definition', false);
+      
+      console.log(`WordPopup: Dictionary result:`, defResult);
 
-    if (defResult.success) {
-      setDefinition(defResult.data);
-    } else {
-      setDefinitionError(defResult.error.message);
+      if (defResult.success) {
+        console.log(`WordPopup: Definition found:`, defResult.data);
+        setDefinition(defResult.data);
+      } else {
+        console.log(`WordPopup: Definition error:`, defResult.error.message);
+        setDefinitionError(defResult.error.message);
+      }
+    } catch (error) {
+      console.error('WordPopup: Unexpected error in lookupWord:', error);
+      updateLoading('definition', false);
+      setDefinitionError('予期しないエラーが発生しました');
     }
 
     // Fetch translation (only if API key is set)
     const hasKey = await hasApiKey();
     setApiKeyAvailable(hasKey);
+    console.log(`WordPopup: API key available: ${hasKey}`);
 
     if (hasKey) {
       updateLoading('translation', true);
@@ -371,7 +393,7 @@ const styles = StyleSheet.create({
   },
   posText: {
     fontSize: FontSizes.xs,
-    color: Colors.primary,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   section: {
