@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { StoredAuth } from '../types/bluesky';
+import { StoredAuth, BlueskyProfile } from '../types/bluesky';
 import * as AuthService from '../services/bluesky/auth';
 import { Result } from '../types/result';
 import { AppError } from '../utils/errors';
@@ -21,6 +21,8 @@ interface AuthState {
     did: string;
   } | null;
   error: AppError | null;
+  profile: BlueskyProfile | null;
+  isProfileLoading: boolean;
 
   // Actions
   login: (identifier: string, appPassword: string) => Promise<Result<void, AppError>>;
@@ -28,6 +30,8 @@ interface AuthState {
   checkAuth: () => Promise<boolean>;
   resumeSession: () => Promise<Result<void, AppError>>;
   clearError: () => void;
+  fetchProfile: () => Promise<Result<BlueskyProfile, AppError>>;
+  refreshProfile: () => Promise<void>;
 }
 
 /**
@@ -39,6 +43,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
   user: null,
   error: null,
+  profile: null,
+  isProfileLoading: false,
 
   /**
    * Login with identifier and app password
@@ -58,6 +64,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         },
         error: null,
       });
+      
+      // Fetch profile automatically after login
+      get().fetchProfile();
+      
       return { success: true, data: undefined };
     } else {
       set({
@@ -81,6 +91,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isLoading: false,
       user: null,
       error: null,
+      profile: null,
+      isProfileLoading: false,
     });
   },
 
@@ -141,6 +153,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           },
           error: null,
         });
+        
+        // Fetch profile automatically after session resume
+        get().fetchProfile();
       }
       return { success: true, data: undefined };
     } else {
@@ -160,6 +175,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearError: () => {
     set({ error: null });
   },
+
+  /**
+   * Fetch user profile
+   * Returns cached profile if available, otherwise fetches from API
+   */
+  fetchProfile: async () => {
+    const currentProfile = get().profile;
+    
+    // Return cached profile if available
+    if (currentProfile) {
+      return { success: true, data: currentProfile };
+    }
+    
+    set({ isProfileLoading: true });
+    
+    const result = await AuthService.getProfile();
+    
+    if (result.success) {
+      set({
+        profile: result.data,
+        isProfileLoading: false,
+      });
+      return result;
+    } else {
+      set({ isProfileLoading: false });
+      return result;
+    }
+  },
+
+  /**
+   * Refresh user profile from API
+   * Forces a fresh fetch regardless of cache
+   */
+  refreshProfile: async () => {
+    set({ isProfileLoading: true });
+    
+    const result = await AuthService.getProfile();
+    
+    if (result.success) {
+      set({
+        profile: result.data,
+        isProfileLoading: false,
+      });
+    } else {
+      set({ isProfileLoading: false });
+    }
+  },
 }));
 
 /**
@@ -169,3 +231,5 @@ export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenti
 export const useIsAuthLoading = () => useAuthStore((state) => state.isLoading);
 export const useAuthUser = () => useAuthStore((state) => state.user);
 export const useAuthError = () => useAuthStore((state) => state.error);
+export const useAuthProfile = () => useAuthStore((state) => state.profile);
+export const useIsProfileLoading = () => useAuthStore((state) => state.isProfileLoading);

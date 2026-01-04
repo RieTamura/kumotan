@@ -1878,6 +1878,292 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
 
 ---
 
+## 18. 設定ページのアカウント表示で毎回フェッチされる問題
+
+### 発生日
+2026年1月4日
+
+### 症状
+- 設定ページを開くたびにアカウントのプロフィール情報（アバター、表示名、フォロワー数など）が毎回フェッチされる
+- ログに「Profile fetched: connectobasan.com」が繰り返し表示される
+- 画面を開くたびにローディング状態が表示され、見づらい
+
+### 調査過程
+
+1. **SettingsScreen.tsxの確認** - 画面フォーカス時に毎回`getProfile()`を呼び出してプロフィールを取得していた
+
+2. **キャッシュ機能の設計** - 認証情報と同様に、プロフィール情報もauthStoreで管理し、キャッシュすることで毎回のフェッチを避けることにした
+
+### 原因
+- SettingsScreenで`useEffect`内の`fetchProfile()`が画面フォーカス時に毎回実行されていた
+- プロフィール情報がローカルstateで管理されており、画面を離れるとリセットされていた
+- プロフィールデータをアプリ全体で共有する仕組みがなかった
+
+### 解決策
+
+**1. authStore.tsにプロフィールキャッシュ機能を追加：**
+
+```typescript
+// AuthStateインターフェースに追加
+interface AuthState {
+  // 既存のstate
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  user: { handle: string; did: string; } | null;
+  error: AppError | null;
+  
+  // プロフィールキャッシュを追加
+  profile: BlueskyProfile | null;
+  isProfileLoading: boolean;
+
+  // 既存のアクション
+  login: (identifier: string, appPassword: string) => Promise<Result<void, AppError>>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<boolean>;
+  resumeSession: () => Promise<Result<void, AppError>>;
+  clearError: () => void;
+  
+  // プロフィールアクションを追加
+  fetchProfile: () => Promise<Result<BlueskyProfile, AppError>>;
+  refreshProfile: () => Promise<void>;
+}
+
+// 初期stateに追加
+export const useAuthStore = create<AuthState>((set, get) => ({
+  // 既存の初期state
+  isAuthenticated: false,
+  isLoading: true,
+  user: null,
+  error: null,
+  
+  // プロフィールの初期state
+  profile: null,
+  isProfileLoading: false,
+  
+  // fetchProfile実装 - キャッシュがあればそれを返す
+  fetchProfile: async () => {
+    const currentProfile = get().profile;
+    
+    // Return cached profile if available
+    if (currentProfile) {
+      return { success: true, data: currentProfile };
+    }
+    
+    set({ isProfileLoading: true });
+    const result = await AuthService.getProfile();
+    
+    if (result.success) {
+      set({ profile: result.data, isProfileLoading: false });
+      return result;
+    } else {
+      set({ isProfileLoading: false });
+      return result;
+    }
+  },
+  
+  // refreshProfile実装 - 強制的に最新データを取得
+  refreshProfile: async () => {
+    set({ isProfileLoading: true });
+    const result = await AuthService.getProfile();
+    
+    if (result.success) {
+      set({ profile: result.data, isProfileLoading: false });
+    } else {
+      set({ isProfileLoading: false });
+    }
+  },
+}));
+
+// セレクターフック追加
+export const useAuthProfile = () => useAuthStore((state) => state.profile);
+export const useIsProfileLoading = () => useAuthStore((state) => state.isProfileLoading);
+```
+
+**2. ログイン時とセッション復元時に自動でプロフィールを取得：**
+
+```typescript
+// login関数を修正
+login: async (identifier: string, appPassword: string) => {
+  set({ isLoading: true, error: null });
+  const result = await AuthService.login(identifier, appPassword);
+
+  if (result.success) {
+    set({
+      isAuthenticated: true,
+      isLoading: false,
+      user: { handle: result.data.handle, did: result.data.did },
+      error: null,
+    });
+    
+    // Fetch profile automatically after login
+    get().fetchProfile();
+    
+    return { success: true, data: undefined };
+  } else {
+    set({
+      isAuthenticated: false,
+      isLoading: false,
+      user: null,
+      error: result.error,
+    });
+    return result;
+  }
+},
+
+// resumeSession関数を修正
+resumeSession: async () => {
+  set({ isLoading: true, error: null });
+  const result = await AuthService.resumeSession();
+
+  if (result.success) {
+    const storedAuth = await AuthService.getStoredAuth();
+    if (storedAuth) {
+      set({
+        isAuthenticated: true,
+        isLoading: false,
+        user: { handle: storedAuth.handle, did: storedAuth.did },
+        error: null,
+      });
+      
+      // Fetch profile automatically after session resume
+      get().fetchProfile();
+    }
+    return { success: true, data: undefined };
+  } else {
+    set({
+      isAuthenticated: false,
+      isLoading: false,
+      user: null,
+      error: result.error,
+    });
+    return result;
+  }
+},
+
+// logout関数でプロフィールもクリア
+logout: async () => {
+  set({ isLoading: true });
+  await AuthService.logout();
+  set({
+    isAuthenticated: false,
+    isLoading: false,
+    user: null,
+    error: null,
+    profile: null,
+    isProfileLoading: false,
+  });
+},
+```
+
+**3. SettingsScreen.tsxをストアのキャッシュを使用するように修正：**
+
+```typescript
+// 変更前 - ローカルstateで管理
+import { getProfile } from '../services/bluesky/auth';
+import { BlueskyProfile } from '../types/bluesky';
+
+export function SettingsScreen(): React.JSX.Element {
+  const { user, logout, isLoading } = useAuthStore();
+  const [profile, setProfile] = useState<BlueskyProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setIsLoadingProfile(true);
+      const result = await getProfile();
+      if (result.success) {
+        setProfile(result.data);
+      }
+      setIsLoadingProfile(false);
+    };
+
+    fetchProfile();
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchProfile();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  // ... rest of component
+  {isLoadingProfile ? (
+    <ActivityIndicator />
+  ) : (
+    // Display profile
+  )}
+}
+
+// 変更後 - ストアから取得
+export function SettingsScreen(): React.JSX.Element {
+  const { user, logout, isLoading, profile, isProfileLoading } = useAuthStore();
+  
+  // プロフィール取得のuseEffectは不要
+  
+  // ... rest of component
+  {isProfileLoading ? (
+    <ActivityIndicator />
+  ) : (
+    // Display profile
+  )}
+}
+```
+
+**4. エラー修正 - 変数名の不一致：**
+
+最初の実装で`isLoadingProfile`と`isProfileLoading`の名前が混在してエラーが発生したため、一貫して`isProfileLoading`を使用するように修正：
+
+```typescript
+// エラー: ReferenceError: Property 'isLoadingProfile' doesn't exist
+
+// 修正: 全て isProfileLoading に統一
+{isProfileLoading ? (
+  <View style={styles.accountLoading}>
+    <ActivityIndicator size="small" color={Colors.primary} />
+    <Text style={styles.accountLoadingText}>読み込み中...</Text>
+  </View>
+) : (
+  // Display profile
+)}
+```
+
+**5. 毎回フェッチされる問題の修正：**
+
+当初、画面フォーカス時に`refreshProfile()`を呼び出していたため、毎回APIフェッチが発生していた。この処理を削除し、ログイン時とセッション復元時のみ自動取得されるように変更：
+
+```typescript
+// 変更前 - 画面フォーカス時に毎回フェッチ
+useEffect(() => {
+  const unsubscribe = navigation.addListener('focus', () => {
+    refreshProfile();
+  });
+  return unsubscribe;
+}, [navigation, refreshProfile]);
+
+// 変更後 - フォーカス時の処理は不要
+// ログイン時とセッション復元時に既にプロフィールが取得されているため、
+// ストアから直接参照するだけで十分
+```
+
+### 実装のポイント
+- `fetchProfile()` - キャッシュがあればそれを返し、なければAPIから取得
+- `refreshProfile()` - 必要に応じて強制的に最新データを取得（将来的にプルトゥリフレッシュ機能などで使用可能）
+- ログイン時とセッション復元時に自動でプロフィールを取得するため、画面表示時は既にキャッシュされている
+- 設定画面ではストアからプロフィールを参照するだけで、追加のAPIコールは不要
+
+### 関連ファイル
+- `src/store/authStore.ts` - 認証ストア（プロフィールキャッシュを追加）
+- `src/screens/SettingsScreen.tsx` - 設定画面（ストアのキャッシュを使用）
+- `src/services/bluesky/auth.ts` - Bluesky認証サービス
+
+### 教訓
+- 頻繁に参照されるデータはストアでキャッシュすることで、不要なAPIコールを減らせる
+- 認証情報とプロフィール情報は密接に関連しているため、同じストアで管理するのが自然
+- キャッシュ機能では、初回取得（`fetchProfile`）と強制更新（`refreshProfile`）を分けて実装することで柔軟性が向上
+- 変数名の一貫性は重要で、命名規則が混在するとエラーの原因になる
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

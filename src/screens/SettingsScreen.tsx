@@ -24,8 +24,6 @@ import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/common/Button';
 import { hasApiKey } from '../services/dictionary/deepl';
 import { hasClientId } from '../services/dictionary/yahooJapan';
-import { getProfile } from '../services/bluesky/auth';
-import { BlueskyProfile } from '../types/bluesky';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 /**
@@ -98,36 +96,10 @@ function SettingsSection({
  */
 export function SettingsScreen(): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user, logout, isLoading } = useAuthStore();
+  const { user, logout, isLoading, profile, isProfileLoading } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
   const [yahooClientIdSet, setYahooClientIdSet] = useState(false);
-  const [profile, setProfile] = useState<BlueskyProfile | null>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-
-  /**
-   * Fetch user profile on mount and when screen gains focus
-   */
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setIsLoadingProfile(true);
-      const result = await getProfile();
-      if (result.success) {
-        setProfile(result.data);
-      } else {
-        console.error('Failed to load profile:', result.error);
-      }
-      setIsLoadingProfile(false);
-    };
-
-    fetchProfile();
-
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchProfile();
-    });
-
-    return unsubscribe;
-  }, [navigation]);
 
   /**
    * Check API key status on mount and when screen gains focus
@@ -260,7 +232,7 @@ export function SettingsScreen(): React.JSX.Element {
         {/* Account Section */}
         <SettingsSection title="アカウント">
           <View style={styles.accountInfo}>
-            {isLoadingProfile ? (
+            {isProfileLoading ? (
               <View style={styles.accountLoading}>
                 <ActivityIndicator size="small" color={Colors.primary} />
                 <Text style={styles.accountLoadingText}>読み込み中...</Text>
