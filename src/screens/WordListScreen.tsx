@@ -20,6 +20,7 @@ import { Word, WordFilter } from '../types/word';
 import { getWords, toggleReadStatus, deleteWord } from '../services/database/words';
 import { Loading } from '../components/common/Loading';
 import { Button } from '../components/common/Button';
+import { WordListItem } from '../components/WordListItem';
 
 /**
  * Filter options type
@@ -142,33 +143,21 @@ export function WordListScreen(): React.JSX.Element {
   }, []);
 
   /**
-   * Handle word tap to toggle read status
+   * Handle checkbox toggle (read status)
    */
-  const handleWordTap = useCallback(async (word: Word) => {
-    Alert.alert(
-      word.isRead ? '未読にする' : '既読にする',
-      `"${word.english}" を${word.isRead ? '未読' : '既読'}にしますか？`,
-      [
-        { text: 'キャンセル', style: 'cancel' },
-        {
-          text: 'OK',
-          onPress: async () => {
-            try {
-              const result = await toggleReadStatus(word.id);
-              if (result.success) {
-                // Reload words to reflect changes
-                await loadWords();
-              } else {
-                Alert.alert('エラー', result.error.message);
-              }
-            } catch (error) {
-              console.error('Failed to toggle read status:', error);
-              Alert.alert('エラー', '既読状態の更新に失敗しました');
-            }
-          },
-        },
-      ]
-    );
+  const handleToggleRead = useCallback(async (word: Word) => {
+    try {
+      const result = await toggleReadStatus(word.id);
+      if (result.success) {
+        // Reload words to reflect changes
+        await loadWords();
+      } else {
+        Alert.alert('エラー', result.error.message);
+      }
+    } catch (error) {
+      console.error('Failed to toggle read status:', error);
+      Alert.alert('エラー', '既読状態の更新に失敗しました');
+    }
   }, [loadWords]);
 
   /**
@@ -209,32 +198,12 @@ export function WordListScreen(): React.JSX.Element {
   const renderWordItem = useCallback(
     ({ item }: { item: Word }) => (
       <View style={styles.wordCard}>
-        <Pressable
-          style={styles.wordCardContent}
-          onPress={() => handleWordTap(item)}
-        >
-          <View style={styles.wordHeader}>
-            <View style={styles.checkboxContainer}>
-              <View
-                style={[
-                  styles.checkbox,
-                  item.isRead && styles.checkboxChecked,
-                ]}
-              >
-                {item.isRead && <Check size={16} color={Colors.card} />}
-              </View>
-            </View>
-            <View style={styles.wordContent}>
-              <Text style={styles.englishText}>{item.english}</Text>
-              <Text style={styles.japaneseText}>
-                {item.japanese || '翻訳なし'}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.dateText}>
-            {new Date(item.createdAt).toLocaleDateString('ja-JP')}
-          </Text>
-        </Pressable>
+        <View style={styles.wordCardWrapper}>
+          <WordListItem
+            word={item}
+            onToggleRead={handleToggleRead}
+          />
+        </View>
         <Pressable
           style={styles.deleteButton}
           onPress={() => handleWordDelete(item)}
@@ -244,7 +213,7 @@ export function WordListScreen(): React.JSX.Element {
         </Pressable>
       </View>
     ),
-    [handleWordTap, handleWordDelete]
+    [handleToggleRead, handleWordDelete]
   );
 
   /**
@@ -441,55 +410,14 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
     overflow: 'hidden',
   },
-  wordCardContent: {
+  wordCardWrapper: {
     flex: 1,
-    padding: Spacing.lg,
   },
   deleteButton: {
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     backgroundColor: Colors.backgroundSecondary,
-  },
-  wordHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  checkboxContainer: {
-    marginRight: Spacing.md,
-    paddingTop: 2,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.success,
-    borderColor: Colors.success,
-  },
-  wordContent: {
-    flex: 1,
-  },
-  englishText: {
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  japaneseText: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-  },
-  dateText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textTertiary,
-    marginTop: Spacing.sm,
-    textAlign: 'right',
   },
   emptyContainer: {
     flex: 1,

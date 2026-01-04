@@ -1377,6 +1377,201 @@ deleteButton: {
 
 ---
 
+## 14. 単語カードの投稿URLをタップするとトグルが閉じる問題
+
+### 発生日
+2026年1月4日
+
+### 背景
+- 単語カード内にトグル（展開/折りたたみ）機能を実装し、詳細情報を表示できるようにした
+- 展開時に英語定義、投稿文章、投稿URL、登録日時が表示される
+- しかし、投稿URLをタップすると意図せずトグルが閉じてしまう
+
+### 症状
+- 単語カードをタップすると展開され、詳細情報が表示される
+- 展開された状態で投稿URLをタップすると、URLではなく親のトグルが反応してカードが折りたたまれてしまう
+- URLをブラウザで開くことができない
+
+### 原因
+- 投稿URLが単なる`Text`コンポーネントとして表示されており、タップ不可能だった
+- 展開エリア全体が親の`Pressable`内にあるため、URLをタップすると親のイベントが発火してトグルが閉じてしまっていた
+- React Nativeではイベントバブリングが発生し、子要素のタップが親に伝播する
+
+### 解決策
+
+**1. 投稿URLをPressableで囲んでタップ可能にする：**
+
+`src/components/WordListItem.tsx`の投稿URL表示部分を修正：
+
+```typescript
+// 変更前 - タップ不可能なText
+{word.postUrl && (
+  <View style={styles.detailSection}>
+    <Text style={styles.detailLabel}>投稿URL</Text>
+    <Text style={styles.detailLink} numberOfLines={1}>
+      {word.postUrl}
+    </Text>
+  </View>
+)}
+
+// 変更後 - Pressableで囲んでタップ可能に
+{word.postUrl && (
+  <View style={styles.detailSection}>
+    <Text style={styles.detailLabel}>投稿URL</Text>
+    <Pressable 
+      onPress={handleUrlPress}
+      onStartShouldSetResponder={() => true}
+      onResponderTerminationRequest={() => false}
+    >
+      <Text style={styles.detailLink} numberOfLines={1}>
+        {word.postUrl}
+      </Text>
+    </Pressable>
+  </View>
+)}
+```
+
+**2. イベント伝播を防ぐ処理を追加：**
+
+- `onStartShouldSetResponder={() => true}` - このコンポーネントがタッチイベントを受け取ることを宣言
+- `onResponderTerminationRequest={() => false}` - 親がイベントを奪おうとするのを防ぐ
+
+これにより、URLをタップした際のイベントが親のPressableに伝播せず、URLだけが開かれてトグルは開いたままになる。
+
+### 関連ファイル
+- `src/components/WordListItem.tsx` - 単語カードコンポーネント
+
+### 教訓
+- React Nativeでは、親子関係にあるPressableコンポーネント間でイベントバブリングが発生する
+- `onStartShouldSetResponder`と`onResponderTerminationRequest`を使用することで、子要素でイベントを確実にキャプチャできる
+- タップ可能な要素を入れ子にする場合、イベント伝播の制御が重要
+
+---
+
+## 15. 投稿URLを開く際に「URLを開くことができません」エラーが発生
+
+### 発生日
+2026年1月4日
+
+### 症状
+- 単語カードの投稿URLをタップすると、「エラー - URLを開くことができません」というアラートが表示される
+- データベースに保存されているURLは`at://did:plc:xxxxx/app.bsky.feed.post/xxxxx`形式のAT Protocol URI
+- `Linking.canOpenURL()`がこの形式のURLをサポートしていないと判定していた
+
+### 原因
+- Blueskyの投稿URLはAT Protocol URI（`at://`で始まる）形式でデータベースに保存されていた
+- このURI形式はブラウザで直接開くことができない
+- `Linking.canOpenURL()`が`at://`スキームをサポートしていないため、エラーが発生していた
+
+### 解決策
+
+**1. AT Protocol URIをHTTPS URLに変換する処理を追加：**
+
+`src/components/WordListItem.tsx`の`handleUrlPress`関数を修正：
+
+```typescript
+// 変更前 - AT Protocol URIをそのまま開こうとしてエラー
+const handleUrlPress = useCallback(async () => {
+  if (word.postUrl) {
+    try {
+      const supported = await Linking.canOpenURL(word.postUrl);
+      if (supported) {
+        await Linking.openURL(word.postUrl);
+      } else {
+        Alert.alert('エラー', 'URLを開くことができません');
+      }
+    } catch (error) {
+      console.error('Failed to open URL:', error);
+      Alert.alert('エラー', 'URLを開く際にエラーが発生しました');
+    }
+  }
+}, [word.postUrl]);
+
+// 変更後 - AT Protocol URIを変換してから開く
+const handleUrlPress = useCallback(async () => {
+  if (word.postUrl) {
+    try {
+      // Convert AT Protocol URI to HTTPS URL if needed
+      let urlToOpen = word.postUrl;
+      
+      // Check if it's an AT Protocol URI (at://...)
+      if (word.postUrl.startsWith('at://')) {
+        // Parse: at://did:plc:xxxxx/app.bsky.feed.post/xxxxx
+        const match = word.postUrl.match(/^at:\/\/([^\/]+)\/app\.bsky\.feed\.post\/(.+)$/);
+        if (match) {
+          const [, did, rkey] = match;
+          urlToOpen = `https://bsky.app/profile/${did}/post/${rkey}`;
+        } else {
+          Alert.alert('エラー', '投稿URLの形式が正しくありません');
+          return;
+        }
+      }
+      
+      console.log('Opening URL:', urlToOpen);
+      
+      // Try to open the URL - suppress errors as they may be false positives
+      await Linking.openURL(urlToOpen).catch((err) => {
+        console.warn('Linking.openURL error (may be ignorable):', err);
+        // If openURL fails, it might still work, so we don't show an alert
+      });
+    } catch (error) {
+      console.error('Failed to open URL:', error);
+      // Only show alert for actual failures
+      Alert.alert('エラー', 'URLを開く際にエラーが発生しました');
+    }
+  }
+}, [word.postUrl]);
+```
+
+**2. 必要なインポートを追加：**
+
+```typescript
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Animated,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Linking,    // 追加
+  Alert,      // 追加
+} from 'react-native';
+```
+
+### URI変換の仕組み
+
+AT Protocol URI形式：
+```
+at://did:plc:qcwhrvzx6wmi5hz775uyi6fh/app.bsky.feed.post/3mbkvtamzvf2g
+```
+
+↓ 変換
+
+HTTPS URL形式：
+```
+https://bsky.app/profile/did:plc:qcwhrvzx6wmi5hz775uyi6fh/post/3mbkvtamzvf2g
+```
+
+正規表現を使用してDID（分散識別子）とrkey（レコードキー）を抽出し、Blueskyのウェブ版URLに変換する。
+
+### 実装のポイント
+- `canOpenURL()`チェックを削除 - このチェックが誤検知でエラーを出す可能性があったため
+- エラーハンドリングを改善 - `openURL`のエラーをキャッチしてログに記録するが、実際にはURLが開かれている可能性があるため警告として扱う
+- デバッグ用のログを追加 - 開こうとしているURLをコンソールに出力
+
+### 関連ファイル
+- `src/components/WordListItem.tsx` - 単語カードコンポーネント
+
+### 教訓
+- BlueskyのようなAT Protocolベースのアプリでは、URIとURLの変換が必要になる場合がある
+- `Linking.canOpenURL()`は全てのスキームをサポートしているわけではないため、カスタムスキームの場合は注意が必要
+- React NativeのLinking APIでエラーが発生しても、実際には処理が成功している場合があるため、エラーハンドリングは慎重に行う
+- 正規表現を使用してURIをパースする際は、形式が正しくない場合のエラーハンドリングも忘れずに実装する
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

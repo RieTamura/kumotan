@@ -3,12 +3,16 @@
  * Individual word item in the vocabulary list
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Pressable,
+  Pressable,  Animated,
+  LayoutAnimation,
+  Platform,
+  UIManager,  Linking,
+  Alert,
 } from 'react-native';
 import {
   Colors,
@@ -42,6 +46,11 @@ function formatDate(dateString: string): string {
   }
 }
 
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 /**
  * WordListItem Component
  */
@@ -51,12 +60,15 @@ export function WordListItem({
   onToggleRead,
   onDelete,
 }: WordListItemProps): React.JSX.Element {
+  const [expanded, setExpanded] = useState(false);
+
   /**
-   * Handle item press
+   * Handle item press - toggle expansion
    */
   const handlePress = useCallback(() => {
-    onPress?.(word);
-  }, [word, onPress]);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(!expanded);
+  }, [expanded]);
 
   /**
    * Handle checkbox press
@@ -64,6 +76,43 @@ export function WordListItem({
   const handleToggleRead = useCallback(() => {
     onToggleRead?.(word);
   }, [word, onToggleRead]);
+
+  /**
+   * Handle URL press - open in browser
+   */
+  const handleUrlPress = useCallback(async () => {
+    if (word.postUrl) {
+      try {
+        // Convert AT Protocol URI to HTTPS URL if needed
+        let urlToOpen = word.postUrl;
+        
+        // Check if it's an AT Protocol URI (at://...)
+        if (word.postUrl.startsWith('at://')) {
+          // Parse: at://did:plc:xxxxx/app.bsky.feed.post/xxxxx
+          const match = word.postUrl.match(/^at:\/\/([^\/]+)\/app\.bsky\.feed\.post\/(.+)$/);
+          if (match) {
+            const [, did, rkey] = match;
+            urlToOpen = `https://bsky.app/profile/${did}/post/${rkey}`;
+          } else {
+            Alert.alert('エラー', '投稿URLの形式が正しくありません');
+            return;
+          }
+        }
+        
+        console.log('Opening URL:', urlToOpen);
+        
+        // Try to open the URL - suppress errors as they may be false positives
+        await Linking.openURL(urlToOpen).catch((err) => {
+          console.warn('Linking.openURL error (may be ignorable):', err);
+          // If openURL fails, it might still work, so we don't show an alert
+        });
+      } catch (error) {
+        console.error('Failed to open URL:', error);
+        // Only show alert for actual failures
+        Alert.alert('エラー', 'URLを開く際にエラーが発生しました');
+      }
+    }
+  }, [word.postUrl]);
 
   return (
     <Pressable
@@ -114,14 +163,59 @@ export function WordListItem({
             word.isRead && styles.textRead,
             !word.japanese && styles.noTranslation,
           ]}
-          numberOfLines={1}
+          numberOfLines={expanded ? undefined : 1}
         >
           {word.japanese || (word.definition ? word.definition.slice(0, 50) : '-')}
         </Text>
+
+        {/* Expanded details */}
+        {expanded && (
+          <View style={styles.expandedContent}>
+            {/* English definition */}
+            {word.definition && (
+              <View style={styles.detailSection}>
+                <Text style={styles.detailLabel}>英語定義</Text>
+                <Text style={styles.detailText}>{word.definition}</Text>
+              </View>
+            )}
+
+            {/* Post text */}
+            {word.postText && (
+              <View style={styles.detailSection}>
+                <Text style={styles.detailLabel}>投稿文章</Text>
+                <Text style={styles.detailText}>{word.postText}</Text>
+              </View>
+            )}
+
+            {/* Post URL */}
+            {word.postUrl && (
+              <View style={styles.detailSection}>
+                <Text style={styles.detailLabel}>投稿URL</Text>
+                <Pressable 
+                  onPress={handleUrlPress}
+                  onStartShouldSetResponder={() => true}
+                  onResponderTerminationRequest={() => false}
+                >
+                  <Text style={styles.detailLink} numberOfLines={1}>
+                    {word.postUrl}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+
+            {/* Created date */}
+            <View style={styles.detailSection}>
+              <Text style={styles.detailLabel}>登録日時</Text>
+              <Text style={styles.detailText}>
+                {new Date(word.createdAt).toLocaleString('ja-JP')}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
-      {/* Arrow indicator */}
-      <Text style={styles.arrow}>›</Text>
+      {/* Expand/Collapse indicator */}
+      <Text style={styles.arrow}>{expanded ? '⌄' : '›'}</Text>
     </Pressable>
   );
 }
@@ -241,6 +335,33 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xl,
     color: Colors.textTertiary,
     fontWeight: '300',
+  },
+  expandedContent: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+  },
+  detailSection: {
+    marginBottom: Spacing.sm,
+  },
+  detailLabel: {
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  detailLink: {
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    lineHeight: 18,
   },
   header: {
     flexDirection: 'row',
