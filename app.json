@@ -22,7 +22,8 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "CFBundleDisplayName": "くもたん"
+        "CFBundleDisplayName": "くもたん",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
