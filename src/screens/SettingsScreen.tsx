@@ -23,9 +23,10 @@ import { APP_INFO, EXTERNAL_LINKS } from '../constants/config';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/common/Button';
 import { hasApiKey } from '../services/dictionary/deepl';
+import { hasClientId } from '../services/dictionary/yahooJapan';
 import { getProfile } from '../services/bluesky/auth';
 import { BlueskyProfile } from '../types/bluesky';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 
 /**
  * Settings item component props
@@ -100,6 +101,7 @@ export function SettingsScreen(): React.JSX.Element {
   const { user, logout, isLoading } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
+  const [yahooClientIdSet, setYahooClientIdSet] = useState(false);
   const [profile, setProfile] = useState<BlueskyProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
@@ -131,14 +133,17 @@ export function SettingsScreen(): React.JSX.Element {
    * Check API key status on mount and when screen gains focus
    */
   useEffect(() => {
-    const checkApiKey = async () => {
+    const checkApiKeys = async () => {
       const hasKey = await hasApiKey();
       setApiKeySet(hasKey);
+      
+      const hasYahooId = await hasClientId();
+      setYahooClientIdSet(hasYahooId);
     };
-    checkApiKey();
+    checkApiKeys();
 
     const unsubscribe = navigation.addListener('focus', () => {
-      checkApiKey();
+      checkApiKeys();
     });
 
     return unsubscribe;
@@ -169,8 +174,15 @@ export function SettingsScreen(): React.JSX.Element {
   /**
    * Handle DeepL API Key settings
    */
-  const handleApiKeySettings = useCallback(() => {
-    navigation.navigate('ApiKeySetup');
+  const handleDeepLApiKeySettings = useCallback(() => {
+    navigation.navigate('ApiKeySetup', { section: 'deepl' });
+  }, [navigation]);
+
+  /**
+   * Handle Yahoo JAPAN Client ID settings
+   */
+  const handleYahooApiKeySettings = useCallback(() => {
+    navigation.navigate('ApiKeySetup', { section: 'yahoo' });
   }, [navigation]);
 
   /**
@@ -318,7 +330,12 @@ export function SettingsScreen(): React.JSX.Element {
           <SettingsItem
             title="DeepL API Key"
             subtitle={apiKeySet ? '設定済み ✓' : '未設定'}
-            onPress={handleApiKeySettings}
+            onPress={handleDeepLApiKeySettings}
+          />
+          <SettingsItem
+            title="Yahoo JAPAN Client ID"
+            subtitle={yahooClientIdSet ? '設定済み ✓' : '未設定'}
+            onPress={handleYahooApiKeySettings}
           />
         </SettingsSection>
 

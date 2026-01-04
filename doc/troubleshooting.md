@@ -1710,6 +1710,174 @@ onAddToWordList(
 
 ---
 
+## 17. API設定画面でYahoo JAPAN Client IDセクションへの自動スクロールを実装
+
+### 発生日
+2026年1月4日
+
+### 背景
+- 設定画面のAPI設定セクションにDeepL API KeyとYahoo JAPAN Client IDの2つの設定項目を追加した
+- どちらの項目をタップしても、API設定画面のトップ（DeepLセクション）が表示されていた
+- Yahoo JAPAN Client IDをタップした場合、下にスクロールしてYahooセクションを探す必要があった
+
+### 要望
+- Yahoo JAPAN Client IDをタップした際、API設定ページのYahoo JAPAN Client IDセクションまで自動的にスクロールしてほしい
+
+### 解決策
+
+**1. ナビゲーションパラメータの追加：**
+
+`src/navigation/AppNavigator.tsx`のRootStackParamListを修正し、ApiKeySetupに`section`パラメータを追加：
+
+```typescript
+// 変更前
+export type RootStackParamList = {
+  Splash: undefined;
+  Login: undefined;
+  Main: undefined;
+  ApiKeySetup: undefined;
+  License: undefined;
+};
+
+// 変更後
+export type RootStackParamList = {
+  Splash: undefined;
+  Login: undefined;
+  Main: undefined;
+  ApiKeySetup: { section?: 'deepl' | 'yahoo' };
+  License: undefined;
+};
+```
+
+**2. SettingsScreen.tsxの修正 - 個別のハンドラーを作成：**
+
+DeepL用とYahoo用で別々のハンドラーを実装し、適切なセクションパラメータを渡すように変更：
+
+```typescript
+// 変更前 - 共通のハンドラー
+const handleApiKeySettings = useCallback(() => {
+  navigation.navigate('ApiKeySetup');
+}, [navigation]);
+
+// API設定セクションで両方とも同じハンドラーを使用
+<SettingsItem
+  title="DeepL API Key"
+  subtitle={apiKeySet ? '設定済み ✓' : '未設定'}
+  onPress={handleApiKeySettings}
+/>
+<SettingsItem
+  title="Yahoo JAPAN Client ID"
+  subtitle={yahooClientIdSet ? '設定済み ✓' : '未設定'}
+  onPress={handleApiKeySettings}
+/>
+
+// 変更後 - 個別のハンドラー
+const handleDeepLApiKeySettings = useCallback(() => {
+  navigation.navigate('ApiKeySetup', { section: 'deepl' });
+}, [navigation]);
+
+const handleYahooApiKeySettings = useCallback(() => {
+  navigation.navigate('ApiKeySetup', { section: 'yahoo' });
+}, [navigation]);
+
+// API設定セクションで個別のハンドラーを使用
+<SettingsItem
+  title="DeepL API Key"
+  subtitle={apiKeySet ? '設定済み ✓' : '未設定'}
+  onPress={handleDeepLApiKeySettings}
+/>
+<SettingsItem
+  title="Yahoo JAPAN Client ID"
+  subtitle={yahooClientIdSet ? '設定済み ✓' : '未設定'}
+  onPress={handleYahooApiKeySettings}
+/>
+```
+
+**3. ApiKeySetupScreen.tsxの修正 - スクロール機能の実装：**
+
+ScrollViewとYahooセクションへの参照を追加し、routeパラメータに応じて自動スクロール：
+
+```typescript
+// Propsの型定義を更新
+type RootStackParamList = {
+  ApiKeySetup: { section?: 'deepl' | 'yahoo' };
+  Settings: undefined;
+};
+
+// useRefのインポートを追加
+import React, { useCallback, useState, useEffect, useRef } from 'react';
+
+// コンポーネント内でrouteパラメータを受け取り、refを定義
+export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Element {
+  // Refs
+  const scrollViewRef = useRef<ScrollView>(null);
+  const yahooSectionRef = useRef<View>(null);
+  
+  // ... 既存のstate定義
+
+  // スクロール処理のuseEffect
+  useEffect(() => {
+    if (route.params?.section === 'yahoo') {
+      // Wait for layout to complete before scrolling
+      const timer = setTimeout(() => {
+        yahooSectionRef.current?.measureLayout(
+          scrollViewRef.current as any,
+          (_x, y) => {
+            scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
+          },
+          () => {}
+        );
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [route.params?.section]);
+
+  // ScrollViewにrefを設定
+  return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {/* DeepL Section */}
+        <View style={styles.section}>
+          {/* ... DeepLセクションの内容 */}
+        </View>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Yahoo! JAPAN Section - refを設定 */}
+        <View ref={yahooSectionRef} style={styles.section}>
+          {/* ... Yahooセクションの内容 */}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+```
+
+### 実装のポイント
+- `useRef`を使用してScrollViewとYahooセクションのViewへの参照を保持
+- `measureLayout`でYahooセクションの位置を計算し、ScrollViewをその位置までスクロール
+- 300msの遅延を設定し、レイアウトが完全に描画されてからスクロールを実行
+- `y - 20`で少し上にオフセットを設定し、セクションタイトルが見やすいように調整
+- `animated: true`でスムーズなスクロールアニメーションを実現
+
+### 関連ファイル
+- `src/navigation/AppNavigator.tsx` - ナビゲーション型定義
+- `src/screens/SettingsScreen.tsx` - 設定画面
+- `src/screens/ApiKeySetupScreen.tsx` - API設定画面
+
+### 教訓
+- ナビゲーションパラメータを活用することで、同じ画面でも異なる初期状態を実装できる
+- React Nativeの`measureLayout`を使用して、動的に要素の位置を計算してスクロールできる
+- レイアウト計算には時間がかかるため、`setTimeout`で少し遅延させることで確実にスクロールできる
+- ユーザビリティ向上のため、関連するコンテンツに直接ジャンプする機能は重要
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

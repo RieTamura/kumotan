@@ -31,7 +31,7 @@ export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
   Main: undefined;
-  ApiKeySetup: undefined;
+  ApiKeySetup: { section?: 'deepl' | 'yahoo' };
   License: undefined;
 };
 

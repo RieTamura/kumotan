@@ -3,7 +3,7 @@
  * DeepL API Key and Yahoo! Client ID configuration and management
  */
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -44,7 +44,7 @@ import {
  * Navigation prop types
  */
 type RootStackParamList = {
-  ApiKeySetup: undefined;
+  ApiKeySetup: { section?: 'deepl' | 'yahoo' };
   Settings: undefined;
 };
 
@@ -53,7 +53,11 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ApiKeySetup'>;
 /**
  * API Key Setup Screen Component
  */
-export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
+export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Element {
+  // Refs
+  const scrollViewRef = useRef<ScrollView>(null);
+  const yahooSectionRef = useRef<View>(null);
+
   // DeepL state
   const [apiKey, setApiKey] = useState('');
   const [isKeySet, setIsKeySet] = useState(false);
@@ -97,6 +101,25 @@ export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
       setIsYahooIdSet(true);
     }
   }, []);
+
+  /**
+   * Scroll to the specified section based on route params
+   */
+  useEffect(() => {
+    if (route.params?.section === 'yahoo') {
+      // Wait for layout to complete before scrolling
+      const timer = setTimeout(() => {
+        yahooSectionRef.current?.measureLayout(
+          scrollViewRef.current as any,
+          (_x, y) => {
+            scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
+          },
+          () => {}
+        );
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [route.params?.section]);
 
   /**
    * Handle API key validation and save
@@ -307,6 +330,7 @@ export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
       >
@@ -407,7 +431,7 @@ export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
         <View style={styles.divider} />
 
         {/* ========== Yahoo! JAPAN Section ========== */}
-        <View style={styles.section}>
+        <View ref={yahooSectionRef} style={styles.section}>
           <Text style={styles.sectionTitle}>Yahoo! JAPAN API（日本語解析）</Text>
           
           {/* Yahoo! Status */}
