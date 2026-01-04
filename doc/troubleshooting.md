@@ -881,6 +881,133 @@ posText: {
 
 ---
 
+## 9. 日本語単語選択機能の追加と表示改善
+
+### 発生日
+2026年1月4日
+
+### 背景
+- 英語単語の登録機能は既に実装されていたが、日本語単語には未対応だった
+- Yahoo! JAPAN Text Analysis APIを使用して、日本語の形態素解析機能を追加することにした
+
+### 実装した機能
+
+**1. Yahoo! JAPAN Text Analysis API統合：**
+
+新しいサービスファイルを作成し、形態素解析とふりがな取得機能を実装：
+
+`src/services/dictionary/yahooJapan.ts`:
+```typescript
+export async function analyzeMorphology(text: string): Promise<Result<JapaneseWordInfo[]>>
+export async function addFurigana(text: string): Promise<Result<string>>
+export async function getJapaneseWordInfo(text: string): Promise<Result<JapaneseWordInfo>>
+```
+
+API認証にはClient ID（appid）をURLクエリパラメータとして使用。レート制限は300リクエスト/分。
+
+**2. 日本語テキスト選択の実装：**
+
+`PostCard.tsx`のテキスト解析を修正し、日本語文字を句読点で区切って選択できるようにした：
+
+```typescript
+// 変更前 - 英語のみ
+const regex = /[a-zA-Z][a-zA-Z'-]*/g;
+
+// 変更後 - 日本語も対応（句読点含む）
+const regex = /([a-zA-Z][a-zA-Z'-]*)|([\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+[、。]?)/g;
+```
+
+これにより、「、」や「。」までを含めてテキストを選択できるようになった。
+
+**3. ポップアップの表示改善：**
+
+`WordPopup.tsx`に複数の改善を実施：
+
+a) **スクロール対応** - 形態素解析の結果が複数ある場合に全て表示できるよう、ScrollViewを追加：
+
+```typescript
+<ScrollView 
+  style={styles.scrollView}
+  contentContainerStyle={styles.scrollContent}
+  showsVerticalScrollIndicator={true}
+>
+  {japaneseInfo.map((info, index) => (
+    <View key={index} style={styles.tokenCard}>
+      ...
+    </View>
+  ))}
+</ScrollView>
+```
+
+b) **ポップアップ高さの拡大** - より多くの情報を表示できるよう、最大高さを85%に拡大：
+
+```typescript
+const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85;
+const MIN_POPUP_HEIGHT = SCREEN_HEIGHT * 0.5;
+```
+
+c) **ヘッダー表示の簡素化** - 日本語選択時、ヘッダーには選択したテキストのみを表示し、読み方と品詞タグは削除：
+
+```typescript
+// 変更前 - ヘッダーに読み方と品詞も表示
+<Text style={styles.word}>{word}</Text>
+{japaneseInfo[0]?.reading && (
+  <Text style={styles.phonetic}>({japaneseInfo[0].reading})</Text>
+)}
+{japaneseInfo[0]?.partOfSpeech && (
+  <View style={styles.posTag}>
+    <Text style={styles.posText}>[{japaneseInfo[0].partOfSpeech}]</Text>
+  </View>
+)}
+
+// 変更後 - 選択したテキストのみ表示
+<Text style={styles.word}>{word}</Text>
+```
+
+詳細な形態素情報（読み、品詞、基本形）は、スクロール可能なコンテンツ領域に各トークンごとに表示される。
+
+**4. API Key設定画面の拡張：**
+
+`ApiKeySetupScreen.tsx`を修正し、DeepL APIキーとYahoo! Client IDの両方を管理できるようにした：
+
+- 各APIに個別の入力フィールドと保存ボタンを配置
+- 保存状態を個別に表示
+- バリデーション機能を追加
+
+### 型定義の追加
+
+`src/types/word.ts`:
+```typescript
+export interface JapaneseWordInfo {
+  word: string;
+  reading: string;
+  partOfSpeech: string;
+  baseForm: string;
+}
+```
+
+### 関連ファイル
+- `src/services/dictionary/yahooJapan.ts` - Yahoo! API連携サービス
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+- `src/screens/ApiKeySetupScreen.tsx` - API設定画面
+- `src/types/word.ts` - 型定義
+- `src/constants/config.ts` - 設定定数
+
+### 実装のポイント
+- Yahoo! APIのレスポンスは文字列配列（`string[][]`）形式で、各トークンは`[表記, 読み, 基本形, 品詞, ...]`の順序
+- React Nativeではユーザーエージェントヘッダーの設定が困難なため、Client IDはURLクエリパラメータで送信
+- 日本語と英語で異なる表示形式を採用（日本語は形態素解析結果、英語は辞書定義）
+- ポップアップのスクロール実装により、長い解析結果も完全に表示可能
+
+### 教訓
+- 新機能追加時は、既存の英語対応コードとの共存を考慮した設計が必要
+- モバイル環境ではAPIの認証方法に制約があるため、ドキュメントの推奨方法が使えない場合がある
+- UIの情報密度とスクロール性能のバランスを取ることが重要
+- ユーザーフィードバックを受けて段階的にUIを改善することで、最適な表示方法を見つけられた
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

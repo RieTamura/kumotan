@@ -1,6 +1,6 @@
 /**
  * API Key Setup Screen
- * DeepL API Key configuration and management
+ * DeepL API Key and Yahoo! Client ID configuration and management
  */
 
 import React, { useCallback, useState, useEffect } from 'react';
@@ -33,6 +33,12 @@ import {
   isUsageCritical,
   DeepLUsage,
 } from '../services/dictionary/deepl';
+import {
+  validateClientId,
+  saveClientId,
+  deleteClientId,
+  getClientId,
+} from '../services/dictionary/yahooJapan';
 
 /**
  * Navigation prop types
@@ -48,6 +54,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ApiKeySetup'>;
  * API Key Setup Screen Component
  */
 export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
+  // DeepL state
   const [apiKey, setApiKey] = useState('');
   const [isKeySet, setIsKeySet] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -55,17 +62,25 @@ export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
   const [usage, setUsage] = useState<DeepLUsage | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Yahoo! state
+  const [yahooClientId, setYahooClientId] = useState('');
+  const [isYahooIdSet, setIsYahooIdSet] = useState(false);
+  const [isYahooValidating, setIsYahooValidating] = useState(false);
+  const [isYahooDeleting, setIsYahooDeleting] = useState(false);
+  const [yahooError, setYahooError] = useState<string | null>(null);
+
   /**
    * Check if API key is already set on mount
    */
   useEffect(() => {
-    checkExistingKey();
+    checkExistingKeys();
   }, []);
 
   /**
-   * Check for existing API key and get usage
+   * Check for existing API keys and Client IDs
    */
-  const checkExistingKey = useCallback(async () => {
+  const checkExistingKeys = useCallback(async () => {
+    // Check DeepL
     const existingKey = await getApiKey();
     if (existingKey) {
       setIsKeySet(true);
@@ -74,6 +89,12 @@ export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
       if (result.success) {
         setUsage(result.data);
       }
+    }
+
+    // Check Yahoo!
+    const existingClientId = await getClientId();
+    if (existingClientId) {
+      setIsYahooIdSet(true);
     }
   }, []);
 
@@ -154,10 +175,91 @@ export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
   }, []);
 
   /**
+   * Handle Yahoo! Client ID validation and save
+   */
+  const handleValidateAndSaveYahoo = useCallback(async () => {
+    if (!yahooClientId.trim()) {
+      setYahooError('Client IDを入力してください。');
+      return;
+    }
+
+    setIsYahooValidating(true);
+    setYahooError(null);
+
+    try {
+      // Validate the client ID
+      const validateResult = await validateClientId(yahooClientId.trim());
+
+      if (!validateResult.success) {
+        setYahooError(validateResult.error.message);
+        setIsYahooValidating(false);
+        return;
+      }
+
+      // Save the client ID
+      const saveResult = await saveClientId(yahooClientId.trim());
+
+      if (!saveResult.success) {
+        setYahooError(saveResult.error.message);
+        setIsYahooValidating(false);
+        return;
+      }
+
+      // Update state
+      setIsYahooIdSet(true);
+      setYahooClientId('');
+
+      Alert.alert(
+        '保存完了',
+        'Yahoo! Client IDが正常に保存されました。',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsYahooValidating(false);
+    }
+  }, [yahooClientId]);
+
+  /**
+   * Handle Yahoo! Client ID deletion
+   */
+  const handleDeleteYahooId = useCallback(async () => {
+    Alert.alert(
+      'Client IDを削除',
+      '本当にYahoo! Client IDを削除しますか？日本語単語の解析機能が使えなくなります。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: async () => {
+            setIsYahooDeleting(true);
+            const result = await deleteClientId();
+            setIsYahooDeleting(false);
+
+            if (result.success) {
+              setIsYahooIdSet(false);
+              Alert.alert('削除完了', 'Client IDが削除されました。');
+            } else {
+              Alert.alert('エラー', result.error.message);
+            }
+          },
+        },
+      ]
+    );
+  }, []);
+
+  /**
    * Open DeepL signup page
    */
   const handleOpenDeepLSite = useCallback(() => {
     Linking.openURL('https://www.deepl.com/pro-api');
+  }, []);
+
+  /**
+   * Open Yahoo! Developer Network page
+   */
+  const handleOpenYahooSite = useCallback(() => {
+    Linking.openURL('https://developer.yahoo.co.jp/start/');
   }, []);
 
   /**
@@ -210,101 +312,190 @@ export function ApiKeySetupScreen({ navigation }: Props): React.JSX.Element {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>DeepL API Key設定</Text>
+          <Text style={styles.title}>API設定</Text>
           <Text style={styles.description}>
-            日本語翻訳機能を使用するには、DeepL API Keyが必要です。
-            無料プランで月50万文字まで翻訳できます。
+            英語・日本語の翻訳や解析機能を使用するには、各種APIキーが必要です。
           </Text>
         </View>
 
-        {/* Status */}
-        <View style={styles.statusCard}>
-          <Text style={styles.statusLabel}>ステータス</Text>
-          <View style={styles.statusRow}>
-            <View
-              style={[
-                styles.statusIndicator,
-                { backgroundColor: isKeySet ? Colors.success : Colors.error },
-              ]}
-            />
-            <Text style={styles.statusText}>
-              {isKeySet ? 'API Key設定済み' : 'API Key未設定'}
-            </Text>
+        {/* ========== DeepL Section ========== */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>DeepL API（英語翻訳）</Text>
+          
+          {/* DeepL Status */}
+          <View style={styles.statusCard}>
+            <Text style={styles.statusLabel}>ステータス</Text>
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: isKeySet ? Colors.success : Colors.error },
+                ]}
+              />
+              <Text style={styles.statusText}>
+                {isKeySet ? 'API Key設定済み' : 'API Key未設定'}
+              </Text>
+            </View>
+            {isKeySet && renderUsageStatus()}
           </View>
-          {isKeySet && renderUsageStatus()}
+
+          {/* DeepL API Key Input (only show when not set) */}
+          {!isKeySet && (
+            <View style={styles.inputSection}>
+              <Input
+                label="DeepL API Key"
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"
+                value={apiKey}
+                onChangeText={(text: string) => {
+                  setApiKey(text);
+                  setError(null);
+                }}
+                secureTextEntry
+                showPasswordToggle
+                error={error ?? undefined}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Button
+                title="Keyを検証して保存"
+                onPress={handleValidateAndSave}
+                loading={isValidating}
+                disabled={!apiKey.trim()}
+                style={styles.saveButton}
+              />
+            </View>
+          )}
+
+          {/* Delete DeepL Key Button (only show when set) */}
+          {isKeySet && (
+            <Button
+              title="DeepL API Keyを削除"
+              onPress={handleDeleteKey}
+              variant="danger"
+              loading={isDeleting}
+              style={styles.deleteButton}
+            />
+          )}
+
+          {/* DeepL Info Section */}
+          <View style={styles.infoSection}>
+            <Text style={styles.infoTitle}>DeepL API Keyの取得方法</Text>
+            <View style={styles.infoSteps}>
+              <Text style={styles.infoStep}>
+                1. DeepLの公式サイトでアカウントを作成
+              </Text>
+              <Text style={styles.infoStep}>
+                2. API Free プランに登録（クレジットカード不要）
+              </Text>
+              <Text style={styles.infoStep}>
+                3. アカウント設定からAPI Keyをコピー
+              </Text>
+              <Text style={styles.infoStep}>
+                4. 上記にAPI Keyを貼り付けて保存
+              </Text>
+            </View>
+            <Button
+              title="DeepL APIサイトを開く"
+              onPress={handleOpenDeepLSite}
+              variant="outline"
+              style={styles.linkButton}
+            />
+          </View>
         </View>
 
-        {/* API Key Input (only show when not set) */}
-        {!isKeySet && (
-          <View style={styles.inputSection}>
-            <Input
-              label="DeepL API Key"
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"
-              value={apiKey}
-              onChangeText={(text: string) => {
-                setApiKey(text);
-                setError(null);
-              }}
-              secureTextEntry
-              showPasswordToggle
-              error={error ?? undefined}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* ========== Yahoo! JAPAN Section ========== */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Yahoo! JAPAN API（日本語解析）</Text>
+          
+          {/* Yahoo! Status */}
+          <View style={styles.statusCard}>
+            <Text style={styles.statusLabel}>ステータス</Text>
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: isYahooIdSet ? Colors.success : Colors.error },
+                ]}
+              />
+              <Text style={styles.statusText}>
+                {isYahooIdSet ? 'Client ID設定済み' : 'Client ID未設定'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Yahoo! Client ID Input (only show when not set) */}
+          {!isYahooIdSet && (
+            <View style={styles.inputSection}>
+              <Input
+                label="Yahoo! Client ID"
+                placeholder="dj00aiZpPXXXXXXXXXXXXXXX"
+                value={yahooClientId}
+                onChangeText={(text: string) => {
+                  setYahooClientId(text);
+                  setYahooError(null);
+                }}
+                error={yahooError ?? undefined}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Button
+                title="IDを検証して保存"
+                onPress={handleValidateAndSaveYahoo}
+                loading={isYahooValidating}
+                disabled={!yahooClientId.trim()}
+                style={styles.saveButton}
+              />
+            </View>
+          )}
+
+          {/* Delete Yahoo! ID Button (only show when set) */}
+          {isYahooIdSet && (
             <Button
-              title="Keyを検証して保存"
-              onPress={handleValidateAndSave}
-              loading={isValidating}
-              disabled={!apiKey.trim()}
-              style={styles.saveButton}
+              title="Yahoo! Client IDを削除"
+              onPress={handleDeleteYahooId}
+              variant="danger"
+              loading={isYahooDeleting}
+              style={styles.deleteButton}
+            />
+          )}
+
+          {/* Yahoo! Info Section */}
+          <View style={styles.infoSection}>
+            <Text style={styles.infoTitle}>Yahoo! Client IDの取得方法</Text>
+            <View style={styles.infoSteps}>
+              <Text style={styles.infoStep}>
+                1. Yahoo! JAPANでアカウントを作成・ログイン
+              </Text>
+              <Text style={styles.infoStep}>
+                2. Yahoo!デベロッパーネットワークで新規アプリケーションを作成
+              </Text>
+              <Text style={styles.infoStep}>
+                3. Client ID（アプリケーションID）をコピー
+              </Text>
+              <Text style={styles.infoStep}>
+                4. 上記にClient IDを貼り付けて保存
+              </Text>
+            </View>
+            <Button
+              title="Yahoo!デベロッパーネットワークを開く"
+              onPress={handleOpenYahooSite}
+              variant="outline"
+              style={styles.linkButton}
             />
           </View>
-        )}
-
-        {/* Delete Key Button (only show when set) */}
-        {isKeySet && (
-          <Button
-            title="API Keyを削除"
-            onPress={handleDeleteKey}
-            variant="danger"
-            loading={isDeleting}
-            style={styles.deleteButton}
-          />
-        )}
-
-        {/* Info Section */}
-        <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>API Keyの取得方法</Text>
-          <View style={styles.infoSteps}>
-            <Text style={styles.infoStep}>
-              1. DeepLの公式サイトでアカウントを作成
-            </Text>
-            <Text style={styles.infoStep}>
-              2. API Free プランに登録（クレジットカード不要）
-            </Text>
-            <Text style={styles.infoStep}>
-              3. アカウント設定からAPI Keyをコピー
-            </Text>
-            <Text style={styles.infoStep}>
-              4. このアプリにAPI Keyを貼り付けて保存
-            </Text>
-          </View>
-          <Button
-            title="DeepL APIサイトを開く"
-            onPress={handleOpenDeepLSite}
-            variant="outline"
-            style={styles.linkButton}
-          />
         </View>
 
         {/* Note */}
         <View style={styles.noteSection}>
           <Text style={styles.noteTitle}>📝 注意事項</Text>
           <Text style={styles.noteText}>
-            • API Keyは端末に安全に保存されます{'\n'}
-            • 無料プランは月50万文字まで翻訳可能{'\n'}
-            • 翻訳文字数は毎月1日にリセットされます{'\n'}
-            • API Keyが無くても英語の定義は表示されます
+            • 両方のAPIキーは端末に安全に保存されます{'\n'}
+            • DeepL無料プランは月50万文字まで翻訳可能{'\n'}
+            • Yahoo! APIは1分間に300回まで利用可能{'\n'}
+            • どちらか片方のみ設定しても利用できます
           </Text>
         </View>
       </ScrollView>
@@ -431,6 +622,20 @@ const styles = StyleSheet.create({
   },
   linkButton: {
     marginTop: Spacing.sm,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.xxl,
+  },
+  section: {
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: Spacing.lg,
   },
   noteSection: {
     backgroundColor: Colors.warningLight,

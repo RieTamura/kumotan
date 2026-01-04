@@ -88,3 +88,13 @@ export interface UsageInfo {
   percentage: number;
   remaining: number;
 }
+
+/**
+ * Yahoo! JAPAN API - 日本語単語情報
+ */
+export interface JapaneseWordInfo {
+  word: string; // 単語
+  reading: string; // 読み（ひらがな）
+  partOfSpeech: string; // 品詞
+  baseForm: string; // 基本形
+}

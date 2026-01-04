@@ -76,6 +76,19 @@ export const Validators = {
   },
 
   /**
+   * Check if string contains Japanese characters
+   * @param text - The text to check
+   */
+  isJapanese(text: string): boolean {
+    const trimmed = text.trim();
+    if (!trimmed) return false;
+
+    // Check for Hiragana, Katakana, or Kanji
+    const japanesePattern = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/;
+    return japanesePattern.test(trimmed);
+  },
+
+  /**
    * Validate handle with detailed error message
    */
   validateHandle(handle: string): ValidationResult {

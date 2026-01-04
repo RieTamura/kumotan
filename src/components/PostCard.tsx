@@ -36,6 +36,7 @@ const DEFAULT_AVATAR = 'https://cdn.bsky.app/img/avatar/plain/did:plc:default/av
 interface TextToken {
   text: string;
   isEnglishWord: boolean;
+  isJapaneseWord: boolean;
   index: number;
 }
 
@@ -44,16 +45,18 @@ interface TextToken {
  */
 function parseTextIntoTokens(text: string): TextToken[] {
   const tokens: TextToken[] = [];
-  // Match English words or any other characters/sequences
-  const regex = /([a-zA-Z][a-zA-Z'-]*)|([^a-zA-Z]+)/g;
+  // Match English words, Japanese phrases (until 、 or 。), or any other characters
+  const regex = /([a-zA-Z][a-zA-Z'-]*)|([\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+[、。]?)|([^a-zA-Z\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF、。]+)/g;
   let match;
   let index = 0;
 
   while ((match = regex.exec(text)) !== null) {
     const isEnglishWord = match[1] !== undefined;
+    const isJapaneseWord = match[2] !== undefined;
     tokens.push({
       text: match[0],
       isEnglishWord,
+      isJapaneseWord,
       index: index++,
     });
   }
@@ -112,7 +115,7 @@ export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps):
     return (
       <Text style={styles.postText}>
         {tokens.map((token) => {
-          if (token.isEnglishWord) {
+          if (token.isEnglishWord || token.isJapaneseWord) {
             const isSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
             return (
               <Text

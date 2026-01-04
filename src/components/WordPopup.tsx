@@ -14,15 +14,22 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
-import { DictionaryResult, TranslateResult } from '../types/word';
+import { DictionaryResult, TranslateResult, JapaneseWordInfo } from '../types/word';
 import { lookupWord } from '../services/dictionary/freeDictionary';
 import { translateToJapanese, hasApiKey } from '../services/dictionary/deepl';
+import { 
+  analyzeMorphology,
+  hasClientId as hasYahooClientId 
+} from '../services/dictionary/yahooJapan';
+import { Validators } from '../utils/validators';
 import { Button } from './common/Button';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const POPUP_HEIGHT = SCREEN_HEIGHT * 0.5;
+const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
+const MIN_POPUP_HEIGHT = SCREEN_HEIGHT * 0.5;  // Minimum 50% of screen height
 
 /**
  * WordPopup props interface
@@ -48,6 +55,7 @@ interface WordPopupProps {
 interface LoadingState {
   definition: boolean;
   translation: boolean;
+  japanese: boolean;
 }
 
 /**
@@ -61,16 +69,19 @@ export function WordPopup({
   onClose,
   onAddToWordList,
 }: WordPopupProps): React.JSX.Element {
-  const [slideAnim] = useState(new Animated.Value(POPUP_HEIGHT));
+  const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
   const [backdropOpacity] = useState(new Animated.Value(0));
   
   const [definition, setDefinition] = useState<DictionaryResult | null>(null);
   const [translation, setTranslation] = useState<TranslateResult | null>(null);
+  const [japaneseInfo, setJapaneseInfo] = useState<JapaneseWordInfo[]>([]);
   const [definitionError, setDefinitionError] = useState<string | null>(null);
   const [translationError, setTranslationError] = useState<string | null>(null);
+  const [japaneseError, setJapaneseError] = useState<string | null>(null);
   const [loading, setLoading] = useState<LoadingState>({
     definition: false,
     translation: false,
+    japanese: false,
   });
 
   // Helper to update loading state
@@ -78,7 +89,9 @@ export function WordPopup({
     setLoading((prev: LoadingState) => ({ ...prev, [key]: value }));
   };
   const [apiKeyAvailable, setApiKeyAvailable] = useState(false);
+  const [yahooClientIdAvailable, setYahooClientIdAvailable] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [isJapanese, setIsJapanese] = useState(false);
 
   /**
    * Animate popup open/close
@@ -101,7 +114,7 @@ export function WordPopup({
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, {
-          toValue: POPUP_HEIGHT,
+          toValue: MAX_POPUP_HEIGHT,
           duration: 200,
           useNativeDriver: true,
         }),
@@ -128,9 +141,12 @@ export function WordPopup({
       // Reset state when closed
       setDefinition(null);
       setTranslation(null);
+      setJapaneseInfo([]);
       setDefinitionError(null);
       setTranslationError(null);
+      setJapaneseError(null);
       setIsAdding(false);
+      setIsJapanese(false);
     }
   }, [visible, word, fetchWordData]);
 
@@ -139,6 +155,7 @@ export function WordPopup({
    */
   useEffect(() => {
     hasApiKey().then(setApiKeyAvailable);
+    hasYahooClientId().then(setYahooClientIdAvailable);
   }, []);
 
   /**
@@ -152,47 +169,70 @@ export function WordPopup({
 
     console.log(`WordPopup: Fetching data for word "${word}"`);
 
+    // Check if word is Japanese
+    const wordIsJapanese = Validators.isJapanese(word);
+    setIsJapanese(wordIsJapanese);
+
     // Reset errors
     setDefinitionError(null);
     setTranslationError(null);
+    setJapaneseError(null);
 
-    // Fetch definition
-    console.log(`WordPopup: Starting dictionary lookup for "${word}"`);
-    updateLoading('definition', true);
-    
-    try {
-      const defResult = await lookupWord(word);
-      updateLoading('definition', false);
+    if (wordIsJapanese) {
+      // Japanese word - use Yahoo! API
+      const hasYahooId = await hasYahooClientId();
+      setYahooClientIdAvailable(hasYahooId);
       
-      console.log(`WordPopup: Dictionary result:`, defResult);
+      if (hasYahooId) {
+        updateLoading('japanese', true);
+        const japaneseResult = await analyzeMorphology(word);
+        updateLoading('japanese', false);
 
-      if (defResult.success) {
-        console.log(`WordPopup: Definition found:`, defResult.data);
-        setDefinition(defResult.data);
-      } else {
-        console.log(`WordPopup: Definition error:`, defResult.error.message);
-        setDefinitionError(defResult.error.message);
+        if (japaneseResult.success) {
+          setJapaneseInfo(japaneseResult.data);
+        } else {
+          setJapaneseError(japaneseResult.error.message);
+        }
       }
-    } catch (error) {
-      console.error('WordPopup: Unexpected error in lookupWord:', error);
-      updateLoading('definition', false);
-      setDefinitionError('予期しないエラーが発生しました');
-    }
+    } else {
+      // English word - use existing logic
+      console.log(`WordPopup: Starting dictionary lookup for "${word}"`);
+      updateLoading('definition', true);
+      
+      try {
+        const defResult = await lookupWord(word);
+        updateLoading('definition', false);
+        
+        console.log(`WordPopup: Dictionary result:`, defResult);
 
-    // Fetch translation (only if API key is set)
-    const hasKey = await hasApiKey();
-    setApiKeyAvailable(hasKey);
-    console.log(`WordPopup: API key available: ${hasKey}`);
+        if (defResult.success) {
+          console.log(`WordPopup: Definition found:`, defResult.data);
+          setDefinition(defResult.data);
+        } else {
+          console.log(`WordPopup: Definition error:`, defResult.error.message);
+          setDefinitionError(defResult.error.message);
+        }
+      } catch (error) {
+        console.error('WordPopup: Unexpected error in lookupWord:', error);
+        updateLoading('definition', false);
+        setDefinitionError('予期しないエラーが発生しました');
+      }
 
-    if (hasKey) {
-      updateLoading('translation', true);
-      const transResult = await translateToJapanese(word);
-      updateLoading('translation', false);
+      // Fetch translation (only if API key is set)
+      const hasKey = await hasApiKey();
+      setApiKeyAvailable(hasKey);
+      console.log(`WordPopup: API key available: ${hasKey}`);
 
-      if (transResult.success) {
-        setTranslation(transResult.data);
-      } else {
-        setTranslationError(transResult.error.message);
+      if (hasKey) {
+        updateLoading('translation', true);
+        const transResult = await translateToJapanese(word);
+        updateLoading('translation', false);
+
+        if (transResult.success) {
+          setTranslation(transResult.data);
+        } else {
+          setTranslationError(transResult.error.message);
+        }
       }
     }
   }, [word]);
@@ -204,13 +244,37 @@ export function WordPopup({
     setIsAdding(true);
     
     try {
-      onAddToWordList(
-        word,
-        translation?.text ?? null,
-        definition?.definition ?? null,
-        postUri ?? null,
-        postText ?? null
-      );
+      if (isJapanese) {
+        // Japanese word - use first meaningful token
+        const mainToken = japaneseInfo.find(
+          (token) =>
+            !token.partOfSpeech.includes('助詞') &&
+            !token.partOfSpeech.includes('記号') &&
+            token.word.trim().length > 0
+        );
+        
+        const reading = mainToken?.reading ?? null;
+        const info = mainToken 
+          ? `${mainToken.partOfSpeech} - ${mainToken.reading}`
+          : null;
+        
+        onAddToWordList(
+          word,
+          reading,
+          info,
+          postUri ?? null,
+          postText ?? null
+        );
+      } else {
+        // English word
+        onAddToWordList(
+          word,
+          translation?.text ?? null,
+          definition?.definition ?? null,
+          postUri ?? null,
+          postText ?? null
+        );
+      }
       
       // Close popup after adding
       setTimeout(() => {
@@ -219,7 +283,7 @@ export function WordPopup({
     } finally {
       setIsAdding(false);
     }
-  }, [word, translation, definition, postUri, postText, onAddToWordList, onClose]);
+  }, [word, isJapanese, japaneseInfo, translation, definition, postUri, postText, onAddToWordList, onClose]);
 
   /**
    * Handle backdrop press
@@ -264,54 +328,97 @@ export function WordPopup({
         {/* Word Header */}
         <View style={styles.header}>
           <Text style={styles.word}>{word}</Text>
-          {definition?.phonetic && (
+          {!isJapanese && definition?.phonetic && (
             <Text style={styles.phonetic}>{definition.phonetic}</Text>
           )}
-          {definition?.partOfSpeech && (
+          {!isJapanese && definition?.partOfSpeech && (
             <View style={styles.posTag}>
               <Text style={styles.posText}>{definition.partOfSpeech}</Text>
             </View>
           )}
         </View>
 
-        {/* Translation Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>日本語訳</Text>
-          {loading.translation ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : translation ? (
-            <Text style={styles.translationText}>{translation.text}</Text>
-          ) : translationError ? (
-            <Text style={styles.errorText}>{translationError}</Text>
-          ) : !apiKeyAvailable ? (
-            <Text style={styles.hintText}>
-              DeepL API Keyを設定すると日本語訳が表示されます
-            </Text>
-          ) : (
-            <Text style={styles.hintText}>-</Text>
-          )}
-        </View>
-
-        {/* Definition Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>英語の定義</Text>
-          {loading.definition ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : definition ? (
-            <>
-              <Text style={styles.definitionText}>{definition.definition}</Text>
-              {definition.example && (
-                <Text style={styles.exampleText}>
-                  例: "{definition.example}"
+        {/* Scrollable Content */}
+        <ScrollView 
+          style={styles.scrollContent}
+          contentContainerStyle={styles.scrollContentContainer}
+        >
+          {/* Japanese Word Info Section */}
+          {isJapanese && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>形態素解析結果</Text>
+              {loading.japanese ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : japaneseInfo.length > 0 ? (
+                <>
+                  {japaneseInfo.map((token, index) => (
+                    <View key={index} style={styles.tokenCard}>
+                      <View style={styles.tokenHeader}>
+                        <Text style={styles.tokenWord}>{token.word}</Text>
+                        <Text style={styles.tokenReading}>({token.reading})</Text>
+                      </View>
+                      <View style={styles.tokenDetails}>
+                        <Text style={styles.tokenDetailText}>品詞: {token.partOfSpeech}</Text>
+                        <Text style={styles.tokenDetailText}>基本形: {token.baseForm}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              ) : japaneseError ? (
+                <Text style={styles.errorText}>{japaneseError}</Text>
+              ) : !yahooClientIdAvailable ? (
+                <Text style={styles.hintText}>
+                  Yahoo! Client IDを設定すると詳細情報が表示されます
                 </Text>
+              ) : (
+                <Text style={styles.hintText}>-</Text>
               )}
-            </>
-          ) : definitionError ? (
-            <Text style={styles.errorText}>{definitionError}</Text>
-          ) : (
-            <Text style={styles.hintText}>-</Text>
+            </View>
           )}
-        </View>
+
+          {/* Translation Section (English words only) */}
+          {!isJapanese && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>日本語訳</Text>
+              {loading.translation ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : translation ? (
+                <Text style={styles.translationText}>{translation.text}</Text>
+              ) : translationError ? (
+                <Text style={styles.errorText}>{translationError}</Text>
+              ) : !apiKeyAvailable ? (
+                <Text style={styles.hintText}>
+                  DeepL API Keyを設定すると日本語訳が表示されます
+                </Text>
+              ) : (
+                <Text style={styles.hintText}>-</Text>
+              )}
+            </View>
+          )}
+
+          {/* Definition Section (English words only) */}
+          {!isJapanese && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>英語の定義</Text>
+              {loading.definition ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : definition ? (
+                <>
+                  <Text style={styles.definitionText}>{definition.definition}</Text>
+                  {definition.example && (
+                    <Text style={styles.exampleText}>
+                      例: "{definition.example}"
+                    </Text>
+                  )}
+                </>
+              ) : definitionError ? (
+                <Text style={styles.errorText}>{definitionError}</Text>
+              ) : (
+                <Text style={styles.hintText}>-</Text>
+              )}
+            </View>
+          )}
+        </ScrollView>
 
         {/* Action Buttons */}
         <View style={styles.actions}>
@@ -320,7 +427,7 @@ export function WordPopup({
             onPress={handleAddToWordList}
             variant="primary"
             loading={isAdding}
-            disabled={loading.definition || loading.translation}
+            disabled={loading.definition || loading.translation || loading.japanese}
             style={styles.addButton}
           />
           <Button
@@ -349,7 +456,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: POPUP_HEIGHT,
+    maxHeight: MAX_POPUP_HEIGHT,
     backgroundColor: Colors.background,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
@@ -396,6 +503,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    paddingBottom: 100, // Space for action buttons
+  },
   section: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
@@ -409,6 +522,34 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  tokenCard: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  tokenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    gap: Spacing.xs,
+  },
+  tokenWord: {
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  tokenReading: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+  },
+  tokenDetails: {
+    gap: 2,
+  },
+  tokenDetailText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
   },
   translationText: {
     fontSize: FontSizes.xl,

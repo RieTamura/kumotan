@@ -28,6 +28,7 @@ export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
   USER_DID: 'user_did',
+  YAHOO_CLIENT_ID: 'yahoo_client_id',
   USER_HANDLE: 'user_handle',
   DEEPL_API_KEY: 'deepl_api_key',
 
@@ -59,6 +60,7 @@ export const RATE_LIMIT = {
  */
 export const TIMEOUT = {
   API_REQUEST: 10000, // 10 seconds
+  API: 10000, // Generic API timeout
   LOGIN: 15000, // 15 seconds
   TRANSLATION: 10000, // 10 seconds
 } as const;

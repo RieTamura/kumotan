@@ -26,3 +26,16 @@ export {
   isEnglishWord,
   extractWords,
 } from './freeDictionary';
+
+// Yahoo! JAPAN API (Japanese word analysis)
+export {
+  analyzeMorphology,
+  addFurigana,
+  getJapaneseWordInfo,
+  getClientId as getYahooClientId,
+  saveClientId as saveYahooClientId,
+  deleteClientId as deleteYahooClientId,
+  hasClientId as hasYahooClientId,
+  validateClientId as validateYahooClientId,
+  type JapaneseWordInfo,
+} from './yahooJapan';
