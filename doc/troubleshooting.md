@@ -1572,6 +1572,144 @@ https://bsky.app/profile/did:plc:qcwhrvzx6wmi5hz775uyi6fh/post/3mbkvtamzvf2g
 
 ---
 
+## 16. 日本語文章登録時に英語定義が入力されてしまう問題
+
+### 発生日
+2026年1月4日
+
+### 症状
+- 投稿文の日本語文章を長押しして単語帳に登録する
+- 登録時には形態素解析結果が正しく表示される
+- しかし、単語帳画面で展開すると「英語定義」というラベルで、最初のトークンの簡易情報（例：`名詞 - にゅーす`）のみが表示される
+- 形態素解析結果全体（複数のトークンの詳細情報）が保存されていなかった
+
+### 原因
+`src/components/WordPopup.tsx`の`handleAddToWordList`関数で、日本語単語を登録する際に最初の主要トークンの簡易情報（品詞と読み）のみを保存していた：
+
+```typescript
+// 変更前
+const mainToken = japaneseInfo.find(
+  (token) =>
+    !token.partOfSpeech.includes('助詞') &&
+    !token.partOfSpeech.includes('記号') &&
+    token.word.trim().length > 0
+);
+
+const reading = mainToken?.reading ?? null;
+const info = mainToken 
+  ? `${mainToken.partOfSpeech} - ${mainToken.reading}`
+  : null;
+
+onAddToWordList(
+  word,
+  reading,
+  info,  // 最初のトークンの簡易情報のみ
+  postUri ?? null,
+  postText ?? null
+);
+```
+
+また、`src/components/WordListItem.tsx`では、定義フィールドのラベルが「英語定義」で固定されており、日本語の形態素解析結果に対応していなかった。
+
+### 解決策
+
+**1. WordPopup.tsxの修正 - 形態素解析結果全体を保存：**
+
+```typescript
+// 変更後
+const mainToken = japaneseInfo.find(
+  (token) =>
+    !token.partOfSpeech.includes('助詞') &&
+    !token.partOfSpeech.includes('記号') &&
+    token.word.trim().length > 0
+);
+
+const reading = mainToken?.reading ?? null;
+
+// Format all morphology results for definition
+const morphologyResult = japaneseInfo.length > 0
+  ? japaneseInfo.map(token => 
+      `${token.word} (${token.reading})\n品詞: ${token.partOfSpeech}\n基本形: ${token.baseForm}`
+    ).join('\n\n')
+  : null;
+
+onAddToWordList(
+  word,
+  reading,
+  morphologyResult,  // 全トークンの詳細情報
+  postUri ?? null,
+  postText ?? null
+);
+```
+
+**2. WordListItem.tsxの修正 - ラベルを条件分岐：**
+
+```typescript
+// 変更前
+{word.definition && (
+  <View style={styles.detailSection}>
+    <Text style={styles.detailLabel}>英語定義</Text>
+    <Text style={styles.detailText}>{word.definition}</Text>
+  </View>
+)}
+
+// 変更後
+{word.definition && (
+  <View style={styles.detailSection}>
+    <Text style={styles.detailLabel}>
+      {word.japanese && word.definition.includes('品詞:') ? '形態素解析結果' : '英語定義'}
+    </Text>
+    <Text style={styles.detailText}>{word.definition}</Text>
+  </View>
+)}
+```
+
+### 実装のポイント
+- 形態素解析結果は`japaneseInfo.map()`で全トークンをフォーマットし、改行で区切って保存
+- 各トークンの情報は「単語(読み)」「品詞」「基本形」の3行で構成
+- WordListItemでは、定義フィールドに「品詞:」が含まれているかで日本語か英語かを判定
+- 日本語の場合は「形態素解析結果」、英語の場合は「英語定義」と適切なラベルを表示
+
+### 表示例
+
+**登録時のポップアップ：**
+```
+みんな味方だよ
+
+形態素解析結果：
+みんな (みんな)
+品詞: 副詞
+基本形: みんな
+
+味方 (みかた)
+品詞: 名詞
+基本形: 味方
+
+だ (だ)
+品詞: 判定詞
+基本形: だ
+
+よ (よ)
+品詞: 助詞
+基本形: よ
+```
+
+**単語帳画面での表示：**
+- 展開前：「みんな味方だよ」「みんな」
+- 展開後：「形態素解析結果」ラベルで上記の全トークン情報を表示
+
+### 関連ファイル
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+- `src/components/WordListItem.tsx` - 単語カードコンポーネント
+- `src/types/word.ts` - 型定義
+
+### 教訓
+- 形態素解析のような複雑な結果は、フォーマット済みの文字列として保存することで、後から表示が容易になる
+- 同じフィールドを異なる用途（英語定義 / 形態素解析結果）で使用する場合、内容から判定できる特徴的な文字列（「品詞:」など）を含めると便利
+- 日本語の自然言語処理では、文字列全体ではなく個々のトークンごとに詳細情報を保存・表示することが重要
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

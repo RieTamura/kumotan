@@ -171,10 +171,12 @@ export function WordListItem({
         {/* Expanded details */}
         {expanded && (
           <View style={styles.expandedContent}>
-            {/* English definition */}
+            {/* Definition or morphological analysis */}
             {word.definition && (
               <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>英語定義</Text>
+                <Text style={styles.detailLabel}>
+                  {word.japanese && word.definition.includes('品詞:') ? '形態素解析結果' : '英語定義'}
+                </Text>
                 <Text style={styles.detailText}>{word.definition}</Text>
               </View>
             )}

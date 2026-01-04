@@ -245,7 +245,7 @@ export function WordPopup({
     
     try {
       if (isJapanese) {
-        // Japanese word - use first meaningful token
+        // Japanese word - use first meaningful token for reading
         const mainToken = japaneseInfo.find(
           (token) =>
             !token.partOfSpeech.includes('助詞') &&
@@ -254,14 +254,18 @@ export function WordPopup({
         );
         
         const reading = mainToken?.reading ?? null;
-        const info = mainToken 
-          ? `${mainToken.partOfSpeech} - ${mainToken.reading}`
+        
+        // Format all morphology results for definition
+        const morphologyResult = japaneseInfo.length > 0
+          ? japaneseInfo.map(token => 
+              `${token.word} (${token.reading})\n品詞: ${token.partOfSpeech}\n基本形: ${token.baseForm}`
+            ).join('\n\n')
           : null;
         
         onAddToWordList(
           word,
           reading,
-          info,
+          morphologyResult,
           postUri ?? null,
           postText ?? null
         );
