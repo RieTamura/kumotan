@@ -32,18 +32,17 @@
       },
       "package": "com.kumotan.app"
     },
-    "web": {
-    },
+    "web": {},
     "plugins": [
       "expo-secure-store",
       "expo-sqlite"
     ],
+    "scheme": "kumotan",
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "c9480379-b17d-4c68-ac12-b4922290cf74"
       }
     },
-    "scheme": "kumotan",
-    "owner": "your-expo-username"
+    "owner": "rietamura"
   }
 }
