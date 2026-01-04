@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import RNShare from 'react-native-share';
+import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame } from 'lucide-react-native';
@@ -184,11 +185,14 @@ export function ProgressScreen(): React.JSX.Element {
       // Create share message with hashtags
       const shareMessage = `今日は${stats.todayCount}個の単語を学習しました！\n\n#くもたん #言語学習 #langsky`;
 
+      // iOS requires file:// prefix for local files
+      const fileUrl = uri.startsWith('file://') ? uri : `file://${uri}`;
+
       await RNShare.open({
-        url: uri,
+        urls: [fileUrl],
         message: shareMessage,
-        title: '今日の進捗をシェア',
-        type: 'image/png',
+        subject: '今日の学習進捗',
+        failOnCancel: false,
       });
     } catch (error: unknown) {
       // User cancelled sharing
@@ -429,6 +433,22 @@ export function ProgressScreen(): React.JSX.Element {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>進捗をシェア</Text>
+            
+            {/* Share Text Area */}
+            <TouchableOpacity
+              style={styles.shareTextContainer}
+              onPress={async () => {
+                const text = `今日は${stats.todayCount}個の単語を学習しました！\n\n#くもたん #言語学習 #langsky`;
+                await Clipboard.setStringAsync(text);
+                Alert.alert('コピーしました', '投稿文をクリップボードにコピーしました');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.shareText}>
+                今日は{stats.todayCount}個の単語を学習しました！{"\n\n"}#くもたん #言語学習 #langsky
+              </Text>
+              <Text style={styles.shareTextHint}>タップでコピー</Text>
+            </TouchableOpacity>
             
             {/* Share Card Preview */}
             <ViewShot
@@ -723,7 +743,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  // Share Text styles
+  shareTextContainer: {
+    backgroundColor: Colors.card,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+  },
+  shareText: {
+    fontSize: FontSizes.sm,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  shareTextHint: {
+    fontSize: FontSizes.xs,
+    color: Colors.textSecondary,
+    textAlign: 'right',
+    marginTop: Spacing.xs,
   },
   // Share Card styles
   shareCard: {
