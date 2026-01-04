@@ -1318,6 +1318,65 @@ deleteButton: {
 
 ---
 
+## 13. 日本語単語選択時に「Encountered two children with the same key」エラーが発生
+
+### 発生日
+2026年1月4日
+
+### 症状
+- 投稿文の日本語単語を長押しして選択すると、Reactの警告エラーが表示される
+- エラー内容：`Encountered two children with the same key, "%s". Keys should be unique so that components maintain their identity across updates.`
+- エラーが発生しても機能は動作するが、コンソールに警告が表示される
+
+### 原因
+`src/components/WordPopup.tsx`の日本語形態素解析結果を表示する部分で、配列のインデックスをReactのキーとして使用していた：
+
+```typescript
+{japaneseInfo.map((token, index) => (
+  <View key={index} style={styles.tokenCard}>
+    ...
+  </View>
+))}
+```
+
+この実装では、同じ単語が複数回出現した場合に重複したキーが生成される可能性があり、Reactが正しくコンポーネントを識別できなくなっていた。
+
+### 解決策
+
+`src/components/WordPopup.tsx`のキー生成方法を変更し、単語、読み、インデックスを組み合わせた一意の値を使用：
+
+```typescript
+// 変更前
+{japaneseInfo.map((token, index) => (
+  <View key={index} style={styles.tokenCard}>
+    <View style={styles.tokenHeader}>
+      <Text style={styles.tokenWord}>{token.word}</Text>
+      <Text style={styles.tokenReading}>({token.reading})</Text>
+
+// 変更後
+{japaneseInfo.map((token, index) => (
+  <View key={`${token.word}-${token.reading}-${index}`} style={styles.tokenCard}>
+    <View style={styles.tokenHeader}>
+      <Text style={styles.tokenWord}>{token.word}</Text>
+      <Text style={styles.tokenReading}>({token.reading})</Text>
+```
+
+### 実装のポイント
+- テンプレートリテラル`` `${token.word}-${token.reading}-${index}` ``を使用して一意のキーを生成
+- 単語と読みが同じトークンが複数ある場合でも、インデックスで区別できる
+- Reactのベストプラクティスに従い、配列の各要素に一意で安定したキーを提供
+
+### 関連ファイル
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+
+### 教訓
+- Reactで配列をマッピングする際、単純なインデックスをキーとして使うのは避けるべき
+- キーは各要素を一意に識別できる値（ID、複合キーなど）を使用する
+- 同じデータが複数回出現する可能性がある場合、インデックスだけでは不十分
+- エラーメッセージで「Keys should be unique」と表示された場合、キーの生成方法を見直す
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

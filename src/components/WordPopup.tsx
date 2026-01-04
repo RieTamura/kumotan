@@ -352,7 +352,7 @@ export function WordPopup({
               ) : japaneseInfo.length > 0 ? (
                 <>
                   {japaneseInfo.map((token, index) => (
-                    <View key={index} style={styles.tokenCard}>
+                    <View key={`${token.word}-${token.reading}-${index}`} style={styles.tokenCard}>
                       <View style={styles.tokenHeader}>
                         <Text style={styles.tokenWord}>{token.word}</Text>
                         <Text style={styles.tokenReading}>({token.reading})</Text>
