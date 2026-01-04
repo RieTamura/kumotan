@@ -1008,6 +1008,316 @@ export interface JapaneseWordInfo {
 
 ---
 
+## 10. 単語登録時に「addWord is not a function」エラーが発生する問題
+
+### 発生日
+2026年1月4日
+
+### 症状
+- 投稿文の単語を長押しして選択し、単語登録ポップアップから「単語帳に追加」ボタンを押す
+- エラーが発生：`Failed to add word: [TypeError: 0, _servicesDatabaseWords.addWord is not a function (it is undefined)]`
+- 単語がデータベースに保存されない
+
+### 原因
+`src/services/database/words.ts`に`addWord`関数が定義されていなかった。
+
+HomeScreen.tsxでは以下のようにインポートしていた：
+```typescript
+import { addWord } from '../services/database/words';
+```
+
+しかし、words.tsには`insertWord`という名前の関数しか存在せず、`addWord`関数はエクスポートされていなかった。そのため、インポートした`addWord`は`undefined`となり、関数として呼び出すことができなかった。
+
+### 解決策
+
+`src/services/database/words.ts`に`addWord`関数を追加：
+
+```typescript
+/**
+ * Add a new word (simplified interface for insertWord)
+ */
+export async function addWord(
+  english: string,
+  japanese?: string,
+  definition?: string,
+  postUrl?: string,
+  postText?: string
+): Promise<Result<Word, AppError>> {
+  return insertWord({
+    english,
+    japanese,
+    definition,
+    postUrl,
+    postText,
+  });
+}
+```
+
+この関数は既存の`insertWord`関数を呼び出すラッパー関数で、より簡単なインターフェイスを提供する。
+
+### 関連ファイル
+- `src/services/database/words.ts` - 単語データベースサービス
+- `src/screens/HomeScreen.tsx` - ホーム画面
+
+### 教訓
+- 関数をインポートする前に、エクスポート側で実際に定義されているか確認する
+- エラーメッセージで「is not a function (it is undefined)」と表示された場合、関数が存在しないかエクスポートされていない可能性を疑う
+- 複数の開発者や段階的な実装では、関数名の不一致が発生しやすいため注意が必要
+
+---
+
+## 11. 単語を登録したのに単語帳画面に表示されない問題
+
+### 発生日
+2026年1月4日
+
+### 症状
+- ホーム画面で単語を長押しして選択し、「単語帳に追加」ボタンを押す
+- 「成功 - 単語を追加しました！」というアラートが表示される
+- しかし、単語帳画面を開いても「単語がまだ登録されていません」と表示され、登録した単語が見えない
+
+### 調査過程
+
+1. **データベース初期化の確認** - App.tsxでデータベースの初期化とsetDatabaseの呼び出しが正しく行われていることを確認
+
+2. **単語登録処理の確認** - HomeScreen.tsxのhandleAddWord関数で、addWord関数が正常に呼び出され、成功メッセージが表示されていることを確認
+
+3. **WordListScreen.tsxの確認** - 単語帳画面のコードを確認したところ、**データベースから単語を読み込む処理が全く実装されていない**ことが判明
+
+### 原因
+`src/screens/WordListScreen.tsx`で以下の問題があった：
+
+1. **データ取得処理の欠如** - `words`ステートは空配列で初期化されているだけで、データベースから単語を取得する処理がなかった
+
+2. **必要なインポートの欠如** - データベース操作関数（`getWords`, `toggleReadStatus`, `deleteWord`）がインポートされていなかった
+
+3. **画面フォーカス時の再読み込みがない** - 他の画面から戻ってきた時に単語リストを再読み込みする仕組みがなかった
+
+### 解決策
+
+**1. 必要な依存関係のインポート：**
+
+```typescript
+import React, { useState, useCallback, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { getWords, toggleReadStatus, deleteWord } from '../services/database/words';
+```
+
+**2. データ読み込み関数の実装：**
+
+```typescript
+const loadWords = useCallback(async () => {
+  try {
+    setIsLoading(true);
+    
+    const wordFilter: WordFilter = {
+      isRead: filter === 'all' ? null : filter === 'read',
+      sortBy,
+      sortOrder,
+      limit: 1000,
+      offset: 0,
+    };
+
+    const result = await getWords(wordFilter);
+
+    if (result.success) {
+      setWords(result.data);
+    } else {
+      console.error('Failed to load words:', result.error);
+      Alert.alert('エラー', '単語の読み込みに失敗しました');
+    }
+  } catch (error) {
+    console.error('Error loading words:', error);
+    Alert.alert('エラー', '単語の読み込み中にエラーが発生しました');
+  } finally {
+    setIsLoading(false);
+  }
+}, [filter, sortBy, sortOrder]);
+```
+
+**3. 画面フォーカス時の自動読み込み：**
+
+```typescript
+useFocusEffect(
+  useCallback(() => {
+    loadWords();
+  }, [loadWords])
+);
+```
+
+**4. フィルター・ソート変更時の再読み込み：**
+
+```typescript
+useEffect(() => {
+  if (!isLoading) {
+    loadWords();
+  }
+}, [filter, sortBy, sortOrder]);
+```
+
+**5. 既読/未読切り替え機能の実装：**
+
+```typescript
+const handleWordTap = useCallback(async (word: Word) => {
+  Alert.alert(
+    word.isRead ? '未読にする' : '既読にする',
+    `"${word.english}" を${word.isRead ? '未読' : '既読'}にしますか？`,
+    [
+      { text: 'キャンセル', style: 'cancel' },
+      {
+        text: 'OK',
+        onPress: async () => {
+          const result = await toggleReadStatus(word.id);
+          if (result.success) {
+            await loadWords();
+          } else {
+            Alert.alert('エラー', result.error.message);
+          }
+        },
+      },
+    ]
+  );
+}, [loadWords]);
+```
+
+**6. 単語削除機能の実装：**
+
+```typescript
+const handleWordDelete = useCallback(async (word: Word) => {
+  Alert.alert(
+    '単語を削除',
+    `"${word.english}" を削除しますか？`,
+    [
+      { text: 'キャンセル', style: 'cancel' },
+      {
+        text: '削除',
+        style: 'destructive',
+        onPress: async () => {
+          const result = await deleteWord(word.id);
+          if (result.success) {
+            await loadWords();
+            Alert.alert('成功', '単語を削除しました');
+          } else {
+            Alert.alert('エラー', result.error.message);
+          }
+        },
+      },
+    ]
+  );
+}, [loadWords]);
+```
+
+### 関連ファイル
+- `src/screens/WordListScreen.tsx` - 単語帳画面
+- `src/services/database/words.ts` - 単語データベースサービス
+
+### 教訓
+- データを表示する画面では、必ずデータソースからデータを取得する処理を実装する
+- `useFocusEffect`を使用することで、画面が表示される度に最新のデータを読み込める
+- TODOコメントが残っている機能は、実装が完了していない可能性が高いため注意
+
+---
+
+## 12. 単語カードに削除ボタンを追加
+
+### 発生日
+2026年1月4日
+
+### 背景
+- 単語カードを長押しすることで削除できる機能は実装されていた
+- しかし、長押しによる削除は発見しにくく、ユーザーにとって分かりにくい
+
+### 要望
+- 単語カードに明示的な削除ボタンを表示して、より分かりやすく削除できるようにしたい
+
+### 解決策
+
+**1. Trash2アイコンのインポート：**
+
+```typescript
+import { BookOpen, Check, Trash2 } from 'lucide-react-native';
+```
+
+**2. 単語カードのレイアウト変更：**
+
+```typescript
+// 変更前 - カード全体がPressableで、長押しで削除
+const renderWordItem = useCallback(
+  ({ item }: { item: Word }) => (
+    <Pressable
+      style={styles.wordCard}
+      onPress={() => handleWordTap(item)}
+      onLongPress={() => handleWordDelete(item)}
+    >
+      {/* カード内容 */}
+    </Pressable>
+  ),
+  [handleWordTap, handleWordDelete]
+);
+
+// 変更後 - カードを分割し、削除ボタンを独立させる
+const renderWordItem = useCallback(
+  ({ item }: { item: Word }) => (
+    <View style={styles.wordCard}>
+      <Pressable
+        style={styles.wordCardContent}
+        onPress={() => handleWordTap(item)}
+      >
+        {/* カード内容 */}
+      </Pressable>
+      <Pressable
+        style={styles.deleteButton}
+        onPress={() => handleWordDelete(item)}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Trash2 size={20} color={Colors.error} />
+      </Pressable>
+    </View>
+  ),
+  [handleWordTap, handleWordDelete]
+);
+```
+
+**3. スタイルの追加：**
+
+```typescript
+wordCard: {
+  flexDirection: 'row',  // 横並びレイアウト
+  backgroundColor: Colors.card,
+  borderRadius: BorderRadius.lg,
+  marginBottom: Spacing.md,
+  ...Shadows.sm,
+  overflow: 'hidden',
+},
+wordCardContent: {
+  flex: 1,  // 左側のコンテンツ領域
+  padding: Spacing.lg,
+},
+deleteButton: {
+  justifyContent: 'center',
+  alignItems: 'center',
+  paddingHorizontal: Spacing.lg,
+  backgroundColor: Colors.backgroundSecondary,
+},
+```
+
+### 実装のポイント
+- 単語カードを`View`でラップし、`flexDirection: 'row'`で横並びレイアウトに変更
+- 左側に既存のカード内容（`wordCardContent`）、右側に削除ボタン（`deleteButton`）を配置
+- 削除ボタンは赤いゴミ箱アイコン（`Trash2`）で視覚的に分かりやすく
+- `hitSlop`プロパティでタップ領域を拡大し、押しやすさを向上
+- 削除時には確認ダイアログが表示されるため、誤操作の心配も軽減
+
+### 関連ファイル
+- `src/screens/WordListScreen.tsx` - 単語帳画面
+
+### 教訓
+- 重要な操作（削除など）は、ユーザーが容易に発見できるように明示的なUIを提供する
+- 長押しなどの隠れた操作に頼らず、アイコンボタンで操作を可視化する
+- `hitSlop`を適切に設定することで、モバイルでの操作性が大幅に向上する
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

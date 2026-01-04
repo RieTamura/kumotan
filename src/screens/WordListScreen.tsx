@@ -3,7 +3,7 @@
  * Displays saved vocabulary words with filtering and sorting options
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,11 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BookOpen, Check } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { BookOpen, Check, Trash2 } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { Word, WordFilter } from '../types/word';
+import { getWords, toggleReadStatus, deleteWord } from '../services/database/words';
 import { Loading } from '../components/common/Loading';
 import { Button } from '../components/common/Button';
 
@@ -33,14 +35,63 @@ type SortOption = 'created_at' | 'english';
  * WordListScreen Component
  */
 export function WordListScreen(): React.JSX.Element {
-  // State for words list (placeholder)
+  // State for words list
   const [words, setWords] = useState<Word[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filter and sort state
   const [filter, setFilter] = useState<FilterOption>('all');
   const [sortBy, setSortBy] = useState<SortOption>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  /**
+   * Load words from database
+   */
+  const loadWords = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      const wordFilter: WordFilter = {
+        isRead: filter === 'all' ? null : filter === 'read',
+        sortBy,
+        sortOrder,
+        limit: 1000,
+        offset: 0,
+      };
+
+      const result = await getWords(wordFilter);
+
+      if (result.success) {
+        setWords(result.data);
+      } else {
+        console.error('Failed to load words:', result.error);
+        Alert.alert('エラー', '単語の読み込みに失敗しました');
+      }
+    } catch (error) {
+      console.error('Error loading words:', error);
+      Alert.alert('エラー', '単語の読み込み中にエラーが発生しました');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filter, sortBy, sortOrder]);
+
+  /**
+   * Load words when screen is focused
+   */
+  useFocusEffect(
+    useCallback(() => {
+      loadWords();
+    }, [loadWords])
+  );
+
+  /**
+   * Reload when filter or sort changes
+   */
+  useEffect(() => {
+    if (!isLoading) {
+      loadWords();
+    }
+  }, [filter, sortBy, sortOrder]);
 
   /**
    * Handle filter change
@@ -93,8 +144,7 @@ export function WordListScreen(): React.JSX.Element {
   /**
    * Handle word tap to toggle read status
    */
-  const handleWordTap = useCallback((word: Word) => {
-    // TODO: Implement toggle read status
+  const handleWordTap = useCallback(async (word: Word) => {
     Alert.alert(
       word.isRead ? '未読にする' : '既読にする',
       `"${word.english}" を${word.isRead ? '未読' : '既読'}にしますか？`,
@@ -102,18 +152,29 @@ export function WordListScreen(): React.JSX.Element {
         { text: 'キャンセル', style: 'cancel' },
         {
           text: 'OK',
-          onPress: () => {
-            // TODO: Call database service to toggle
+          onPress: async () => {
+            try {
+              const result = await toggleReadStatus(word.id);
+              if (result.success) {
+                // Reload words to reflect changes
+                await loadWords();
+              } else {
+                Alert.alert('エラー', result.error.message);
+              }
+            } catch (error) {
+              console.error('Failed to toggle read status:', error);
+              Alert.alert('エラー', '既読状態の更新に失敗しました');
+            }
           },
         },
       ]
     );
-  }, []);
+  }, [loadWords]);
 
   /**
    * Handle word delete
    */
-  const handleWordDelete = useCallback((word: Word) => {
+  const handleWordDelete = useCallback(async (word: Word) => {
     Alert.alert(
       '単語を削除',
       `"${word.english}" を削除しますか？`,
@@ -122,46 +183,66 @@ export function WordListScreen(): React.JSX.Element {
         {
           text: '削除',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Call database service to delete
+          onPress: async () => {
+            try {
+              const result = await deleteWord(word.id);
+              if (result.success) {
+                // Reload words to reflect changes
+                await loadWords();
+                Alert.alert('成功', '単語を削除しました');
+              } else {
+                Alert.alert('エラー', result.error.message);
+              }
+            } catch (error) {
+              console.error('Failed to delete word:', error);
+              Alert.alert('エラー', '単語の削除に失敗しました');
+            }
           },
         },
       ]
     );
-  }, []);
+  }, [loadWords]);
 
   /**
    * Render word item
    */
   const renderWordItem = useCallback(
     ({ item }: { item: Word }) => (
-      <Pressable
-        style={styles.wordCard}
-        onPress={() => handleWordTap(item)}
-        onLongPress={() => handleWordDelete(item)}
-      >
-        <View style={styles.wordHeader}>
-          <View style={styles.checkboxContainer}>
-            <View
-              style={[
-                styles.checkbox,
-                item.isRead && styles.checkboxChecked,
-              ]}
-            >
-              {item.isRead && <Check size={16} color={Colors.card} />}
+      <View style={styles.wordCard}>
+        <Pressable
+          style={styles.wordCardContent}
+          onPress={() => handleWordTap(item)}
+        >
+          <View style={styles.wordHeader}>
+            <View style={styles.checkboxContainer}>
+              <View
+                style={[
+                  styles.checkbox,
+                  item.isRead && styles.checkboxChecked,
+                ]}
+              >
+                {item.isRead && <Check size={16} color={Colors.card} />}
+              </View>
+            </View>
+            <View style={styles.wordContent}>
+              <Text style={styles.englishText}>{item.english}</Text>
+              <Text style={styles.japaneseText}>
+                {item.japanese || '翻訳なし'}
+              </Text>
             </View>
           </View>
-          <View style={styles.wordContent}>
-            <Text style={styles.englishText}>{item.english}</Text>
-            <Text style={styles.japaneseText}>
-              {item.japanese || '翻訳なし'}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.dateText}>
-          {new Date(item.createdAt).toLocaleDateString('ja-JP')}
-        </Text>
-      </Pressable>
+          <Text style={styles.dateText}>
+            {new Date(item.createdAt).toLocaleDateString('ja-JP')}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={styles.deleteButton}
+          onPress={() => handleWordDelete(item)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Trash2 size={20} color={Colors.error} />
+        </Pressable>
+      </View>
     ),
     [handleWordTap, handleWordDelete]
   );
@@ -353,11 +434,22 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   wordCard: {
+    flexDirection: 'row',
     backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
     marginBottom: Spacing.md,
     ...Shadows.sm,
+    overflow: 'hidden',
+  },
+  wordCardContent: {
+    flex: 1,
+    padding: Spacing.lg,
+  },
+  deleteButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.backgroundSecondary,
   },
   wordHeader: {
     flexDirection: 'row',

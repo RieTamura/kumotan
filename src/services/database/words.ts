@@ -110,6 +110,25 @@ export async function insertWord(
 }
 
 /**
+ * Add a new word (simplified interface for insertWord)
+ */
+export async function addWord(
+  english: string,
+  japanese?: string,
+  definition?: string,
+  postUrl?: string,
+  postText?: string
+): Promise<Result<Word, AppError>> {
+  return insertWord({
+    english,
+    japanese,
+    definition,
+    postUrl,
+    postText,
+  });
+}
+
+/**
  * Get words with filtering and sorting
  */
 export async function getWords(
