@@ -204,7 +204,7 @@ export async function createPost(
 export async function shareProgress(
   wordCount: number
 ): Promise<Result<boolean, AppError>> {
-  const text = `今日は${wordCount}個の単語を学習しました！ #英語学習 #ソラたん`;
+  const text = `今日は${wordCount}個の単語を学習しました！ #英語学習 #くもたん`;
 
   const result = await createPost(text);
 

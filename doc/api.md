@@ -340,7 +340,7 @@ async function shareProgress(wordCount: number): Promise<Result<boolean, AppErro
     await rateLimiter.throttle();
     
     await agent.post({
-      text: `今日は${wordCount}個の単語を学習しました！ #英語学習 #ソラたん`,
+      text: `今日は${wordCount}個の単語を学習しました！ #英語学習 #くもたん`,
       createdAt: new Date().toISOString(),
     });
     

@@ -12,13 +12,17 @@ import {
   Pressable,
   Alert,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Share, BookOpen, CheckCircle, BarChart3, Calendar, Flame } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
 import { Button } from '../components/common/Button';
+import { getStats, getCalendarData } from '../services/database/stats';
+import { Stats } from '../types/stats';
 
 /**
  * Stats Card Component
@@ -84,29 +88,77 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
 export function ProgressScreen(): React.JSX.Element {
   const isConnected = useNetworkStatus();
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [activityDays, setActivityDays] = useState<number[]>([]);
 
-  // Mock stats data (will be replaced with real data from database)
-  const [stats, setStats] = useState({
-    totalWords: 42,
-    readWords: 28,
-    readPercentage: 67,
-    thisWeekDays: 5,
-    streak: 12,
-    todayCount: 3,
-  });
+  /**
+   * Load all data (stats and calendar)
+   */
+  const loadAllData = useCallback(async (showRefreshing = false) => {
+    if (showRefreshing) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
 
-  // Mock calendar data
-  const [activityDays, setActivityDays] = useState<number[]>([3, 5, 7, 8, 12, 13, 14]);
+    try {
+      // Load stats
+      const statsResult = await getStats();
+      if (statsResult.success) {
+        setStats(statsResult.data);
+      } else {
+        Alert.alert('エラー', '統計の取得に失敗しました。');
+      }
 
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
+      // Load calendar data
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1;
+      const calendarResult = await getCalendarData(year, month);
+      
+      if (calendarResult.success) {
+        const activeDays = calendarResult.data.days
+          .filter(day => day.wordsReadCount > 0)
+          .map(day => {
+            const dayNum = parseInt(day.date.split('-')[2], 10);
+            return dayNum;
+          });
+        setActivityDays(activeDays);
+      }
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      Alert.alert('エラー', 'データの読み込み中にエラーが発生しました。');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+      setIsRefreshing(false);
+    }
+  }, [currentMonth]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  /**
+   * Handle pull-to-refresh
+   */
+  const onRefresh = useCallback(() => {
+    loadAllData(true);
+  }, [loadAllData]);
+
+  /**
+   * Load data when screen is focused
+   */
+  useFocusEffect(
+    useCallback(() => {
+      loadAllData();
+    }, [loadAllData])
+  );
+
+  /**
+   * Reload calendar data when month changes
+   */
+  useEffect(() => {
+    if (!isLoading && stats) {
+      loadAllData();
+    }
+  }, [currentMonth]);
 
   /**
    * Handle share button press
@@ -117,9 +169,14 @@ export function ProgressScreen(): React.JSX.Element {
       return;
     }
 
+    if (!stats) {
+      Alert.alert('エラー', '統計データが読み込まれていません。');
+      return;
+    }
+
     Alert.alert(
       'シェア',
-      `今日は${stats.todayCount}個の単語を学習しました！\n\n#英語学習 #ソラたん`,
+      `今日は${stats.todayCount}個の単語を学習しました！\n\n#英語学習 #くもたん`,
       [
         { text: 'キャンセル', style: 'cancel' },
         { text: 'Blueskyでシェア', onPress: () => {
@@ -128,7 +185,7 @@ export function ProgressScreen(): React.JSX.Element {
         }},
       ]
     );
-  }, [isConnected, stats.todayCount]);
+  }, [isConnected, stats]);
 
   /**
    * Navigate to previous month
@@ -204,7 +261,7 @@ export function ProgressScreen(): React.JSX.Element {
     });
   }, [currentMonth]);
 
-  if (isLoading) {
+  if (isLoading || !stats) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
@@ -236,6 +293,14 @@ export function ProgressScreen(): React.JSX.Element {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+          />
+        }
       >
         {/* Today's Progress */}
         <View style={styles.section}>
