@@ -15,10 +15,10 @@
 - 🔐 **Bluesky認証** - App Passwordによる安全なログイン
 - 📰 **タイムライン表示** - Blueskyの投稿をリアルタイムで表示
 - 📝 **単語保存** - 投稿から英単語を長押しで選択・保存
-- 📚 **単語帳管理** - 保存した単語の一覧表示・既読管理
-- 📊 **学習進捗** - 日別の学習統計とカレンダー表示
+- 📚 **単語帳管理** - 保存した単語の一覧表示・既読管理・ソート・フィルタ
+- 📊 **学習進捗** - 日別の学習統計とカレンダー表示・Blueskyシェア機能
 - 🌐 **オフライン対応** - ネットワーク状態の監視と表示
-- 🔤 **翻訳・定義** - DeepL API / Free Dictionary APIによる翻訳と英語定義
+- 🔤 **翻訳・定義** - DeepL API / Free Dictionary API / Yahoo! JAPAN APIによる多言語対応
 
 ## 🛠️ 技術スタック
 
@@ -30,7 +30,9 @@
 | ナビゲーション | React Navigation v7 |
 | データベース | SQLite (expo-sqlite) |
 | セキュアストレージ | expo-secure-store |
-| API | AT Protocol (@atproto/api) |
+| キャッシュ | @react-native-async-storage/async-storage |
+| ネットワーク監視 | @react-native-community/netinfo |
+| API | AT Protocol (@atproto/api), DeepL, Yahoo! JAPAN |
 
 ## 📂 プロジェクト構成
 
@@ -46,7 +48,8 @@ kumotan/
 │   │   ├── HomeScreen.tsx  # ホーム（タイムライン）
 │   │   ├── WordListScreen.tsx  # 単語帳
 │   │   ├── ProgressScreen.tsx  # 学習進捗
-│   │   └── SettingsScreen.tsx  # 設定
+│   │   ├── SettingsScreen.tsx  # 設定
+│   │   └── ApiKeySetupScreen.tsx  # API Key設定
 │   ├── services/           # 外部サービス連携
 │   │   ├── bluesky/        # Bluesky API
 │   │   ├── database/       # SQLite操作
@@ -90,20 +93,31 @@ npx expo start
 ## 📖 使い方
 
 1. **ログイン** - Blueskyのハンドル名とApp Passwordでログイン
-2. **タイムライン閲覧** - ホーム画面でフォローユーザーの投稿を表示
-3. **単語を保存** - 投稿内の英単語を長押しして単語帳に追加
-4. **学習** - 単語帳タブで保存した単語を復習
-5. **進捗確認** - 進捗タブで学習状況をチェック
+2. **API設定（オプション）** - 設定画面からDeepL API KeyまたはYahoo! Client IDを設定
+3. **タイムライン閲覧** - ホーム画面でフォローユーザーの投稿を表示
+4. **単語を保存** - 投稿内の英単語を長押しして単語帳に追加
+5. **学習** - 単語帳タブで保存した単語を復習
+6. **進捗確認** - 進捗タブで学習状況をチェック・Blueskyでシェア
 
 ## ⚙️ 設定
 
 ### DeepL API Key（オプション）
 
-翻訳機能を使用するには、DeepL API Keyが必要です：
+英語→日本語の翻訳機能を使用する場合：
 
-1. [DeepL](https://www.deepl.com/pro-api) でアカウント作成
-2. 無料のAPI Keyを取得
-3. アプリの設定画面でAPI Keyを入力
+1. [DeepL API](https://www.deepl.com/pro-api) でアカウント作成
+2. 無料のAPI Keyを取得（月50万文字まで無料）
+3. アプリの設定 → API設定 → DeepL API Keyを入力
+
+### Yahoo! JAPAN Client ID（オプション）
+
+日本語単語の形態素解析・ふりがな機能を使用する場合：
+
+1. [Yahoo!デベロッパーネットワーク](https://developer.yahoo.co.jp/) でアプリケーション登録
+2. Client IDを取得（1日50,000リクエストまで無料）
+3. アプリの設定 → API設定 → Yahoo! Client IDを入力
+
+**注意**: どちらのAPIも設定しなくてもアプリは動作しますが、翻訳・解析機能が制限されます。
 
 ## 📚 ドキュメント
 

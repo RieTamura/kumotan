@@ -13,11 +13,12 @@
 - **言語**: TypeScript
 - **ストレージ**: 
   - expo-sqlite（単語データ、学習統計）
-  - expo-secure-store（認証トークン、DeepL API Key）
+  - expo-secure-store（認証トークン、DeepL API Key、Yahoo! Client ID）
   - AsyncStorage（UI設定、キャッシュ）
 - **辞書API**: 
   - Free Dictionary API（英語定義）
   - DeepL API Free（日本語翻訳、月50万文字まで無料）
+  - Yahoo! JAPAN Text Analysis API（日本語単語の形態素解析・ふりがな）
 - **認証**: Bluesky App Password（ユーザー名 + App Password）
 - **ネットワーク監視**: @react-native-community/netinfo
 
@@ -69,23 +70,35 @@
 - オフライン時はシェアボタン無効化
 
 ### 4. 設定ページ
-- Blueskyアカウント情報表示
+- Blueskyアカウント情報表示（アバター、ハンドル名、DID）
 - ログアウト
-- **DeepL API Key設定**（→ API Key Setup Screen）
-  - ステータス表示（設定済み / 未設定）
+- **API設定**（→ API Key Setup Screen）
+  - DeepL API Key：ステータス表示（設定済み / 未設定）
+  - Yahoo! Client ID：ステータス表示（設定済み / 未設定）
 - データエクスポート（JSON形式、Share Sheet経由）
 - すべてのデータを削除（確認ダイアログ付き）
-- アプリバージョン表示
-- ライセンスページへのリンク
+- アプリ情報（バージョン、開発者情報）
+- 外部リンク
+  - くもたん公式Blueskyアカウント
+  - ソースコード（GitHub）
+  - ライセンス情報
 
-### 5. API Key設定ページ（新規追加）
-- DeepL API Keyの設定画面
-- API Keyの用途説明
-- 無料枠の説明（月50万文字）
-- 「API Keyの取得方法」リンク（外部ブラウザでDeepLサイトへ）
-- API Key入力フォーム（secureTextEntry）
-- 「Keyを検証して保存」ボタン
-- 「API Keyを削除」ボタン（設定済みの場合のみ）
+### 5. API Key設定ページ
+- **DeepL API Key設定セクション**
+  - API Keyの用途説明
+  - 無料枠の説明（月50万文字）
+  - 「API Keyの取得方法」リンク（外部ブラウザでDeepLサイトへ）
+  - API Key入力フォーム（secureTextEntry）
+  - 使用量表示（文字数、使用率）
+  - 「Keyを検証して保存」ボタン
+  - 「API Keyを削除」ボタン（設定済みの場合のみ）
+- **Yahoo! JAPAN Client ID設定セクション**
+  - Client IDの用途説明（日本語単語の解析・ふりがな）
+  - 「Client IDの取得方法」リンク（外部ブラウザでYahoo!デベロッパーサイトへ）
+  - Client ID入力フォーム（secureTextEntry）
+  - 「IDを検証して保存」ボタン
+  - 「Client IDを削除」ボタン（設定済みの場合のみ）
+- セクション指定による自動スクロール機能（設定画面からの遷移時）
 
 ### 6. ライセンスページ
 - 使用しているライブラリのライセンス表記
@@ -95,6 +108,7 @@
   - @react-native-community/netinfo
   - Free Dictionary API
   - DeepL API
+  - Yahoo! JAPAN Text Analysis API
 - 利用規約
 - プライバシーポリシー
 
@@ -140,8 +154,16 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - 第三者による不正利用で月間制限を超過するリスクがある
   - ユーザーごとに独立した無料枠（月50万文字）を利用できる
 - **保存場所**: expo-secure-store（暗号化）
-- **検証**: 保存前にDeepL APIで有効性を検証
+- **検証**: 保存前にDeepL APIで有効性を検証（usage APIを使用）
+- **使用量監視**: 80%/95%で警告表示、100%でエラー表示
 - **フォールバック**: API Key未設定時は翻訳をスキップ、英語定義のみ表示
+
+#### Yahoo! JAPAN Client ID
+- **ユーザー入力方式**: DeepL同様、開発者のClient IDをアプリに埋め込まない
+- **用途**: 日本語単語の形態素解析、ふりがな付与
+- **保存場所**: expo-secure-store（暗号化）
+- **検証**: 保存前にYahoo! APIで有効性を検証（Furigana APIを使用）
+- **フォールバック**: Client ID未設定時は日本語解析機能をスキップ
 
 ### 入力バリデーション
 - すべての外部入力を検証
@@ -189,19 +211,20 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ## 開発マイルストーン
 
 ### M1: プロトタイプ（2〜3週間）
-- [ ] プロジェクトセットアップ
-- [ ] ログイン画面（バリデーション付き）
-- [ ] Blueskyフィード表示
-- [ ] 基本的なDB操作
-- [ ] オフライン状態検知
+- [x] プロジェクトセットアップ
+- [x] ログイン画面（バリデーション付き）
+- [x] Blueskyフィード表示
+- [x] 基本的なDB操作
+- [x] オフライン状態検知
 
 ### M2: MVP完成（4〜6週間）
-- [ ] 単語登録機能（API連携）
-- [ ] DeepL API Key設定画面
-- [ ] 単語帳ページ（ソート・フィルタ）
-- [ ] 進捗ページ（カレンダー・統計）
-- [ ] 設定ページ
-- [ ] トークンリフレッシュ機能
+- [x] 単語登録機能（API連携）
+- [x] DeepL API Key設定画面
+- [x] Yahoo! Client ID設定画面
+- [x] 単語帳ページ（ソート・フィルタ）
+- [x] 進捗ページ（カレンダー・統計）
+- [x] 設定ページ
+- [x] トークンリフレッシュ機能
 
 ### M3: ベータリリース（8週間）
 - [ ] UI/UXの洗練
@@ -220,6 +243,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 ### API制限
 - DeepL API Free枠：月50万文字まで（ユーザーごと、超過時はアラート表示）
+- Yahoo! JAPAN API：1日50,000リクエストまで（アプリケーションID単位）
 - Bluesky APIレート制限：3000リクエスト/5分（RateLimiterクラスで管理）
 - Free Dictionary API：明示的な制限なし（常識的な範囲で使用、キャッシュ推奨）
 
@@ -285,11 +309,19 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日  
-**最終更新日**: 2025年1月15日  
-**バージョン**: 1.1  
-**作成者**: [Your Name]
+**最終更新日**: 2026年1月4日  
+**バージョン**: 1.2  
+**作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.2 (2026-01-04)
+- Yahoo! JAPAN Text Analysis API統合を追加
+- API Key設定ページにYahoo! Client ID管理機能を追加
+- セクション指定による自動スクロール機能を追加
+- M1、M2の実装状況を完了に更新
+- 設定ページの機能詳細を更新
+- DeepL APIの使用量監視機能を追加
 
 ### v1.1 (2025-01-15)
 - DeepL API Key管理方針をユーザー入力方式に変更
