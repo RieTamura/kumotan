@@ -1,11 +1,13 @@
 {
   "expo": {
     "name": "くもたん",
-    "slug": "soratan",
-    "version": "1.0.0",
+    "slug": "kumotan",
+    "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#1DA1F2"
     },
@@ -14,18 +16,21 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.soratan.app",
+      "bundleIdentifier": "com.kumotan.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "CFBundleDisplayName": "くもたん"
       }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1DA1F2"
       },
-      "package": "com.soratan.app"
+      "package": "com.kumotan.app"
     },
     "web": {
     },
@@ -38,6 +43,7 @@
         "projectId": "your-project-id"
       }
     },
-    "scheme": "soratan"
+    "scheme": "kumotan",
+    "owner": "your-expo-username"
   }
 }
