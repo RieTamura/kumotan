@@ -27,6 +27,7 @@ import {
   hasClientId as hasYahooClientId 
 } from '../services/dictionary/yahooJapan';
 import { Validators, extractEnglishWords } from '../utils/validators';
+import { AppError, ErrorCode } from '../utils/errors';
 import { Button } from './common/Button';
 import { useWordStore } from '../store/wordStore';
 
@@ -202,6 +203,7 @@ export function WordPopup({
   const [wordsInfo, setWordsInfo] = useState<WordInfo[]>([]);
   
   const [definitionError, setDefinitionError] = useState<string | null>(null);
+  const [definitionNotFound, setDefinitionNotFound] = useState<boolean>(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [japaneseError, setJapaneseError] = useState<string | null>(null);
   const [sentenceError, setSentenceError] = useState<string | null>(null);
@@ -278,6 +280,7 @@ export function WordPopup({
       setSentenceTranslation(null);
       setWordsInfo([]);
       setDefinitionError(null);
+      setDefinitionNotFound(false);
       setTranslationError(null);
       setJapaneseError(null);
       setSentenceError(null);
@@ -307,6 +310,7 @@ export function WordPopup({
 
     // Reset errors
     setDefinitionError(null);
+    setDefinitionNotFound(false);
     setTranslationError(null);
     setJapaneseError(null);
     setSentenceError(null);
@@ -360,7 +364,12 @@ export function WordPopup({
           setDefinition(defResult.data);
         } else {
           console.log(`WordPopup: Definition error:`, defResult.error.message);
-          setDefinitionError(defResult.error.message);
+          // WORD_NOT_FOUNDの場合は穏やかな「見つからない」状態にする
+          if (defResult.error.code === 'WORD_NOT_FOUND') {
+            setDefinitionNotFound(true);
+          } else {
+            setDefinitionError(defResult.error.message);
+          }
         }
       } catch (error) {
         console.error('WordPopup: Unexpected error in lookupWord:', error);
@@ -667,7 +676,7 @@ export function WordPopup({
                   <View style={styles.wordsListContainer}>
                     {wordsInfo.map((wordInfo, index) => (
                       <SwipeableWordCard
-                        key={`${wordInfo.word}-${index}`}
+                        key={`word-${index}-${wordInfo.word}`}
                         wordInfo={wordInfo}
                         onRemove={() => {
                           setWordsInfo(prev => prev.filter((_, i) => i !== index));
@@ -694,7 +703,7 @@ export function WordPopup({
               ) : japaneseInfo.length > 0 ? (
                 <>
                   {japaneseInfo.map((token, index) => (
-                    <View key={`${token.word}-${token.reading}-${index}`} style={styles.tokenCard}>
+                    <View key={`token-${index}-${token.word}-${token.reading}`} style={styles.tokenCard}>
                       <View style={styles.tokenHeader}>
                         <Text style={styles.tokenWord}>{token.word}</Text>
                         <Text style={styles.tokenReading}>({token.reading})</Text>
@@ -753,6 +762,8 @@ export function WordPopup({
                     </Text>
                   )}
                 </>
+              ) : definitionNotFound ? (
+                <Text style={styles.notFoundText}>定義が見つかりませんでした</Text>
               ) : definitionError ? (
                 <Text style={styles.errorText}>{definitionError}</Text>
               ) : (
@@ -1032,6 +1043,11 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: FontSizes.sm,
     color: Colors.error,
+  },
+  notFoundText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
   },
   hintText: {
     fontSize: FontSizes.sm,

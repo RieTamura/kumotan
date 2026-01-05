@@ -196,6 +196,19 @@ export function PostCard({ post, onWordSelect, onSentenceSelect, clearSelection 
   );
 
   /**
+   * Handle Japanese sentence long press
+   */
+  const handleJapaneseSentenceLongPress = useCallback(
+    (sentence: string) => {
+      if (!onSentenceSelect) return;
+      setSelectedSentence(sentence);
+      setSelectedWord(null);
+      onSentenceSelect(sentence, post.uri, post.text);
+    },
+    [post.uri, post.text, onSentenceSelect]
+  );
+
+  /**
    * Handle word press with double-tap detection
    */
   const handleWordPress = useCallback(
@@ -260,6 +273,26 @@ export function PostCard({ post, onWordSelect, onSentenceSelect, clearSelection 
               </Text>
             );
           }
+          
+          if (token.isJapaneseWord) {
+            const isSentenceSelected = selectedSentence === token.text;
+            
+            return (
+              <Text
+                key={token.index}
+                style={
+                  isSentenceSelected
+                    ? styles.highlightedSentence
+                    : styles.selectableJapanese
+                }
+                onLongPress={() => handleJapaneseSentenceLongPress(token.text)}
+                suppressHighlighting={false}
+              >
+                {token.text}
+              </Text>
+            );
+          }
+          
           return <Text key={token.index}>{token.text}</Text>;
         })}
       </Text>
@@ -315,7 +348,7 @@ export function PostCard({ post, onWordSelect, onSentenceSelect, clearSelection 
       {/* Selection hint */}
       {!selectedWord && !selectedSentence && (
         <Text style={styles.hint}>
-          長押しで単語、ダブルタップで文章を選択
+          長押しで単語選択。ダブルタップで文章を選択 ※英文のみ
         </Text>
       )}
     </Pressable>
@@ -362,11 +395,6 @@ const styles = StyleSheet.create({
   },
   content: {
     marginBottom: Spacing.md,
-  highlightedSentence: {
-    backgroundColor: '#FFF3E0', // Light orange for sentence highlighting
-    color: Colors.text,
-    fontWeight: '500',
-  },
   },
   postText: {
     fontSize: FontSizes.lg,
@@ -376,11 +404,19 @@ const styles = StyleSheet.create({
   selectableWord: {
     // Selectable words have same style as regular text but are touchable
   },
+  selectableJapanese: {
+    // Selectable Japanese sentences have same style as regular text but are touchable
+  },
   highlightedWord: {
     backgroundColor: Colors.primaryLight,
     color: Colors.primary,
     fontWeight: '600',
     borderRadius: BorderRadius.sm,
+  },
+  highlightedSentence: {
+    backgroundColor: '#FFF3E0', // Light orange for sentence highlighting
+    color: Colors.text,
+    fontWeight: '500',
   },
   metricsRow: {
     flexDirection: 'row',

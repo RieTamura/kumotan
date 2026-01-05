@@ -2922,6 +2922,419 @@ module.exports = function (api) {
 
 ---
 
+## 31. 英語定義が見つからない場合のエラー表示が驚かせる問題
+
+### 発生日
+2026年1月5日
+
+### 症状
+- 投稿文の英語単語を長押しして選択し、辞書APIで定義を検索する
+- 単語が辞書に存在しない場合、赤い文字で「"word" の定義が見つかりませんでした。」というエラーが表示される
+- 赤いエラー表示がユーザーを驚かせてしまう
+- 単語が見つからないことは正常な状況であり、エラーとして扱うべきではない
+
+### 原因
+`src/components/WordPopup.tsx`で、`WORD_NOT_FOUND`エラーを他の技術的なエラー（ネットワーク障害など）と同様に赤いエラーテキスト（`errorText`スタイル）で表示していた。
+
+```typescript
+// 変更前
+) : definitionError ? (
+  <Text style={styles.errorText}>{definitionError}</Text>
+) : (
+  <Text style={styles.hintText}>-</Text>
+)
+```
+
+### 解決策
+
+**1. WordPopup.tsxの修正 - 状態管理の追加：**
+
+`WORD_NOT_FOUND`エラーを別の状態として管理するため、`definitionNotFound`ステートを追加：
+
+```typescript
+// 新しいステートを追加
+const [definitionNotFound, setDefinitionNotFound] = useState<boolean>(false);
+
+// エラー処理でWORD_NOT_FOUNDを区別
+if (defResult.success) {
+  setDefinition(defResult.data);
+} else {
+  // WORD_NOT_FOUNDの場合は穏やかな「見つからない」状態にする
+  if (defResult.error.code === 'WORD_NOT_FOUND') {
+    setDefinitionNotFound(true);
+  } else {
+    setDefinitionError(defResult.error.message);
+  }
+}
+```
+
+**2. 表示スタイルの変更：**
+
+新しい`notFoundText`スタイルを追加し、グレー色でイタリック体の穏やかな表示に変更：
+
+```typescript
+// スタイルの追加
+notFoundText: {
+  fontSize: FontSizes.sm,
+  color: Colors.textSecondary,
+  fontStyle: 'italic',
+},
+
+// 表示の条件分岐
+) : definitionNotFound ? (
+  <Text style={styles.notFoundText}>定義が見つかりませんでした</Text>
+) : definitionError ? (
+  <Text style={styles.errorText}>{definitionError}</Text>
+) : (
+  <Text style={styles.hintText}>-</Text>
+)
+```
+
+**3. AppErrorのインポート追加：**
+
+エラーコードを判定するため、`AppError`と`ErrorCode`をインポート：
+
+```typescript
+import { AppError, ErrorCode } from '../utils/errors';
+```
+
+### 実装のポイント
+- WORD_NOT_FOUNDエラーは赤いエラー表示ではなく、グレーのイタリック体で「定義が見つかりませんでした」と表示
+- 技術的なエラー（ネットワーク障害、API障害など）は引き続き赤いエラー表示
+- エラーコードで判定することで、エラーの種類に応じた適切な表示が可能
+- ステートをリセットする際は`definitionNotFound`も含める
+
+### 関連ファイル
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+- `src/utils/errors.ts` - エラー定義
+
+### 教訓
+- エラーには「システムエラー」と「想定される正常な状況」の2種類がある
+- 辞書に単語が見つからないことは正常な状況であり、驚かせる表示は不適切
+- エラーコードを活用することで、エラーの種類に応じた適切なUI表示ができる
+- 色やスタイルは、メッセージの重要度や性質を伝える重要な要素
+
+---
+
+## 32. 日本語文章選択時に重複キーエラーが発生する問題
+
+### 発生日
+2026年1月5日
+
+### 症状
+- 投稿文の日本語文章を長押しして選択すると、Reactの警告エラーが表示される
+- エラー内容：`Encountered two children with the same key, 's'. Keys should be unique so that components maintain their identity across updates.`
+- 同じ文字（助詞「の」など）が複数回出現すると重複キーが発生する
+- 機能は動作するが、コンソールに警告が表示される
+
+### 原因
+`src/components/WordPopup.tsx`の形態素解析結果を表示する部分で、キーの生成方法に問題があった：
+
+```typescript
+// 問題のあるキー生成
+{japaneseInfo.map((token, index) => (
+  <View key={`${token.word}-${token.reading}-${index}`} style={styles.tokenCard}>
+```
+
+同じ単語（例：「の」）が複数回出現した場合、`token.word`が同じになり、`token.reading`も同じになるため、インデックスが最後に配置されていても重複キーが生成される可能性があった。
+
+### 解決策
+
+**1. 形態素解析結果のキー生成方法を修正：**
+
+インデックスを最初に配置し、より確実に一意性を保証：
+
+```typescript
+// 変更前
+key={`${token.word}-${token.reading}-${index}`}
+
+// 変更後
+key={`token-${index}-${token.word}-${token.reading}`}
+```
+
+**2. 文章モード単語リストのキー生成も修正：**
+
+```typescript
+// 変更前
+key={`${wordInfo.word}-${index}`}
+
+// 変更後
+key={`word-${index}-${wordInfo.word}`}
+```
+
+### 実装のポイント
+- インデックスをキーの最初に配置することで、配列内での位置を確実に識別
+- プレフィックス（`token-`、`word-`）を追加して、キーの種類を明確化
+- 同じ文字や単語が複数回出現してもReactが正しくコンポーネントを識別できる
+- 文章モードの単語リストでも同様のパターンを適用
+
+### 関連ファイル
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+
+### 教訓
+- Reactのキーは配列内で一意であることが重要
+- インデックスをキーの最初に配置することで、確実な一意性を保証できる
+- プレフィックスを追加することで、キーの可読性とデバッグ性が向上
+- 同じパターンを複数箇所で使用する場合、一貫性を保つことが重要
+
+---
+
+## 33. 単語登録後に他の文章を選択できない問題
+
+### 発生日
+2026年1月5日
+
+### 症状
+- 投稿文の単語を長押しして選択し、単語帳に登録する
+- WordPopupを閉じた後、他の投稿や同じ投稿で再度単語を選択しようとする
+- しかし、長押ししても単語が選択されず、WordPopupが開かない
+- 一度選択した投稿だけが選択できなくなる
+
+### 調査過程
+
+1. **PostCard.tsxの確認** - `clearSelection`プロップを受け取り、useEffectで選択状態をクリアする実装は正しかった
+
+2. **HomeScreen.tsxの確認** - `closeWordPopup`関数で`postUri`が保持されたままになっており、`shouldClearSelection`が常に`true`になっていた
+
+### 原因
+`src/screens/HomeScreen.tsx`の`closeWordPopup`関数で、ポップアップを閉じた後も`postUri`が保持されたままになっていた：
+
+```typescript
+// 変更前
+const closeWordPopup = useCallback(() => {
+  setWordPopup(prev => ({ ...prev, visible: false }));
+}, []);
+```
+
+これにより、`renderPost`の条件判定で：
+```typescript
+const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri;
+```
+該当する投稿の`shouldClearSelection`が常に`true`になり、選択がすぐにクリアされてしまっていた。
+
+### 解決策
+
+**1. closeWordPopup関数の修正：**
+
+ポップアップを閉じた後、100ms後に`postUri`をリセットするように変更：
+
+```typescript
+const closeWordPopup = useCallback(() => {
+  // Keep postUri to allow PostCard to clear selection before full reset
+  setWordPopup(prev => ({ ...prev, visible: false }));
+  
+  // Reset postUri after a short delay to allow PostCard to process clearSelection
+  setTimeout(() => {
+    setWordPopup(prev => ({ ...initialWordPopupState }));
+  }, 100);
+}, []);
+```
+
+**2. renderPost関数の条件修正：**
+
+`postUri`が空でない場合のみ`clearSelection`をtrueにするように変更：
+
+```typescript
+const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri && wordPopup.postUri !== '';
+```
+
+### 実装のポイント
+- まず`visible: false`に設定してポップアップを閉じる
+- PostCardが`clearSelection`を処理する時間を確保するため、100ms待つ
+- その後、全ての状態を初期値にリセット
+- `postUri !== ''`条件により、リセット後は選択をクリアしない
+
+### 動作フロー
+1. 単語を選択 → `wordPopup.postUri`に投稿のURIが保存される
+2. WordPopupを閉じる → `visible: false`に設定
+3. PostCardで選択がクリア → `shouldClearSelection`が`true`で選択解除
+4. 100ms後 → `postUri`が空文字列にリセット、`shouldClearSelection`が`false`に
+5. 他の投稿（または同じ投稿）で再度選択可能に
+
+### 関連ファイル
+- `src/screens/HomeScreen.tsx` - ホーム画面
+
+### 教訓
+- 親子コンポーネント間の状態同期では、タイミングの制御が重要
+- `setTimeout`を使用して段階的に状態を更新することで、適切な処理順序を保証できる
+- 条件判定に追加のチェック（`!== ''`など）を加えることで、意図しない動作を防げる
+- デバッグ時は、状態の変化のタイミングと条件判定の順序を注意深く確認する
+
+---
+
+## 34. 日本語文章が長押しで選択できない問題
+
+### 発生日
+2026年1月5日
+
+### 症状
+- 投稿文の英語単語は長押しで選択できる
+- 投稿文の日本語文章を長押ししても、何も反応しない
+- WordPopupが開かず、形態素解析結果を確認できない
+
+### 調査過程
+
+1. **PostCard.tsxの確認** - `renderText`関数で、`isEnglishWord`の場合のみタッチ可能な`<Text>`要素として表示されていた
+
+2. **日本語のトークン処理** - `isJapaneseWord`フラグは設定されていたが、通常のTextとして表示され、タッチイベントが設定されていなかった
+
+### 原因
+`src/components/PostCard.tsx`の`renderText`関数で、英語単語のみがタッチ可能に実装されており、日本語文章は通常のTextとして表示されていた：
+
+```typescript
+// 変更前
+if (token.isEnglishWord) {
+  // タッチ可能な<Text>を返す
+}
+return <Text key={token.index}>{token.text}</Text>;  // 日本語はタッチ不可
+```
+
+### 解決策
+
+**1. 日本語文章用のハンドラーを追加：**
+
+```typescript
+const handleJapaneseSentenceLongPress = useCallback(
+  (sentence: string) => {
+    if (!onSentenceSelect) return;
+    setSelectedSentence(sentence);
+    setSelectedWord(null);
+    onSentenceSelect(sentence, post.uri, post.text);
+  },
+  [post.uri, post.text, onSentenceSelect]
+);
+```
+
+**2. renderText関数を拡張：**
+
+日本語文章もタッチ可能にする処理を追加：
+
+```typescript
+if (token.isJapaneseWord) {
+  const isSentenceSelected = selectedSentence === token.text;
+  
+  return (
+    <Text
+      key={token.index}
+      style={
+        isSentenceSelected
+          ? styles.highlightedSentence
+          : styles.selectableJapanese
+      }
+      onLongPress={() => handleJapaneseSentenceLongPress(token.text)}
+      suppressHighlighting={false}
+    >
+      {token.text}
+    </Text>
+  );
+}
+```
+
+**3. スタイルの追加：**
+
+日本語文章用のスタイルを追加：
+
+```typescript
+selectableJapanese: {
+  // Selectable Japanese sentences have same style as regular text but are touchable
+},
+```
+
+**4. スタイル構造の修正：**
+
+既存のスタイル定義にバグがあったため修正：
+
+```typescript
+// 変更前（バグ）
+content: {
+  marginBottom: Spacing.md,
+  highlightedSentence: {  // ネストエラー
+    // ...
+  },
+},
+
+// 変更後
+content: {
+  marginBottom: Spacing.md,
+},
+highlightedSentence: {
+  backgroundColor: '#FFF3E0',
+  color: Colors.text,
+  fontWeight: '500',
+},
+```
+
+### 実装のポイント
+- 日本語文章は`onLongPress`のみ対応（ダブルタップは英語のみ）
+- 選択時は薄いオレンジ色（`#FFF3E0`）でハイライト表示
+- `suppressHighlighting={false}`で、タッチフィードバックを有効化
+- スタイルの構造エラーを修正し、正しい階層に配置
+
+### 動作
+- **英語**: 長押しで単語選択、ダブルタップで文章選択
+- **日本語**: 長押しで文章選択（形態素解析が実行される）
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+
+### 教訓
+- 新機能追加時は、既存の実装パターンを参考に一貫性を保つ
+- 日本語と英語で異なるインタラクションパターンが適切な場合もある
+- スタイル定義のネストエラーはTypeScriptでも検出されにくいため、注意が必要
+- タッチ可能な要素には適切なフィードバック（ハイライトなど）を提供する
+
+---
+
+## 35. 投稿カードのヒントテキストの調整
+
+### 発生日
+2026年1月5日
+
+### 背景
+- 投稿カードの下部に操作方法を示すヒントテキストを表示している
+- ユーザーのフィードバックを受けて、よりわかりやすい表現に調整した
+
+### 変更内容
+
+ヒントテキストを段階的に調整：
+
+**第1段階：**
+```typescript
+// 最初の表示
+"長押しで単語、ダブルタップで文章を選択"
+
+// ↓ 英文のみ対応であることを明記
+"長押しで単語、ダブルタップで文章を選択 ※英文のみ"
+```
+
+**第2段階：**
+```typescript
+// ↓ よりシンプルに
+"長押しで単語選択"
+```
+
+**最終版：**
+```typescript
+// ↓ ダブルタップ機能も記載しつつ、句点で読みやすく
+"長押しで単語選択。ダブルタップで文章を選択 ※英文のみ"
+```
+
+### 実装のポイント
+- 句点（。）で操作方法を区切り、読みやすさを向上
+- 「※英文のみ」の注記で、ダブルタップは英文のみであることを明示
+- 日本語文章は長押しのみで選択できることが暗黙的に示される
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+
+### 教訓
+- ヒントテキストは簡潔さと情報量のバランスが重要
+- ユーザーフィードバックを受けて段階的に改善することが効果的
+- 注記（※）を使用して、例外や制限事項を明示する
+- 句読点の使い方で、テキストの読みやすさが大きく変わる
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：
