@@ -74,10 +74,10 @@ export async function insertWord(
       };
     }
 
-    // Insert the word
+    // Insert the word with explicit local timestamp
     const result = await database.runAsync(
-      `INSERT INTO words (english, japanese, definition, post_url, post_text)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO words (english, japanese, definition, post_url, post_text, created_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
       [
         sanitizedEnglish,
         input.japanese ?? null,
@@ -244,21 +244,27 @@ export async function toggleReadStatus(
 
     const currentIsRead = (current.is_read as number) === 1;
     const newIsRead = currentIsRead ? 0 : 1;
-    const readAt = newIsRead === 1 ? new Date().toISOString() : null;
 
     // Use transaction for atomic update
     await database.withTransactionAsync(async () => {
-      // Update word
-      await database.runAsync(
-        'UPDATE words SET is_read = ?, read_at = ? WHERE id = ?',
-        [newIsRead, readAt, id]
-      );
+      // Update word with local timestamp
+      if (newIsRead === 1) {
+        await database.runAsync(
+          "UPDATE words SET is_read = ?, read_at = datetime('now', 'localtime') WHERE id = ?",
+          [newIsRead, id]
+        );
+      } else {
+        await database.runAsync(
+          'UPDATE words SET is_read = ?, read_at = NULL WHERE id = ?',
+          [newIsRead, id]
+        );
+      }
 
       // Update daily stats
       if (newIsRead === 1) {
         await database.runAsync(
           `INSERT INTO daily_stats (date, words_read_count)
-           VALUES (date('now'), 1)
+           VALUES (date('now', 'localtime'), 1)
            ON CONFLICT(date) DO UPDATE SET
            words_read_count = words_read_count + 1`
         );
@@ -266,7 +272,7 @@ export async function toggleReadStatus(
         await database.runAsync(
           `UPDATE daily_stats
            SET words_read_count = MAX(0, words_read_count - 1)
-           WHERE date = date('now')`
+           WHERE date = date('now', 'localtime')`
         );
       }
     });
@@ -353,7 +359,7 @@ export async function getTodayReadCount(): Promise<Result<number, AppError>> {
     const database = getDatabase();
     const result = await database.getFirstAsync<{ count: number }>(
       `SELECT COUNT(*) as count FROM words
-       WHERE date(read_at) = date('now')`
+       WHERE date(read_at) = date('now', 'localtime')`
     );
     return { success: true, data: result?.count ?? 0 };
   } catch (error) {

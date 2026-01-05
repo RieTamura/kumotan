@@ -16,7 +16,7 @@ import {
   Modal,
 } from 'react-native';
 import ViewShot, { captureRef } from 'react-native-view-shot';
-import RNShare from 'react-native-share';
+import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -177,31 +177,33 @@ export function ProgressScreen(): React.JSX.Element {
 
     setIsCapturing(true);
     try {
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert('エラー', 'このデバイスでは共有機能が利用できません。');
+        return;
+      }
+
       const uri = await captureRef(shareCardRef, {
         format: 'png',
         quality: 1,
       });
 
-      // Create share message with hashtags
+      // Create share message and copy to clipboard
       const shareMessage = `今日は${stats.todayCount}個の単語を学習しました！\n\n#くもたん #言語学習 #langsky`;
+      await Clipboard.setStringAsync(shareMessage);
 
-      // iOS requires file:// prefix for local files
-      const fileUrl = uri.startsWith('file://') ? uri : `file://${uri}`;
-
-      await RNShare.open({
-        urls: [fileUrl],
-        message: shareMessage,
-        subject: '今日の学習進捗',
-        failOnCancel: false,
+      // Share the image (message is copied to clipboard)
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: '今日の学習進捗',
       });
+
+      // Notify user that message was copied
+      Alert.alert('メッセージをコピーしました', 'テキストがクリップボードにコピーされました。共有先で貼り付けてください。');
     } catch (error: unknown) {
-      // User cancelled sharing
-      if ((error as { message?: string })?.message?.includes('User did not share')) {
-        console.log('User cancelled sharing');
-      } else {
-        console.error('Failed to capture and share:', error);
-        Alert.alert('エラー', '画像の作成に失敗しました。');
-      }
+      console.error('Failed to capture and share:', error);
+      Alert.alert('エラー', '画像の作成または共有に失敗しました。');
     } finally {
       setIsCapturing(false);
       setIsShareModalVisible(false);

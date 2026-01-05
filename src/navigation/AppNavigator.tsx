@@ -25,6 +25,7 @@ import WordListScreen from '../screens/WordListScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ApiKeySetupScreen from '../screens/ApiKeySetupScreen';
+import LicenseScreen from '../screens/LicenseScreen';
 
 /**
  * Stack Navigator Types
@@ -198,7 +199,19 @@ function RootNavigator(): React.JSX.Element {
               },
             }}
           />
-          {/* Add License screen here when implemented */}
+          <Stack.Screen
+            name="License"
+            component={LicenseScreen}
+            options={{
+              headerShown: true,
+              headerTitle: 'ライセンス',
+              headerBackTitle: '戻る',
+              headerTintColor: Colors.primary,
+              headerStyle: {
+                backgroundColor: Colors.background,
+              },
+            }}
+          />
         </Stack.Group>
       ) : (
         // Unauthenticated routes

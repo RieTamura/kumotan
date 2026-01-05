@@ -54,13 +54,13 @@ export async function getStats(): Promise<Result<Stats, AppError>> {
     // Get this week's learning days
     const thisWeekResult = await database.getFirstAsync<{ count: number }>(
       `SELECT COUNT(DISTINCT date) as count FROM daily_stats
-       WHERE date >= date('now', '-7 days') AND words_read_count > 0`
+       WHERE date >= date('now', 'localtime', '-7 days') AND words_read_count > 0`
     );
 
     // Get today's count
     const todayResult = await database.getFirstAsync<{ count: number }>(
       `SELECT COUNT(*) as count FROM words
-       WHERE date(read_at) = date('now')`
+       WHERE date(read_at) = date('now', 'localtime')`
     );
 
     // Calculate streak
@@ -223,7 +223,7 @@ export async function getRecentStats(
       words_read_count: number;
     }>(
       `SELECT date, words_read_count FROM daily_stats
-       WHERE date >= date('now', '-${days} days')
+       WHERE date >= date('now', 'localtime', '-${days} days')
        ORDER BY date DESC`
     );
 
@@ -250,7 +250,7 @@ export async function incrementTodayCount(): Promise<Result<void, AppError>> {
     const database = getDatabase();
     await database.runAsync(
       `INSERT INTO daily_stats (date, words_read_count)
-       VALUES (date('now'), 1)
+       VALUES (date('now', 'localtime'), 1)
        ON CONFLICT(date) DO UPDATE SET
        words_read_count = words_read_count + 1`
     );

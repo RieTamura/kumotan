@@ -2164,6 +2164,169 @@ useEffect(() => {
 
 ---
 
+## 19. 単語登録時刻が9時間ズレて記録される問題
+
+### 発生日
+2026年1月5日
+
+### 症状
+- 投稿文の単語を長押しして単語帳に登録する
+- 登録時刻が実際の時刻より9時間前に記録される
+- 例：9:11に登録した単語が0:10:59と表示される
+- データベースに保存されている時刻がUTC（協定世界時）になっており、日本時間（JST）として表示される際にズレが発生
+
+### 調査過程
+
+1. **最初の修正 - UTC保存方式の導入**
+   - データベースにUTC時刻で保存し、表示時にローカル時刻に変換する方式を実装
+   - `created_at`を`CURRENT_TIMESTAMP`（UTC）で保存
+   - `formatDate`関数でUTC→ローカル変換
+   - マイグレーションで既存データを-9時間してUTCに変換
+
+2. **問題の発覚**
+   - 新しい単語を登録しても、依然として9時間のズレが発生
+   - マイグレーションは実行されたが、新規登録時の時刻が正しくない
+
+3. **原因の特定**
+   - `insertWord`関数で`created_at`を明示的に指定していなかった
+   - テーブル作成時のDEFAULT値は既存テーブルには適用されない
+   - マイグレーションの複雑さとUTC/ローカル時刻の変換ミス
+
+4. **最終的な解決策**
+   - シンプルなローカル時刻保存方式に変更
+   - データベーススキーマ、挿入処理、表示処理を全てローカル時刻に統一
+
+### 原因
+
+**1. テーブルスキーマとデータ挿入の不一致：**
+- テーブル定義で`created_at DATETIME DEFAULT CURRENT_TIMESTAMP`としていた
+- しかし、`insertWord`関数で明示的に`created_at`を指定していなかった
+- SQLiteでは既存テーブルのDEFAULT値は変更できないため、スキーマを修正してもデータ挿入には影響しなかった
+
+**2. マイグレーションの複雑さ：**
+- UTC保存方式では、既存データの変換、新規データの保存、表示時の変換と3箇所で正確な処理が必要
+- マイグレーションでデータを変換しても、新規データが異なる形式で保存されると一貫性が失われる
+
+**3. タイムゾーンの考慮不足：**
+- 当初「タイムゾーン非依存」を目指してUTC保存を試みたが、個人の学習アプリでは過度に複雑
+- ユーザーが海外旅行中に単語を登録することは稀で、実用上はローカル時刻保存で十分
+
+### 解決策
+
+**最終的にローカル時刻保存方式を採用：**
+
+**1. データベーススキーマの修正：**
+
+`src/services/database/init.ts`:
+```typescript
+// created_atをローカル時刻で保存
+created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+```
+
+**2. insertWord関数の修正：**
+
+`src/services/database/words.ts`:
+```typescript
+// 明示的にローカル時刻を指定
+const result = await database.runAsync(
+  `INSERT INTO words (english, japanese, definition, post_url, post_text, created_at)
+   VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
+  [sanitizedEnglish, input.japanese ?? null, input.definition ?? null, 
+   input.postUrl ?? null, input.postText ?? null]
+);
+```
+
+**3. toggleReadStatus関数の修正：**
+
+```typescript
+// read_atもローカル時刻で記録
+if (newIsRead === 1) {
+  await database.runAsync(
+    "UPDATE words SET is_read = ?, read_at = datetime('now', 'localtime') WHERE id = ?",
+    [newIsRead, id]
+  );
+}
+```
+
+**4. 統計処理の修正：**
+
+`src/services/database/stats.ts`と`src/services/database/words.ts`の全ての`date('now')`を`date('now', 'localtime')`に変更：
+
+```typescript
+// 今日の学習数取得
+WHERE date(read_at) = date('now', 'localtime')
+
+// 日別統計の更新
+INSERT INTO daily_stats (date, words_read_count)
+VALUES (date('now', 'localtime'), 1)
+```
+
+**5. 表示処理の修正：**
+
+`src/components/WordListItem.tsx`:
+```typescript
+// UTC変換せず、ローカル時刻としてそのまま解釈
+function formatDate(dateString: string): string {
+  try {
+    const localDate = new Date(dateString.replace(' ', 'T'));
+    return format(localDate, 'yyyy/M/d HH:mm:ss', { locale: ja });
+  } catch {
+    return '-';
+  }
+}
+```
+
+**6. マイグレーションの追加：**
+
+既存データを修正するため、バージョン3と4のマイグレーションを追加：
+
+```typescript
+// Migration to version 3: Fix timezone conversion
+if (currentVersion < 3) {
+  // Add 9 hours to convert UTC back to JST
+  await database.execAsync(`
+    UPDATE words 
+    SET created_at = datetime(created_at, '+9 hours')
+    WHERE created_at IS NOT NULL;
+  `);
+  // ... (read_atも同様に処理)
+}
+
+// Migration to version 4: Ensure all timestamps are in JST
+if (currentVersion < 4) {
+  // 念のため再度+9時間（冪等性のため条件チェック付き）
+  await database.execAsync(`
+    UPDATE words 
+    SET created_at = datetime(created_at, '+9 hours')
+    WHERE created_at IS NOT NULL;
+  `);
+  // ... (read_atも同様に処理)
+}
+```
+
+### 実装のポイント
+- **一貫性**：データベース保存、取得、表示の全てでローカル時刻を使用
+- **シンプルさ**：UTC変換の複雑さを避け、タイムゾーン変換なしで動作
+- **明示的な指定**：DEFAULT値に頼らず、INSERT時に必ず`datetime('now', 'localtime')`を指定
+- **マイグレーション**：既存データを+9時間して、UTC→ローカル時刻に修正
+
+### 関連ファイル
+- `src/services/database/init.ts` - データベース初期化とマイグレーション
+- `src/services/database/words.ts` - 単語データベース操作
+- `src/services/database/stats.ts` - 統計データベース操作
+- `src/components/WordListItem.tsx` - 単語カード表示
+- `src/constants/config.ts` - データベース設定
+
+### 教訓
+- SQLiteの`CURRENT_TIMESTAMP`は常にUTCを返すため、ローカル時刻が必要な場合は`datetime('now', 'localtime')`を使う
+- テーブル定義のDEFAULT値は既存テーブルには適用されないため、INSERT文で明示的に指定する必要がある
+- タイムゾーン対応は複雑になりがちなので、要件を満たす最もシンプルな方法を選ぶべき
+- 個人の学習アプリでは、グローバルなタイムゾーン対応より、ローカル時刻での一貫性を優先する方が実用的
+- データベースマイグレーションは段階的に実行し、各ステップでログを出力して検証可能にする
+- 時刻関連の問題では、保存時・取得時・表示時の全てのポイントで一貫した方式を採用することが重要
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

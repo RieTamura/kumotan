@@ -194,13 +194,8 @@ export function SettingsScreen(): React.JSX.Element {
    * Handle license screen navigation
    */
   const handleLicensePress = useCallback(() => {
-    // TODO: Navigate to License Screen
-    Alert.alert(
-      'ライセンス',
-      'この機能は開発中です。使用しているライブラリのライセンス情報を表示します。',
-      [{ text: 'OK' }]
-    );
-  }, []);
+    navigation.navigate('License');
+  }, [navigation]);
 
   /**
    * Open external link

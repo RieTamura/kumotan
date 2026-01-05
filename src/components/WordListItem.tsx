@@ -36,11 +36,14 @@ interface WordListItemProps {
 
 /**
  * Format the date for display
+ * Database stores timestamps in JST (local time), display as-is
  */
 function formatDate(dateString: string): string {
   try {
-    const date = new Date(dateString);
-    return format(date, 'M/d', { locale: ja });
+    // SQLite returns timestamps in 'YYYY-MM-DD HH:MM:SS' format (JST)
+    // Parse as local time (not UTC) for display
+    const localDate = new Date(dateString.replace(' ', 'T'));
+    return format(localDate, 'yyyy/M/d HH:mm:ss', { locale: ja });
   } catch {
     return '-';
   }

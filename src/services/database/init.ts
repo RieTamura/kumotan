@@ -39,7 +39,7 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
       post_url TEXT,
       post_text TEXT,
       is_read INTEGER DEFAULT 0 CHECK(is_read IN (0, 1)),
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       read_at DATETIME
     );
   `);
@@ -110,16 +110,88 @@ async function runMigrations(
   database: SQLite.SQLiteDatabase,
   currentVersion: number
 ): Promise<void> {
-  // Migration to version 2 (example for future use)
+  if (__DEV__) {
+    console.log(`Running migrations from version ${currentVersion}`);
+  }
+
+  // Migration to version 2: Convert timestamps to UTC for timezone independence (DEPRECATED)
   if (currentVersion < 2) {
-    // Example migration:
-    // await database.execAsync(`
-    //   ALTER TABLE words ADD COLUMN pronunciation TEXT;
-    // `);
-    // await database.runAsync(
-    //   'INSERT INTO schema_version (version) VALUES (?)',
-    //   [2]
-    // );
+    // This migration had issues, skip to version 3
+    await database.runAsync(
+      'INSERT INTO schema_version (version) VALUES (?)',
+      [2]
+    );
+    if (__DEV__) {
+      console.log('Migration to version 2: Skipped (deprecated)');
+    }
+  }
+
+  // Migration to version 3: Fix timezone conversion
+  if (currentVersion < 3) {
+    // Simply add 9 hours to convert UTC back to JST
+    // The previous migration incorrectly subtracted 9 hours
+    await database.execAsync(`
+      UPDATE words 
+      SET created_at = datetime(created_at, '+9 hours')
+      WHERE created_at IS NOT NULL;
+    `);
+    
+    await database.execAsync(`
+      UPDATE words 
+      SET read_at = datetime(read_at, '+9 hours')
+      WHERE read_at IS NOT NULL;
+    `);
+    
+    await database.runAsync(
+      'INSERT INTO schema_version (version) VALUES (?)',
+      [3]
+    );
+    
+    if (__DEV__) {
+      console.log('Migration to version 3 completed: Corrected timestamps to JST');
+    }
+  }
+
+  // Migration to version 4: Ensure all timestamps are in JST
+  if (currentVersion < 4) {
+    // Get a sample to check if conversion is needed
+    const sample = await database.getFirstAsync<{ created_at: string }>(
+      'SELECT created_at FROM words LIMIT 1'
+    );
+    
+    if (sample && sample.created_at) {
+      const sampleDate = new Date(sample.created_at.replace(' ', 'T') + 'Z');
+      const now = new Date();
+      
+      // If the time looks like UTC (9 hours behind), convert it
+      if (__DEV__) {
+        console.log('Sample timestamp:', sample.created_at);
+        console.log('Parsed as UTC:', sampleDate.toLocaleString('ja-JP'));
+        console.log('Current time:', now.toLocaleString('ja-JP'));
+      }
+    }
+    
+    // Add 9 hours to all timestamps to ensure they are in JST
+    await database.execAsync(`
+      UPDATE words 
+      SET created_at = datetime(created_at, '+9 hours')
+      WHERE created_at IS NOT NULL;
+    `);
+    
+    await database.execAsync(`
+      UPDATE words 
+      SET read_at = datetime(read_at, '+9 hours')
+      WHERE read_at IS NOT NULL;
+    `);
+    
+    await database.runAsync(
+      'INSERT INTO schema_version (version) VALUES (?)',
+      [4]
+    );
+    
+    if (__DEV__) {
+      console.log('Migration to version 4 completed: Ensured all timestamps are in JST');
+    }
   }
 
   // Add more migrations as needed
