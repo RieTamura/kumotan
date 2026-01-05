@@ -146,6 +146,17 @@ export function PostCard({ post, onWordSelect, onSentenceSelect, clearSelection 
   }, [clearSelection]);
 
   /**
+   * Cleanup timer on unmount to prevent memory leaks
+   */
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [longPressTimer]);
+
+  /**
    * Handle image load error
    */
   const handleImageError = useCallback(() => {

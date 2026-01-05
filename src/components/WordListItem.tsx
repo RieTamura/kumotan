@@ -29,7 +29,6 @@ import { ja } from 'date-fns/locale';
  */
 interface WordListItemProps {
   word: Word;
-  onPress?: (word: Word) => void;
   onToggleRead?: (word: Word) => void;
   onDelete?: (word: Word) => void;
 }
@@ -59,7 +58,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
  */
 export function WordListItem({
   word,
-  onPress,
   onToggleRead,
   onDelete,
 }: WordListItemProps): React.JSX.Element {

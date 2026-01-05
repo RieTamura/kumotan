@@ -33,7 +33,6 @@ import { useWordStore } from '../store/wordStore';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
-const MIN_POPUP_HEIGHT = SCREEN_HEIGHT * 0.5;  // Minimum 50% of screen height
 
 /**
  * SwipeableWordCard Component - Swipe to remove word from list

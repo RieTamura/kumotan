@@ -231,6 +231,62 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [x] 設定ページ
 - [x] トークンリフレッシュ機能
 
+### M2.5: 品質改善・テスト実装（2〜3週間）
+
+**目的**: CLAUDE.mdガイドラインに完全準拠し、本番リリースに向けた品質向上
+
+#### フェーズ1: 即座に対応（1週間以内）✅ 完了
+
+- [x] package.jsonメタデータ追加（name, description, author, license, repository）
+- [x] package.jsonに有用なnpmスクリプト追加（type-check, test:coverage, build）
+- [x] Jest設定（jest.config.js, jest.setup.js）
+- [x] バリデーション関数テスト追加（src/utils/__tests__/validators.test.ts）
+  - **38テスト全てパス**
+  - **カバレッジ70.23%達成**（目標60%を超過）
+  - XSS/SQLインジェクション対策を網羅
+- [x] 使用されていないコード削除（WordListItem onPress、MIN_POPUP_HEIGHT）
+- [x] メモリリーク修正（PostCard.tsx タイマークリーンアップ）
+
+**フェーズ1成果**:
+
+- テストファイル: 0件 → 1件（231行）
+- テストケース: 0件 → 38件
+- validators.tsカバレッジ: 0% → 70.23%
+- セキュリティクリティカルな入力検証が完全テスト済み
+
+#### フェーズ2: 短期（2〜4週間）
+- [ ] データベース操作テスト（src/services/database/__tests__/words.test.ts）
+- [ ] SQLインジェクション対策検証テスト
+- [ ] ADR作成（doc/adr/）
+  - [ ] ADR-001: DeepL API Keyのユーザー入力方式
+  - [ ] ADR-002: App Passwordを保存しない方針
+  - [ ] ADR-003: SQLiteローカルストレージ採用
+  - [ ] ADR-004: Zustand状態管理採用
+  - [ ] ADR-005: ローカル時刻での日時保存
+- [ ] API統合モックテスト（DeepL, Free Dictionary, Bluesky）
+- [ ] エラーケーステスト（ネットワークエラー、認証失敗、レート制限）
+- [ ] JSDocコメント追加（データベーストランザクション、複雑なビジネスロジック）
+
+#### フェーズ3: 中期（リファクタリング）
+- [ ] WordPopup.tsxリファクタリング（1075行 → 300-400行目標）
+  - [ ] カスタムフック化（useWordLookup, useSentenceLookup）
+  - [ ] SwipeableWordCard分離
+  - [ ] useReducerで状態管理統一
+- [ ] N+1問題解決（WordPopup.tsx:434-467）
+  - [ ] API結果のキャッシュ実装（LRU）
+  - [ ] レート制限対策強化
+- [ ] パフォーマンス最適化
+  - [ ] parseTextIntoTokensのメモ化
+  - [ ] PostCardのReact.memo化
+- [ ] READMEに開発者向けセクション追加
+- [ ] ドキュメント同期チェックリスト作成（doc/UPDATING.md）
+
+**品質指標目標**:
+- テストカバレッジ: 60%以上（バリデーション、DB操作、エラーハンドリング）
+- セキュリティ: SQLインジェクション対策100%検証
+- パフォーマンス: N+1問題ゼロ、メモリリークゼロ
+- ドキュメント: ADR 5個作成、主要関数にJSDoc追加
+
 ### M3: ベータリリース（8週間）
 - [ ] UI/UXの洗練
 - [ ] エラーハンドリング統一
@@ -313,12 +369,22 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 ---
 
-**作成日**: 2025年1月1日  
-**最終更新日**: 2026年1月4日  
-**バージョン**: 1.2  
+**作成日**: 2025年1月1日
+**最終更新日**: 2026年1月5日
+**バージョン**: 1.3
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.3 (2026-01-05)
+- M2.5品質改善・テスト実装マイルストーンを追加
+- CLAUDE.mdガイドライン完全準拠を目標に設定
+- フェーズ1の即座対応タスクを完了
+  - package.jsonメタデータ・npmスクリプト追加
+  - Jest設定ファイル作成
+  - バリデーション関数テスト追加（セキュリティクリティカル）
+  - メモリリーク修正（PostCard.tsx）
+  - 未使用コード削除
 
 ### v1.2 (2026-01-04)
 - Yahoo! JAPAN Text Analysis API統合を追加
