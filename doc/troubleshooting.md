@@ -2526,6 +2526,222 @@ const result = await addWordToStore({
 
 ---
 
+## 19. 英語文章選択機能の実装中にファイルが破損しビルドエラーが発生
+
+### 発生日
+2026年1月5日
+
+### 背景
+英語文章を選択して、文章全体の翻訳と各単語の訳・定義を表示する機能を実装した。以下の機能を追加：
+- ダブルタップで文章（ピリオドまで）を選択
+- 文章の日本語訳を表示
+- 文章内の各英単語の訳と定義を表示
+- 既登録単語にバッジを表示
+- 選択した単語のみを一括登録
+
+### 症状
+実装後、以下のような構文エラーが連続して発生：
+1. `SyntaxError: Unexpected token (175:24)` - PostCard.tsx
+2. `SyntaxError: Unexpected token (123:0)` - WordPopup.tsx
+3. `SyntaxError: Unexpected token "," (148:29)` - WordPopup.tsx
+4. `Identifier 'isJapanese' has already been declared` - WordPopup.tsx
+5. `SyntaxError: Unexpected token (517:4)` - WordPopup.tsx
+6. `ReferenceError: Property 'handleEndReached' doesn't exist` - HomeScreen.tsx
+
+### 原因
+複数ファイルへの編集処理中に、コードの一部が誤って結合・重複し、ファイルが破損した。具体的には：
+
+1. **PostCard.tsx** - `getSentenceContainingWord`関数と`handlePress`関数が誤って結合
+2. **WordPopup.tsx** - 以下の問題が発生：
+   - `export function WordPopup({`が`exisSentenceMode = false,`に変形
+   - `loading`状態の定義が重複して結合
+   - `isJapanese`状態が2回宣言
+   - `handleAddToWordList`関数の末尾が重複
+3. **HomeScreen.tsx** - `handleEndReached`関数の定義が`renderPost`関数の内容と混在
+
+### 解決策
+
+**1. PostCard.tsxの修正：**
+
+破損した関数を正しく再定義：
+
+```typescript
+// 修正後
+const getSentenceContainingWord = useCallback((wordText: string): string | null => {
+  const sentences = splitIntoSentences(post.text);
+  for (const sentence of sentences) {
+    if (sentence.toLowerCase().includes(wordText.toLowerCase())) {
+      return sentence;
+    }
+  }
+  return null;
+}, [post.text]);
+
+const handleWordDoubleTap = useCallback(
+  (word: string) => {
+    if (!onSentenceSelect) return;
+    const sentence = getSentenceContainingWord(word);
+    if (sentence) {
+      setSelectedSentence(sentence);
+      setSelectedWord(null);
+      onSentenceSelect(sentence, post.uri, post.text);
+    }
+  },
+  [post.uri, post.text, onSentenceSelect, getSentenceContainingWord]
+);
+
+const handleWordPress = useCallback(
+  (word: string) => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+      handleWordDoubleTap(word);
+    } else {
+      const timer = setTimeout(() => {
+        setLongPressTimer(null);
+      }, 300);
+      setLongPressTimer(timer);
+    }
+  },
+  [longPressTimer, handleWordDoubleTap]
+);
+
+const handlePress = useCallback(() => {
+  setSelectedWord(null);
+  setSelectedSentence(null);
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    setLongPressTimer(null);
+  }
+}, [longPressTimer]);
+```
+
+**2. WordPopup.tsxの修正：**
+
+a) 関数定義を修正：
+```typescript
+// 修正前（破損）
+exisSentenceMode = false,
+
+// 修正後
+export function WordPopup({
+  visible,
+  word,
+  isSentenceMode = false,
+```
+
+b) loading状態の重複を削除：
+```typescript
+// 修正後（重複を削除）
+const [loading, setLoading] = useState<LoadingState>({
+  definition: false,
+  translation: false,
+  japanese: false,
+  sentenceTranslation: false,
+  wordsInfo: false,
+});
+```
+
+c) isJapanese状態の重複を削除：
+```typescript
+// 修正後（1つだけ残す）
+const [isJapanese, setIsJapanese] = useState(false);
+```
+
+d) handleAddToWordList関数の重複コードを削除
+
+**3. HomeScreen.tsxの修正：**
+
+handleEndReached関数を正しく再定義：
+
+```typescript
+// 修正後
+const handleEndReached = useCallback(() => {
+  if (!isLoadingMore && hasMore && isConnected) {
+    loadMore();
+  }
+}, [isLoadingMore, hasMore, isConnected, loadMore]);
+
+const renderPost = useCallback(
+  ({ item }: { item: TimelinePost }) => {
+    const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri;
+    return (
+      <PostCard 
+        post={item} 
+        onWordSelect={handleWordSelect}
+        onSentenceSelect={handleSentenceSelect}
+        clearSelection={shouldClearSelection}
+      />
+    );
+  },
+  [handleWordSelect, handleSentenceSelect, wordPopup.visible, wordPopup.postUri]
+);
+```
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+- `src/screens/HomeScreen.tsx` - ホーム画面
+
+### 教訓
+- 複数ファイルへの大規模な編集時は、各ファイルの整合性を確認する
+- 構文エラーが発生した場合、エラー箇所周辺のコードを注意深く確認する
+- 関数や変数の重複宣言エラーは、コードが誤って結合された可能性を示唆する
+- 編集後は必ずビルドを実行し、構文エラーがないことを確認する
+
+---
+
+## 20. 英語文章の単語間にスペースがなくなる問題
+
+### 発生日
+2026年1月5日
+
+### 症状
+- 英語文章選択機能の実装後、投稿カード内の英文が正しく表示されない
+- 単語間のスペースがなくなり、単語が連結して表示される
+- 例：「Kitty-tama, you are so brave」が「Kitty-tama,youaresobrave」と表示される
+
+### 原因
+`PostCard.tsx`の`parseTextIntoTokens`関数で英語文章を単語に分割する際、正規表現がスペース（空白文字）をキャプチャしていなかった：
+
+```typescript
+// 問題のコード
+const wordPattern = /([a-zA-Z][a-zA-Z'-]*)|([^\sa-zA-Z]+)/g;
+```
+
+この正規表現は：
+- `([a-zA-Z][a-zA-Z'-]*)` - 英語単語
+- `([^\sa-zA-Z]+)` - 英語以外の文字（句読点など）
+
+をマッチさせるが、スペース（`\s`）は除外されていたため、トークンとして生成されなかった。
+
+### 解決策
+
+`PostCard.tsx`の正規表現にスペースのキャプチャグループを追加：
+
+```typescript
+// 変更前（スペースを無視）
+const wordPattern = /([a-zA-Z][a-zA-Z'-]*)|([^\sa-zA-Z]+)/g;
+
+// 変更後（スペースも含める）
+const wordPattern = /([a-zA-Z][a-zA-Z'-]*)|(\s+)|([^\sa-zA-Z]+)/g;
+```
+
+変更点：
+- `(\s+)` - スペース（空白文字）をキャプチャするグループを追加
+- これにより、単語間のスペースもトークンとして生成され、正しく表示される
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+
+### 教訓
+- テキストをトークンに分割する際、空白文字の扱いに注意する
+- 正規表現で文字列を解析する場合、除外パターン（`[^\s...]`など）が意図した動作をしているか確認する
+- UI上で文字列が正しく表示されない場合、トークン化処理を疑う
+- 実装後は必ず実機またはシミュレータで表示を確認する
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

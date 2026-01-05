@@ -33,6 +33,7 @@ import { addWord } from '../services/database/words';
 interface WordPopupState {
   visible: boolean;
   word: string;
+  isSentenceMode: boolean;
   postUri: string;
   postText: string;
 }
@@ -43,6 +44,7 @@ interface WordPopupState {
 const initialWordPopupState: WordPopupState = {
   visible: false,
   word: '',
+  isSentenceMode: false,
   postUri: '',
   postText: '',
 };
@@ -78,6 +80,23 @@ export function HomeScreen(): React.JSX.Element {
       setWordPopup({
         visible: true,
         word: word.toLowerCase(),
+        isSentenceMode: false,
+        postUri,
+        postText,
+      });
+    },
+    []
+  );
+
+  /**
+   * Handle sentence selection from a post
+   */
+  const handleSentenceSelect = useCallback(
+    (sentence: string, postUri: string, postText: string) => {
+      setWordPopup({
+        visible: true,
+        word: sentence,
+        isSentenceMode: true,
         postUri,
         postText,
       });
@@ -145,12 +164,13 @@ export function HomeScreen(): React.JSX.Element {
       return (
         <PostCard 
           post={item} 
-          onWordSelect={handleWordSelect} 
+          onWordSelect={handleWordSelect}
+          onSentenceSelect={handleSentenceSelect}
           clearSelection={shouldClearSelection}
         />
       );
     },
-    [handleWordSelect, wordPopup.visible, wordPopup.postUri]
+    [handleWordSelect, handleSentenceSelect, wordPopup.visible, wordPopup.postUri]
   );
 
   /**
@@ -290,6 +310,7 @@ export function HomeScreen(): React.JSX.Element {
       <WordPopup
         visible={wordPopup.visible}
         word={wordPopup.word}
+        isSentenceMode={wordPopup.isSentenceMode}
         postUri={wordPopup.postUri}
         postText={wordPopup.postText}
         onClose={closeWordPopup}

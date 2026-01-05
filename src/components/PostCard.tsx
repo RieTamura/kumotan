@@ -15,6 +15,7 @@ import { MessageCircle, Repeat2, Heart } from 'lucide-react-native';
 import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { formatRelativeTime } from '../services/bluesky/feed';
+import { splitIntoSentences } from '../utils/validators';
 
 /**
  * PostCard props interface
@@ -22,6 +23,7 @@ import { formatRelativeTime } from '../services/bluesky/feed';
 interface PostCardProps {
   post: TimelinePost;
   onWordSelect?: (word: string, postUri: string, postText: string) => void;
+  onSentenceSelect?: (sentence: string, postUri: string, postText: string) => void;
   clearSelection?: boolean;
 }
 
@@ -37,39 +39,101 @@ interface TextToken {
   text: string;
   isEnglishWord: boolean;
   isJapaneseWord: boolean;
+  isEnglishSentence: boolean;
   index: number;
 }
 
 /**
- * Parse text into tokens (words and non-words)
+ * Parse text into tokens (sentences and words)
  */
 function parseTextIntoTokens(text: string): TextToken[] {
   const tokens: TextToken[] = [];
-  // Match English words, Japanese phrases (until 、 or 。), or any other characters
-  const regex = /([a-zA-Z][a-zA-Z'-]*)|([\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+[、。]?)|([^a-zA-Z\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF、。]+)/g;
-  let match;
-  let index = 0;
-
-  while ((match = regex.exec(text)) !== null) {
-    const isEnglishWord = match[1] !== undefined;
-    const isJapaneseWord = match[2] !== undefined;
-    tokens.push({
-      text: match[0],
-      isEnglishWord,
-      isJapaneseWord,
-      index: index++,
-    });
+  const sentences = splitIntoSentences(text);
+  
+  if (sentences.length === 0) {
+    return tokens;
   }
-
+  
+  let index = 0;
+  let currentPos = 0;
+  
+  for (const sentence of sentences) {
+    const sentenceStart = text.indexOf(sentence, currentPos);
+    
+    // Add any text before this sentence
+    if (sentenceStart > currentPos) {
+      const beforeText = text.substring(currentPos, sentenceStart);
+      if (beforeText.trim()) {
+        tokens.push({
+          text: beforeText,
+          isEnglishWord: false,
+          isJapaneseWord: false,
+          isEnglishSentence: false,
+          index: index++,
+        });
+      }
+    }
+    
+    // Check if sentence contains English words
+    const hasEnglish = /[a-zA-Z]/.test(sentence);
+    const isEnglishSentence = hasEnglish && /[.!?]$/.test(sentence.trim());
+    
+    if (isEnglishSentence) {
+      // English sentence - parse into words and spaces
+      const wordPattern = /([a-zA-Z][a-zA-Z'-]*)|(\s+)|([^\sa-zA-Z]+)/g;
+      let match;
+      
+      while ((match = wordPattern.exec(sentence)) !== null) {
+        const isWord = match[1] !== undefined;
+        const isSpace = match[2] !== undefined;
+        tokens.push({
+          text: match[0],
+          isEnglishWord: isWord,
+          isJapaneseWord: false,
+          isEnglishSentence: false,
+          index: index++,
+        });
+      }
+    } else {
+      // Japanese or non-English sentence
+      const japanesePattern = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/;
+      tokens.push({
+        text: sentence,
+        isEnglishWord: false,
+        isJapaneseWord: japanesePattern.test(sentence),
+        isEnglishSentence: false,
+        index: index++,
+      });
+    }
+    
+    currentPos = sentenceStart + sentence.length;
+  }
+  
+  // Add any remaining text
+  if (currentPos < text.length) {
+    const remaining = text.substring(currentPos);
+    if (remaining.trim()) {
+      tokens.push({
+        text: remaining,
+        isEnglishWord: false,
+        isJapaneseWord: false,
+        isEnglishSentence: false,
+        index: index++,
+      });
+    }
+  }
+  
   return tokens;
 }
 
 /**
  * PostCard Component
  */
-export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps): React.JSX.Element {
+export function PostCard({ post, onWordSelect, onSentenceSelect, clearSelection }: PostCardProps): React.JSX.Element {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   /**
    * Clear selection when clearSelection prop changes to true
@@ -77,6 +141,7 @@ export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps):
   useEffect(() => {
     if (clearSelection) {
       setSelectedWord(null);
+      setSelectedSentence(null);
     }
   }, [clearSelection]);
 
@@ -94,9 +159,61 @@ export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps):
     (word: string) => {
       if (!onWordSelect) return;
       setSelectedWord(word);
+      setSelectedSentence(null);
       onWordSelect(word, post.uri, post.text);
     },
     [post.uri, post.text, onWordSelect]
+  );
+
+  /**
+   * Get full sentence containing the word
+   */
+  const getSentenceContainingWord = useCallback((wordText: string): string | null => {
+    const sentences = splitIntoSentences(post.text);
+    for (const sentence of sentences) {
+      if (sentence.toLowerCase().includes(wordText.toLowerCase())) {
+        return sentence;
+      }
+    }
+    return null;
+  }, [post.text]);
+
+  /**
+   * Handle sentence selection (double tap on word)
+   */
+  const handleWordDoubleTap = useCallback(
+    (word: string) => {
+      if (!onSentenceSelect) return;
+      
+      const sentence = getSentenceContainingWord(word);
+      if (sentence) {
+        setSelectedSentence(sentence);
+        setSelectedWord(null);
+        onSentenceSelect(sentence, post.uri, post.text);
+      }
+    },
+    [post.uri, post.text, onSentenceSelect, getSentenceContainingWord]
+  );
+
+  /**
+   * Handle word press with double-tap detection
+   */
+  const handleWordPress = useCallback(
+    (word: string) => {
+      if (longPressTimer) {
+        // Second tap within timer - treat as double tap
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+        handleWordDoubleTap(word);
+      } else {
+        // First tap - start timer for double-tap detection
+        const timer = setTimeout(() => {
+          setLongPressTimer(null);
+        }, 300); // 300ms window for double tap
+        setLongPressTimer(timer);
+      }
+    },
+    [longPressTimer, handleWordDoubleTap]
   );
 
   /**
@@ -104,7 +221,12 @@ export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps):
    */
   const handlePress = useCallback(() => {
     setSelectedWord(null);
-  }, []);
+    setSelectedSentence(null);
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  }, [longPressTimer]);
 
   /**
    * Render post text with touchable words
@@ -115,13 +237,23 @@ export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps):
     return (
       <Text style={styles.postText}>
         {tokens.map((token) => {
-          if (token.isEnglishWord || token.isJapaneseWord) {
-            const isSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
+          if (token.isEnglishWord) {
+            const isWordSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
+            const sentence = getSentenceContainingWord(token.text);
+            const isSentenceSelected = selectedSentence && sentence === selectedSentence;
+            
             return (
               <Text
                 key={token.index}
-                style={isSelected ? styles.highlightedWord : styles.selectableWord}
+                style={
+                  isWordSelected
+                    ? styles.highlightedWord
+                    : isSentenceSelected
+                    ? styles.highlightedSentence
+                    : styles.selectableWord
+                }
                 onLongPress={() => handleWordLongPress(token.text)}
+                onPress={() => handleWordPress(token.text)}
                 suppressHighlighting={false}
               >
                 {token.text}
@@ -181,9 +313,9 @@ export function PostCard({ post, onWordSelect, clearSelection }: PostCardProps):
       </View>
 
       {/* Selection hint */}
-      {!selectedWord && (
+      {!selectedWord && !selectedSentence && (
         <Text style={styles.hint}>
-          長押しで単語を選択
+          長押しで単語、ダブルタップで文章を選択
         </Text>
       )}
     </Pressable>
@@ -230,6 +362,11 @@ const styles = StyleSheet.create({
   },
   content: {
     marginBottom: Spacing.md,
+  highlightedSentence: {
+    backgroundColor: '#FFF3E0', // Light orange for sentence highlighting
+    color: Colors.text,
+    fontWeight: '500',
+  },
   },
   postText: {
     fontSize: FontSizes.lg,

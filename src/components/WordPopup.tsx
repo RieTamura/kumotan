@@ -18,14 +18,14 @@ import {
   Alert,
 } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
-import { DictionaryResult, TranslateResult, JapaneseWordInfo } from '../types/word';
+import { DictionaryResult, TranslateResult, JapaneseWordInfo, WordInfo } from '../types/word';
 import { lookupWord } from '../services/dictionary/freeDictionary';
 import { translateToJapanese, hasApiKey } from '../services/dictionary/deepl';
 import { 
   analyzeMorphology,
   hasClientId as hasYahooClientId 
 } from '../services/dictionary/yahooJapan';
-import { Validators } from '../utils/validators';
+import { Validators, extractEnglishWords } from '../utils/validators';
 import { Button } from './common/Button';
 import { useWordStore } from '../store/wordStore';
 
@@ -34,11 +34,61 @@ const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
 const MIN_POPUP_HEIGHT = SCREEN_HEIGHT * 0.5;  // Minimum 50% of screen height
 
 /**
+ * WordItemCard Component - Displays individual word info in sentence mode
+ */
+interface WordItemCardProps {
+  wordInfo: WordInfo;
+  onToggleSelect: () => void;
+}
+
+function WordItemCard({ wordInfo, onToggleSelect }: WordItemCardProps): React.JSX.Element {
+  const checkboxIcon = wordInfo.isSelected ? '☑' : '☐';
+  
+  return (
+    <Pressable
+      style={[
+        styles.wordItemCard,
+        wordInfo.isRegistered && styles.wordItemCardRegistered,
+      ]}
+      onPress={wordInfo.isRegistered ? undefined : onToggleSelect}
+      disabled={wordInfo.isRegistered}
+    >
+      <View style={styles.wordItemHeader}>
+        <Text style={styles.checkboxIcon}>{checkboxIcon}</Text>
+        <Text style={styles.wordItemWord}>{wordInfo.word}</Text>
+        {wordInfo.isRegistered && (
+          <View style={styles.registeredBadge}>
+            <Text style={styles.registeredBadgeText}>登録済み</Text>
+          </View>
+        )}
+      </View>
+      
+      {wordInfo.japanese && (
+        <Text style={styles.wordItemJapanese}>
+          日本語訳: {wordInfo.japanese}
+        </Text>
+      )}
+      
+      {wordInfo.definition && (
+        <Text style={styles.wordItemDefinition} numberOfLines={2}>
+          定義: {wordInfo.definition}
+        </Text>
+      )}
+      
+      {wordInfo.isRegistered && (
+        <Text style={styles.wordItemHint}>この単語は既に登録されています</Text>
+      )}
+    </Pressable>
+  );
+}
+
+/**
  * WordPopup props interface
  */
 interface WordPopupProps {
   visible: boolean;
   word: string;
+  isSentenceMode?: boolean;  // True if displaying a sentence instead of a word
   postUri?: string;
   postText?: string;
   onClose: () => void;
@@ -57,6 +107,8 @@ interface WordPopupProps {
 interface LoadingState {
   definition: boolean;
   translation: boolean;
+  sentenceTranslation: boolean;
+  wordsInfo: boolean;
   japanese: boolean;
 }
 
@@ -66,6 +118,7 @@ interface LoadingState {
 export function WordPopup({
   visible,
   word,
+  isSentenceMode = false,
   postUri,
   postText,
   onClose,
@@ -77,13 +130,22 @@ export function WordPopup({
   const [definition, setDefinition] = useState<DictionaryResult | null>(null);
   const [translation, setTranslation] = useState<TranslateResult | null>(null);
   const [japaneseInfo, setJapaneseInfo] = useState<JapaneseWordInfo[]>([]);
+  
+  // Sentence mode states
+  const [sentenceTranslation, setSentenceTranslation] = useState<TranslateResult | null>(null);
+  const [wordsInfo, setWordsInfo] = useState<WordInfo[]>([]);
+  
   const [definitionError, setDefinitionError] = useState<string | null>(null);
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [japaneseError, setJapaneseError] = useState<string | null>(null);
+  const [sentenceError, setSentenceError] = useState<string | null>(null);
+  
   const [loading, setLoading] = useState<LoadingState>({
     definition: false,
     translation: false,
     japanese: false,
+    sentenceTranslation: false,
+    wordsInfo: false,
   });
 
   // Helper to update loading state
@@ -147,9 +209,12 @@ export function WordPopup({
       setDefinition(null);
       setTranslation(null);
       setJapaneseInfo([]);
+      setSentenceTranslation(null);
+      setWordsInfo([]);
       setDefinitionError(null);
       setTranslationError(null);
       setJapaneseError(null);
+      setSentenceError(null);
       setIsAdding(false);
       setIsJapanese(false);
     }
@@ -172,16 +237,30 @@ export function WordPopup({
       return;
     }
 
-    console.log(`WordPopup: Fetching data for word "${word}"`);
-
-    // Check if word is Japanese
-    const wordIsJapanese = Validators.isJapanese(word);
-    setIsJapanese(wordIsJapanese);
+    console.log(`WordPopup: Fetching data for ${isSentenceMode ? 'sentence' : 'word'} "${word}"`);
 
     // Reset errors
     setDefinitionError(null);
     setTranslationError(null);
     setJapaneseError(null);
+    setSentenceError(null);
+
+    if (isSentenceMode) {
+      // Sentence mode - translate sentence and get info for all words
+      await fetchSentenceData();
+    } else {
+      // Word mode - existing logic
+      await fetchSingleWordData();
+    }
+  }, [word, isSentenceMode]);
+
+  /**
+   * Fetch data for single word (original logic)
+   */
+  const fetchSingleWordData = useCallback(async () => {
+    // Check if word is Japanese
+    const wordIsJapanese = Validators.isJapanese(word);
+    setIsJapanese(wordIsJapanese);
 
     if (wordIsJapanese) {
       // Japanese word - use Yahoo! API
@@ -243,14 +322,128 @@ export function WordPopup({
   }, [word]);
 
   /**
+   * Fetch data for sentence mode
+   */
+  const fetchSentenceData = useCallback(async () => {
+    const hasKey = await hasApiKey();
+    setApiKeyAvailable(hasKey);
+    setIsJapanese(false);
+
+    // 1. Translate the entire sentence
+    if (hasKey) {
+      updateLoading('sentenceTranslation', true);
+      const sentenceResult = await translateToJapanese(word);
+      updateLoading('sentenceTranslation', false);
+
+      if (sentenceResult.success) {
+        setSentenceTranslation(sentenceResult.data);
+      } else {
+        setSentenceError(sentenceResult.error.message);
+      }
+    }
+
+    // 2. Extract words from sentence
+    const words = extractEnglishWords(word);
+    console.log(`WordPopup: Extracted ${words.length} words from sentence:`, words);
+
+    if (words.length === 0) {
+      return;
+    }
+
+    // 3. Get registered words from store
+    const registeredWords = useWordStore.getState().words;
+    const registeredWordsSet = new Set(
+      registeredWords.map(w => w.english.toLowerCase())
+    );
+
+    // 4. Fetch info for each word
+    updateLoading('wordsInfo', true);
+    
+    const wordsInfoPromises = words.map(async (w): Promise<WordInfo> => {
+      const isRegistered = registeredWordsSet.has(w.toLowerCase());
+      
+      // If already registered, don't fetch new data
+      if (isRegistered) {
+        const registeredWord = registeredWords.find(
+          rw => rw.english.toLowerCase() === w.toLowerCase()
+        );
+        return {
+          word: w,
+          japanese: registeredWord?.japanese || null,
+          definition: registeredWord?.definition || null,
+          isRegistered: true,
+          isSelected: false, // Will be set by user
+        };
+      }
+
+      // Fetch new data
+      const [defResult, transResult] = await Promise.all([
+        lookupWord(w),
+        hasKey ? translateToJapanese(w) : Promise.resolve({ success: false, error: null }),
+      ]);
+
+      return {
+        word: w,
+        japanese: transResult.success ? transResult.data.text : null,
+        definition: defResult.success ? defResult.data.definition : null,
+        isRegistered: false,
+        isSelected: !isRegistered, // Auto-select unregistered words
+      };
+    });
+
+    const wordsInfoResults = await Promise.all(wordsInfoPromises);
+    setWordsInfo(wordsInfoResults);
+    updateLoading('wordsInfo', false);
+  }, [word]);
+
+  /**
    * Handle add to word list
    */
   const handleAddToWordList = useCallback(async () => {
     setIsAdding(true);
     
     try {
-      if (isJapanese) {
-        // Japanese word - use first meaningful token for reading
+      if (isSentenceMode) {
+        // Sentence mode - add selected words
+        const selectedWords = wordsInfo.filter(w => w.isSelected && !w.isRegistered);
+        
+        if (selectedWords.length === 0) {
+          Alert.alert('情報', '登録する単語を選択してください');
+          setIsAdding(false);
+          return;
+        }
+
+        // Add all selected words
+        const results = await Promise.all(
+          selectedWords.map(w =>
+            addWordToStore({
+              english: w.word,
+              japanese: w.japanese ?? undefined,
+              definition: w.definition ?? undefined,
+              postUrl: postUri ?? undefined,
+              postText: postText ?? undefined,
+            })
+          )
+        );
+
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.length - successCount;
+
+        if (successCount > 0) {
+          Alert.alert(
+            '成功',
+            `${successCount}個の単語を追加しました${failCount > 0 ? `\n(${failCount}個は失敗)` : '！'}`
+          );
+          
+          // Close popup after adding successfully
+          setTimeout(() => {
+            onClose();
+          }, 500);
+        } else {
+          Alert.alert('エラー', 'すべての単語の追加に失敗しました');
+        }
+      } else if (isJapanese) {
+        // Japanese word
         const mainToken = japaneseInfo.find(
           (token) =>
             !token.partOfSpeech.includes('助詞') &&
@@ -260,14 +453,12 @@ export function WordPopup({
         
         const reading = mainToken?.reading ?? null;
         
-        // Format all morphology results for definition
         const morphologyResult = japaneseInfo.length > 0
           ? japaneseInfo.map(token => 
               `${token.word} (${token.reading})\n品詞: ${token.partOfSpeech}\n基本形: ${token.baseForm}`
             ).join('\n\n')
           : null;
         
-        // Add to word store
         const result = await addWordToStore({
           english: word,
           japanese: reading ?? undefined,
@@ -277,15 +468,11 @@ export function WordPopup({
         });
         
         if (result.success) {
-          // Show success message
           Alert.alert('成功', '単語を追加しました！');
-          
-          // Close popup after adding successfully
           setTimeout(() => {
             onClose();
           }, 500);
         } else {
-          // Show error alert and don't close popup
           Alert.alert('エラー', result.error.message);
         }
       } else {
@@ -299,15 +486,11 @@ export function WordPopup({
         });
         
         if (result.success) {
-          // Show success message
           Alert.alert('成功', '単語を追加しました！');
-          
-          // Close popup after adding successfully
           setTimeout(() => {
             onClose();
           }, 500);
         } else {
-          // Show error alert and don't close popup
           Alert.alert('エラー', result.error.message);
         }
       }
@@ -317,7 +500,7 @@ export function WordPopup({
     } finally {
       setIsAdding(false);
     }
-  }, [word, isJapanese, japaneseInfo, translation, definition, postUri, postText, addWordToStore, onAddToWordList, onClose]);
+  }, [word, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, translation, definition, postUri, postText, addWordToStore, onAddToWordList, onClose]);
 
   /**
    * Handle backdrop press
@@ -359,15 +542,22 @@ export function WordPopup({
           <View style={styles.handle} />
         </View>
 
-        {/* Word Header */}
+        {/* Word/Sentence Header */}
         <View style={styles.header}>
-          <Text style={styles.word}>{word}</Text>
-          {!isJapanese && definition?.phonetic && (
+          <Text style={isSentenceMode ? styles.sentence : styles.word}>
+            {word}
+          </Text>
+          {!isJapanese && !isSentenceMode && definition?.phonetic && (
             <Text style={styles.phonetic}>{definition.phonetic}</Text>
           )}
-          {!isJapanese && definition?.partOfSpeech && (
+          {!isJapanese && !isSentenceMode && definition?.partOfSpeech && (
             <View style={styles.posTag}>
               <Text style={styles.posText}>{definition.partOfSpeech}</Text>
+            </View>
+          )}
+          {isSentenceMode && (
+            <View style={styles.modeTag}>
+              <Text style={styles.modeText}>文章モード</Text>
             </View>
           )}
         </View>
@@ -377,8 +567,60 @@ export function WordPopup({
           style={styles.scrollContent}
           contentContainerStyle={styles.scrollContentContainer}
         >
-          {/* Japanese Word Info Section */}
-          {isJapanese && (
+          {/* Sentence Mode Content */}
+          {isSentenceMode && (
+            <>
+              {/* Sentence Translation */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>文章の日本語訳</Text>
+                {loading.sentenceTranslation ? (
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                ) : sentenceTranslation ? (
+                  <Text style={styles.translationText}>{sentenceTranslation.text}</Text>
+                ) : sentenceError ? (
+                  <Text style={styles.errorText}>{sentenceError}</Text>
+                ) : !apiKeyAvailable ? (
+                  <Text style={styles.hintText}>
+                    DeepL API Keyを設定すると日本語訳が表示されます
+                  </Text>
+                ) : (
+                  <Text style={styles.hintText}>-</Text>
+                )}
+              </View>
+
+              {/* Words List */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>含まれる単語</Text>
+                {loading.wordsInfo ? (
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                ) : wordsInfo.length > 0 ? (
+                  <View style={styles.wordsListContainer}>
+                    {wordsInfo.map((wordInfo, index) => (
+                      <WordItemCard
+                        key={`${wordInfo.word}-${index}`}
+                        wordInfo={wordInfo}
+                        onToggleSelect={() => {
+                          setWordsInfo(prev =>
+                            prev.map((w, i) =>
+                              i === index ? { ...w, isSelected: !w.isSelected } : w
+                            )
+                          );
+                        }}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.hintText}>単語が見つかりませんでした</Text>
+                )}
+              </View>
+            </>
+          )}
+
+          {/* Word Mode Content (original) */}
+          {!isSentenceMode && (
+            <>
+              {/* Japanese Word Info Section */}
+              {isJapanese && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>形態素解析結果</Text>
               {loading.japanese ? (
@@ -452,16 +694,18 @@ export function WordPopup({
               )}
             </View>
           )}
+          </>
+          )}
         </ScrollView>
 
         {/* Action Buttons */}
         <View style={styles.actions}>
           <Button
-            title="単語帳に追加"
+            title={isSentenceMode ? '選択した単語を追加' : '単語帳に追加'}
             onPress={handleAddToWordList}
             variant="primary"
             loading={isAdding}
-            disabled={loading.definition || loading.translation || loading.japanese}
+            disabled={loading.definition || loading.translation || loading.japanese || loading.sentenceTranslation || loading.wordsInfo}
             style={styles.addButton}
           />
           <Button
@@ -521,6 +765,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
   },
+  sentence: {
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    lineHeight: 24,
+  },
   phonetic: {
     fontSize: FontSizes.md,
     color: Colors.textSecondary,
@@ -533,6 +783,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   posText: {
+    fontSize: FontSizes.xs,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  modeTag: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  modeText: {
     fontSize: FontSizes.xs,
     color: '#FFFFFF',
     fontWeight: '600',
@@ -599,6 +860,62 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     fontStyle: 'italic',
+  wordsListContainer: {
+    gap: Spacing.sm,
+  },
+  wordItemCard: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  wordItemCardRegistered: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#4CAF50',
+  },
+  wordItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  checkboxIcon: {
+    fontSize: FontSizes.xl,
+    color: Colors.primary,
+  },
+  wordItemWord: {
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    flex: 1,
+  },
+  registeredBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  registeredBadgeText: {
+    fontSize: FontSizes.xs,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  wordItemJapanese: {
+    fontSize: FontSizes.sm,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  wordItemDefinition: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  wordItemHint: {
+    fontSize: FontSizes.xs,
+    color: Colors.textTertiary,
+    fontStyle: 'italic',
+  },
     marginTop: Spacing.sm,
   },
   errorText: {

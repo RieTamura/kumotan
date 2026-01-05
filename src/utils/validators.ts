@@ -193,3 +193,73 @@ export function sanitizeHandle(input: string): string {
 export function sanitizeApiKey(input: string): string {
   return input.trim();
 }
+
+/**
+ * Split text into sentences
+ * Splits on sentence-ending punctuation (. ! ?)
+ */
+export function splitIntoSentences(text: string): string[] {
+  if (!text || !text.trim()) return [];
+  
+  // Split on sentence-ending punctuation followed by space or end of string
+  // Handles: "Hello. World" -> ["Hello.", "World"]
+  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+  
+  return sentences
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+}
+
+/**
+ * Extract English words from text
+ * Returns unique words in lowercase
+ */
+export function extractEnglishWords(text: string): string[] {
+  if (!text || !text.trim()) return [];
+  
+  // Match English words (letters, hyphens, apostrophes)
+  const wordPattern = /\b[a-zA-Z][a-zA-Z'-]*\b/g;
+  const matches = text.match(wordPattern) || [];
+  
+  // Convert to lowercase and remove duplicates
+  const uniqueWords = Array.from(
+    new Set(matches.map(word => word.toLowerCase()))
+  );
+  
+  // Filter out very short words (like "a", "I") and sort
+  return uniqueWords
+    .filter(word => word.length > 1)
+    .sort();
+}
+
+/**
+ * Find sentence containing a specific position in text
+ * Returns the sentence and its start/end positions
+ */
+export function findSentenceAtPosition(text: string, position: number): {
+  sentence: string;
+  start: number;
+  end: number;
+} | null {
+  if (!text || position < 0 || position >= text.length) return null;
+  
+  const sentences = splitIntoSentences(text);
+  let currentPos = 0;
+  
+  for (const sentence of sentences) {
+    const sentenceStart = text.indexOf(sentence, currentPos);
+    const sentenceEnd = sentenceStart + sentence.length;
+    
+    if (position >= sentenceStart && position < sentenceEnd) {
+      return {
+        sentence,
+        start: sentenceStart,
+        end: sentenceEnd,
+      };
+    }
+    
+    currentPos = sentenceEnd;
+  }
+  
+  return null;
+}

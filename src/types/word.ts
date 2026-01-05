@@ -98,3 +98,14 @@ export interface JapaneseWordInfo {
   partOfSpeech: string; // 品詞
   baseForm: string; // 基本形
 }
+
+/**
+ * 単語情報（文章モード用）
+ */
+export interface WordInfo {
+  word: string;
+  japanese: string | null;
+  definition: string | null;
+  isRegistered: boolean;
+  isSelected: boolean;
+}
