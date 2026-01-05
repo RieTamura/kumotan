@@ -4,7 +4,7 @@
  * Shows when a word is long-pressed in the timeline
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { DictionaryResult, TranslateResult, JapaneseWordInfo, WordInfo } from '../types/word';
 import { lookupWord } from '../services/dictionary/freeDictionary';
@@ -29,56 +30,121 @@ import { Validators, extractEnglishWords } from '../utils/validators';
 import { Button } from './common/Button';
 import { useWordStore } from '../store/wordStore';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
 const MIN_POPUP_HEIGHT = SCREEN_HEIGHT * 0.5;  // Minimum 50% of screen height
 
 /**
- * WordItemCard Component - Displays individual word info in sentence mode
+ * SwipeableWordCard Component - Swipe to remove word from list
  */
-interface WordItemCardProps {
+interface SwipeableWordCardProps {
   wordInfo: WordInfo;
-  onToggleSelect: () => void;
+  onRemove: () => void;
 }
 
-function WordItemCard({ wordInfo, onToggleSelect }: WordItemCardProps): React.JSX.Element {
-  const checkboxIcon = wordInfo.isSelected ? '☑' : '☐';
-  
-  return (
-    <Pressable
-      style={[
-        styles.wordItemCard,
-        wordInfo.isRegistered && styles.wordItemCardRegistered,
-      ]}
-      onPress={wordInfo.isRegistered ? undefined : onToggleSelect}
-      disabled={wordInfo.isRegistered}
-    >
-      <View style={styles.wordItemHeader}>
-        <Text style={styles.checkboxIcon}>{checkboxIcon}</Text>
-        <Text style={styles.wordItemWord}>{wordInfo.word}</Text>
-        {wordInfo.isRegistered && (
+function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): React.JSX.Element {
+  const swipeableRef = useRef<Swipeable>(null);
+
+  // 右側に表示される削除背景
+  const renderRightActions = (
+    progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>
+  ) => {
+    const opacity = dragX.interpolate({
+      inputRange: [-100, -50, 0],
+      outputRange: [1, 0.8, 0],
+      extrapolate: 'clamp',
+    });
+
+    const scale = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [1, 0.8],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <Animated.View style={[styles.deleteBackground, { opacity }]}>
+        <Animated.Text style={[styles.deleteBackgroundText, { transform: [{ scale }] }]}>
+          除外
+        </Animated.Text>
+      </Animated.View>
+    );
+  };
+
+  const handleSwipeOpen = () => {
+    // スワイプが完了したらカードを削除
+    onRemove();
+  };
+
+  // 登録済みの単語はスワイプ不可
+  if (wordInfo.isRegistered) {
+    return (
+      <View style={[styles.wordItemCard, styles.wordItemCardRegistered]}>
+        <View style={styles.wordCardHeader}>
+          <Text style={styles.wordCardWord}>{wordInfo.word}</Text>
           <View style={styles.registeredBadge}>
             <Text style={styles.registeredBadgeText}>登録済み</Text>
           </View>
+        </View>
+        
+        {wordInfo.japanese && (
+          <View style={styles.wordCardRow}>
+            <Text style={styles.wordCardLabel}>日本語訳:</Text>
+            <Text style={styles.wordCardJapanese}>{wordInfo.japanese}</Text>
+          </View>
         )}
-      </View>
-      
-      {wordInfo.japanese && (
-        <Text style={styles.wordItemJapanese}>
-          日本語訳: {wordInfo.japanese}
-        </Text>
-      )}
-      
-      {wordInfo.definition && (
-        <Text style={styles.wordItemDefinition} numberOfLines={2}>
-          定義: {wordInfo.definition}
-        </Text>
-      )}
-      
-      {wordInfo.isRegistered && (
+        
+        {wordInfo.definition && (
+          <View style={styles.wordCardRow}>
+            <Text style={styles.wordCardLabel}>定義:</Text>
+            <Text style={styles.wordCardDefinition} numberOfLines={3}>
+              {wordInfo.definition}
+            </Text>
+          </View>
+        )}
+        
         <Text style={styles.wordItemHint}>この単語は既に登録されています</Text>
-      )}
-    </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      onSwipeableOpen={handleSwipeOpen}
+      rightThreshold={80}
+      overshootRight={false}
+      containerStyle={styles.swipeableContainer}
+    >
+      <View style={styles.wordItemCard}>
+        {/* 単語名 */}
+        <View style={styles.wordCardHeader}>
+          <Text style={styles.wordCardWord}>{wordInfo.word}</Text>
+        </View>
+        
+        {/* 日本語訳 */}
+        {wordInfo.japanese && (
+          <View style={styles.wordCardRow}>
+            <Text style={styles.wordCardLabel}>日本語訳:</Text>
+            <Text style={styles.wordCardJapanese}>{wordInfo.japanese}</Text>
+          </View>
+        )}
+        
+        {/* 定義 */}
+        {wordInfo.definition && (
+          <View style={styles.wordCardRow}>
+            <Text style={styles.wordCardLabel}>定義:</Text>
+            <Text style={styles.wordCardDefinition} numberOfLines={3}>
+              {wordInfo.definition}
+            </Text>
+          </View>
+        )}
+        
+        {/* スワイプヒント */}
+        <Text style={styles.swipeHint}>← スワイプで除外</Text>
+      </View>
+    </Swipeable>
   );
 }
 
@@ -404,18 +470,18 @@ export function WordPopup({
     
     try {
       if (isSentenceMode) {
-        // Sentence mode - add selected words
-        const selectedWords = wordsInfo.filter(w => w.isSelected && !w.isRegistered);
+        // Sentence mode - add all remaining words (not swiped away)
+        const wordsToAdd = wordsInfo.filter(w => !w.isRegistered);
         
-        if (selectedWords.length === 0) {
-          Alert.alert('情報', '登録する単語を選択してください');
+        if (wordsToAdd.length === 0) {
+          Alert.alert('情報', '登録する単語がありません');
           setIsAdding(false);
           return;
         }
 
-        // Add all selected words
+        // Add all remaining words
         const results = await Promise.all(
-          selectedWords.map(w =>
+          wordsToAdd.map(w =>
             addWordToStore({
               english: w.word,
               japanese: w.japanese ?? undefined,
@@ -518,40 +584,41 @@ export function WordPopup({
       animationType="none"
       onRequestClose={handleBackdropPress}
     >
-      {/* Backdrop */}
-      <Animated.View
-        style={[
-          styles.backdrop,
-          { opacity: backdropOpacity },
-        ]}
-      >
-        <Pressable style={styles.backdropPressable} onPress={handleBackdropPress} />
-      </Animated.View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        {/* Backdrop */}
+        <Animated.View
+          style={[
+            styles.backdrop,
+            { opacity: backdropOpacity },
+          ]}
+        >
+          <Pressable style={styles.backdropPressable} onPress={handleBackdropPress} />
+        </Animated.View>
 
-      {/* Popup */}
-      <Animated.View
-        style={[
-          styles.popup,
-          {
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        {/* Handle */}
-        <View style={styles.handleContainer}>
-          <View style={styles.handle} />
-        </View>
+        {/* Popup */}
+        <Animated.View
+          style={[
+            styles.popup,
+            {
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          {/* Handle */}
+          <View style={styles.handleContainer}>
+            <View style={styles.handle} />
+          </View>
 
-        {/* Word/Sentence Header */}
-        <View style={styles.header}>
-          <Text style={isSentenceMode ? styles.sentence : styles.word}>
-            {word}
-          </Text>
-          {!isJapanese && !isSentenceMode && definition?.phonetic && (
-            <Text style={styles.phonetic}>{definition.phonetic}</Text>
-          )}
-          {!isJapanese && !isSentenceMode && definition?.partOfSpeech && (
-            <View style={styles.posTag}>
+          {/* Word/Sentence Header */}
+          <View style={styles.header}>
+            <Text style={isSentenceMode ? styles.sentence : styles.word}>
+              {word}
+            </Text>
+            {!isJapanese && !isSentenceMode && definition?.phonetic && (
+              <Text style={styles.phonetic}>{definition.phonetic}</Text>
+            )}
+            {!isJapanese && !isSentenceMode && definition?.partOfSpeech && (
+              <View style={styles.posTag}>
               <Text style={styles.posText}>{definition.partOfSpeech}</Text>
             </View>
           )}
@@ -591,20 +658,19 @@ export function WordPopup({
               {/* Words List */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>含まれる単語</Text>
+                <Text style={styles.swipeInstruction}>
+                  登録しない単語は左にスワイプして除外
+                </Text>
                 {loading.wordsInfo ? (
                   <ActivityIndicator size="small" color={Colors.primary} />
                 ) : wordsInfo.length > 0 ? (
                   <View style={styles.wordsListContainer}>
                     {wordsInfo.map((wordInfo, index) => (
-                      <WordItemCard
+                      <SwipeableWordCard
                         key={`${wordInfo.word}-${index}`}
                         wordInfo={wordInfo}
-                        onToggleSelect={() => {
-                          setWordsInfo(prev =>
-                            prev.map((w, i) =>
-                              i === index ? { ...w, isSelected: !w.isSelected } : w
-                            )
-                          );
+                        onRemove={() => {
+                          setWordsInfo(prev => prev.filter((_, i) => i !== index));
                         }}
                       />
                     ))}
@@ -701,11 +767,20 @@ export function WordPopup({
         {/* Action Buttons */}
         <View style={styles.actions}>
           <Button
-            title={isSentenceMode ? '選択した単語を追加' : '単語帳に追加'}
+            title={isSentenceMode 
+              ? `単語を登録 (${wordsInfo.filter(w => !w.isRegistered).length}件)`
+              : '単語帳に追加'}
             onPress={handleAddToWordList}
             variant="primary"
             loading={isAdding}
-            disabled={loading.definition || loading.translation || loading.japanese || loading.sentenceTranslation || loading.wordsInfo}
+            disabled={
+              loading.definition || 
+              loading.translation || 
+              loading.japanese || 
+              loading.sentenceTranslation || 
+              loading.wordsInfo ||
+              (isSentenceMode && wordsInfo.filter(w => !w.isRegistered).length === 0)
+            }
             style={styles.addButton}
           />
           <Button
@@ -717,6 +792,7 @@ export function WordPopup({
           />
         </View>
       </Animated.View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -860,35 +936,81 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     fontStyle: 'italic',
+  },
+  swipeInstruction: {
+    fontSize: FontSizes.sm,
+    color: Colors.textTertiary,
+    marginBottom: Spacing.md,
+    fontStyle: 'italic',
+  },
   wordsListContainer: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
+  },
+  swipeableContainer: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  deleteBackground: {
+    flex: 1,
+    backgroundColor: '#FF5252',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  deleteBackgroundText: {
+    color: '#FFFFFF',
+    fontSize: FontSizes.lg,
+    fontWeight: 'bold',
   },
   wordItemCard: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    ...Shadows.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   wordItemCardRegistered: {
     backgroundColor: '#E8F5E9',
     borderColor: '#4CAF50',
   },
-  wordItemHeader: {
+  wordCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
     gap: Spacing.sm,
   },
-  checkboxIcon: {
+  wordCardWord: {
     fontSize: FontSizes.xl,
-    color: Colors.primary,
-  },
-  wordItemWord: {
-    fontSize: FontSizes.lg,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.text,
     flex: 1,
+  },
+  wordCardRow: {
+    marginBottom: Spacing.xs,
+  },
+  wordCardLabel: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  wordCardJapanese: {
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  wordCardDefinition: {
+    fontSize: FontSizes.sm,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  swipeHint: {
+    fontSize: FontSizes.xs,
+    color: Colors.textTertiary,
+    textAlign: 'right',
+    marginTop: Spacing.sm,
+    fontStyle: 'italic',
   },
   registeredBadge: {
     backgroundColor: '#4CAF50',
@@ -901,21 +1023,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
-  wordItemJapanese: {
-    fontSize: FontSizes.sm,
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  wordItemDefinition: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-  },
   wordItemHint: {
     fontSize: FontSizes.xs,
     color: Colors.textTertiary,
     fontStyle: 'italic',
-  },
     marginTop: Spacing.sm,
   },
   errorText: {

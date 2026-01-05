@@ -2742,6 +2742,186 @@ const wordPattern = /([a-zA-Z][a-zA-Z'-]*)|(\s+)|([^\sa-zA-Z]+)/g;
 
 ---
 
+## 20. 単語カードのスワイプ削除が途中で止まる問題
+
+### 発生日
+2026年1月5日
+
+### 症状
+- 文章モードの単語ポップアップで、単語カードを左にスワイプして除外しようとする
+- スワイプは途中まで動くが、最後まで完了せずカードが削除されない
+- 赤い「除外」背景は表示されるが、カードを完全に削除できない
+
+### 調査過程
+
+1. **PanResponderの実装確認** - 最初はReact NativeのPanResponderを使用してスワイプ機能を実装していた
+
+2. **ScrollViewとの競合を疑う** - スワイプが途中で止まる現象から、ScrollViewのジェスチャーとPanResponderのジェスチャーが競合していることを疑った
+
+3. **問題の特定** - PanResponderはScrollView内で使用すると、縦スクロールを検知した時点でジェスチャーが中断されることが判明
+
+### 原因
+`PanResponder`と`ScrollView`のジェスチャーが競合していた。
+
+- ポップアップ内のコンテンツはScrollViewでラップされている
+- 単語カードのスワイプはPanResponderで実装されていた
+- ScrollView内でスワイプを開始すると、ScrollViewが縦スクロールを検知してPanResponderのジェスチャーが中断される
+- これにより、スワイプが途中で止まってしまっていた
+
+### 解決策
+
+**1. react-native-gesture-handlerのSwipeableコンポーネントを使用：**
+
+PanResponderから`react-native-gesture-handler`の`Swipeable`コンポーネントに変更。これはScrollViewとの競合を適切に処理してくれる。
+
+```typescript
+// 変更前 - PanResponderを使用
+import { PanResponder } from 'react-native';
+
+function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): React.JSX.Element {
+  const translateX = useRef(new Animated.Value(0)).current;
+  
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => !wordInfo.isRegistered,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return !wordInfo.isRegistered && 
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && 
+          Math.abs(gestureState.dx) > 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          translateX.setValue(gestureState.dx);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -SWIPE_THRESHOLD) {
+          // Remove card animation
+          onRemove();
+        } else {
+          // Snap back
+        }
+      },
+    })
+  ).current;
+
+  return (
+    <Animated.View {...panResponder.panHandlers}>
+      {/* Card content */}
+    </Animated.View>
+  );
+}
+
+// 変更後 - Swipeableを使用
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+
+function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): React.JSX.Element {
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const renderRightActions = (
+    progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>
+  ) => {
+    const opacity = dragX.interpolate({
+      inputRange: [-100, -50, 0],
+      outputRange: [1, 0.8, 0],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <Animated.View style={[styles.deleteBackground, { opacity }]}>
+        <Animated.Text style={styles.deleteBackgroundText}>
+          除外
+        </Animated.Text>
+      </Animated.View>
+    );
+  };
+
+  const handleSwipeOpen = () => {
+    onRemove();
+  };
+
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      onSwipeableOpen={handleSwipeOpen}
+      rightThreshold={80}
+      overshootRight={false}
+    >
+      <View style={styles.wordItemCard}>
+        {/* Card content */}
+      </View>
+    </Swipeable>
+  );
+}
+```
+
+**2. GestureHandlerRootViewでModal内をラップ：**
+
+Modal内でジェスチャーを機能させるために、GestureHandlerRootViewでラップする必要がある：
+
+```typescript
+return (
+  <Modal visible={visible} transparent animationType="none">
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* Backdrop */}
+      <Animated.View style={styles.backdrop}>
+        {/* ... */}
+      </Animated.View>
+
+      {/* Popup */}
+      <Animated.View style={styles.popup}>
+        {/* ... */}
+      </Animated.View>
+    </GestureHandlerRootView>
+  </Modal>
+);
+```
+
+**3. babel.config.jsにreanimatedプラグインを追加：**
+
+react-native-gesture-handlerが正しく動作するために、babel設定にreanimatedプラグインを追加：
+
+```javascript
+// 変更前
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: ['babel-preset-expo'],
+  };
+};
+
+// 変更後
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: ['babel-preset-expo'],
+    plugins: ['react-native-reanimated/plugin'],
+  };
+};
+```
+
+### 実装のポイント
+- `Swipeable`コンポーネントはScrollViewとのジェスチャー競合を適切に処理する
+- `rightThreshold={80}`で、80px以上スワイプしたら削除をトリガー
+- `overshootRight={false}`で、右方向へのオーバーシュートを無効化
+- 登録済みの単語はSwipeableを使用せず、通常のViewとして表示（スワイプ不可）
+- Modal内でreact-native-gesture-handlerを使用する場合、GestureHandlerRootViewでラップが必要
+
+### 関連ファイル
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+- `babel.config.js` - Babel設定ファイル
+- `package.json` - react-native-gesture-handler, react-native-reanimatedを追加
+
+### 教訓
+- React NativeのPanResponderはScrollView内で使用すると競合が発生しやすい
+- スワイプ機能を実装する場合、`react-native-gesture-handler`の使用を検討する
+- Modal内でジェスチャーを使用する場合、GestureHandlerRootViewでのラップが必要
+- キャッシュをクリア（`npx expo start --clear`）して再起動することで、設定変更を確実に反映できる
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：
