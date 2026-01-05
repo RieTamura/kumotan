@@ -2327,6 +2327,205 @@ if (currentVersion < 4) {
 
 ---
 
+## 18. 単語登録時に同じ単語が2回登録されるエラーと即座に反映されない問題
+
+### 発生日
+2026年1月5日
+
+### 症状
+- 投稿文の単語を長押しして選択し、「単語帳に追加」ボタンを押す
+- 「DUPLICATE_WORD: この単語は既に登録されています」というエラーが表示される
+- しかし、実際には登録していない単語でもこのエラーが発生する
+- また、単語を登録しても、単語帳画面に即座に反映されず、タブを切り替えてから戻らないと表示されない
+
+### 調査過程
+
+1. **ログの追加** - データベース操作にログを追加したところ、同じ単語が2回連続で登録されようとしていることが判明
+   - 1回目: `[insertWord] Inserted with ID: 9` - 成功
+   - 2回目: `[insertWord] Duplicate found for "everything": {"id": 9}` - 既に登録済みエラー
+
+2. **WordPopup.tsxの確認** - `handleAddToWordList`関数で以下の処理が行われていた：
+   - `addWordToStore()` - データベースに単語を追加（1回目）
+   - `onAddToWordList()` - HomeScreenの`handleAddWord`を呼び出し、さらにデータベースに追加（2回目）
+
+3. **単語リストの更新メカニズムの確認** - WordListScreenは`useFocusEffect`で画面がフォーカスされたときのみデータを読み込んでいたため、HOMEタブで単語を追加しても、単語帳タブに切り替えるまで反映されなかった
+
+### 原因
+
+**原因1: 二重登録**
+- `WordPopup.tsx`の`handleAddToWordList`で、`addWordToStore()`と`onAddToWordList()`の両方を呼び出していた
+- これにより、同じ単語がデータベースに2回連続で登録されようとしていた
+- 1回目は成功するが、2回目は重複エラーになる
+
+**原因2: リアルタイム更新の欠如**
+- 単語リストの状態管理がローカルステート（`useState`）のみで行われていた
+- 画面間で状態が共有されておらず、`useFocusEffect`による画面フォーカス時のみデータを読み込んでいた
+- そのため、HOMEタブで単語を追加しても、単語帳タブには即座に反映されなかった
+
+### 解決策
+
+**解決策1: 二重登録の修正**
+
+`src/components/WordPopup.tsx`の`handleAddToWordList`関数を修正し、`onAddToWordList()`の呼び出しを削除：
+
+```typescript
+// 変更前 - 2回登録していた
+const result = await addWordToStore({ /* ... */ });
+
+if (result.success) {
+  // Also call the original callback for backward compatibility
+  onAddToWordList(
+    word,
+    translation?.text ?? null,
+    definition?.definition ?? null,
+    postUri ?? null,
+    postText ?? null
+  );
+  
+  setTimeout(() => {
+    onClose();
+  }, 500);
+} else {
+  Alert.alert('エラー', result.error.message);
+}
+
+// 変更後 - 1回のみ登録
+const result = await addWordToStore({ /* ... */ });
+
+if (result.success) {
+  // Show success message
+  Alert.alert('成功', '単語を追加しました！');
+  
+  setTimeout(() => {
+    onClose();
+  }, 500);
+} else {
+  Alert.alert('エラー', result.error.message);
+}
+```
+
+**解決策2: グローバル状態管理の実装**
+
+Zustandを使用したwordStoreを作成し、単語リストをグローバルに管理：
+
+`src/store/wordStore.ts`を新規作成：
+
+```typescript
+import { create } from 'zustand';
+import { Word, WordFilter, CreateWordInput } from '../types/word';
+import * as WordService from '../services/database/words';
+
+interface WordState {
+  words: Word[];
+  isLoading: boolean;
+  error: AppError | null;
+  filter: WordFilter;
+  
+  loadWords: () => Promise<Result<void, AppError>>;
+  addWord: (input: CreateWordInput) => Promise<Result<Word, AppError>>;
+  toggleReadStatus: (id: number) => Promise<Result<void, AppError>>;
+  deleteWord: (id: number) => Promise<Result<void, AppError>>;
+  setFilter: (filter: Partial<WordFilter>) => void;
+  clearError: () => void;
+}
+
+export const useWordStore = create<WordState>((set, get) => ({
+  words: [],
+  isLoading: false,
+  error: null,
+  filter: { /* デフォルトフィルタ */ },
+  
+  loadWords: async () => {
+    // データベースから単語を読み込み
+  },
+  
+  addWord: async (input) => {
+    const result = await WordService.insertWord(input);
+    if (result.success) {
+      // 追加後、自動的にloadWords()を呼び出して更新
+      await get().loadWords();
+    }
+    return result;
+  },
+  
+  // その他のアクション...
+}));
+```
+
+`src/screens/WordListScreen.tsx`を修正し、wordStoreを使用：
+
+```typescript
+// 変更前 - ローカルステート
+const [words, setWords] = useState<Word[]>([]);
+const loadWords = useCallback(async () => {
+  const result = await getWords(filter);
+  if (result.success) {
+    setWords(result.data);
+  }
+}, [filter]);
+
+// 変更後 - グローバルストア
+const { 
+  words, 
+  isLoading, 
+  loadWords, 
+  toggleReadStatus,
+  deleteWord,
+  setFilter 
+} = useWordStore();
+```
+
+`src/components/WordPopup.tsx`を修正し、wordStoreから直接追加：
+
+```typescript
+// wordStoreのインポートを追加
+import { useWordStore } from '../store/wordStore';
+
+// コンポーネント内でwordStoreを使用
+const addWordToStore = useWordStore(state => state.addWord);
+
+// handleAddToWordList内で使用
+const result = await addWordToStore({
+  english: word,
+  japanese: translation?.text ?? undefined,
+  definition: definition?.definition ?? undefined,
+  postUrl: postUri ?? undefined,
+  postText: postText ?? undefined,
+});
+```
+
+### 実装のポイント
+- Zustandを使用したグローバル状態管理により、画面間でデータが自動的に同期される
+- `addWord`関数内で`loadWords()`を呼び出すことで、追加後に自動的に単語リストが更新される
+- WordListScreenはwordStoreの`words`を購読しているため、更新が即座に反映される
+- 既存のauthStoreと同じパターンで実装し、コードの一貫性を保つ
+- エラー処理を改善し、成功時とエラー時で適切なメッセージを表示
+
+### 動作の流れ
+
+1. HOMEタブで単語を選択→WordPopupが開く
+2. 「単語帳に追加」ボタンをクリック
+3. `WordPopup`が`wordStore.addWord()`を呼び出し
+4. `wordStore`がデータベースに保存後、自動的に`loadWords()`を実行
+5. `WordListScreen`は`wordStore`の状態を購読しているため、**即座に**新しい単語が表示される
+6. タブ切り替えや画面遷移を待つ必要なし
+
+### 関連ファイル
+- `src/store/wordStore.ts` - 単語リスト用グローバルストア（新規作成）
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+- `src/screens/WordListScreen.tsx` - 単語帳画面
+- `src/services/database/words.ts` - 単語データベースサービス
+
+### 教訓
+- 複数の画面で共有されるデータは、グローバル状態管理（Zustand、Redux等）を使用すべき
+- ローカルステート（`useState`）のみでは、画面間のデータ同期が困難
+- 同じ処理を複数箇所で呼び出すと、意図しない二重実行が発生する可能性がある
+- デバッグログを追加することで、処理の流れや問題箇所を特定しやすくなる
+- エラーメッセージで「DUPLICATE_WORD」と表示される場合でも、実際には二重登録が原因の可能性がある
+- グローバル状態管理により、リアルタイム更新とコードの保守性が大幅に向上する
+
+---
+
 ## 問題報告テンプレート
 
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：

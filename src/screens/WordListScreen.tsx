@@ -17,10 +17,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { BookOpen, Check, Trash2 } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { Word, WordFilter } from '../types/word';
-import { getWords, toggleReadStatus, deleteWord } from '../services/database/words';
 import { Loading } from '../components/common/Loading';
 import { Button } from '../components/common/Button';
 import { WordListItem } from '../components/WordListItem';
+import { useWordStore } from '../store/wordStore';
 
 /**
  * Filter options type
@@ -36,53 +36,43 @@ type SortOption = 'created_at' | 'english';
  * WordListScreen Component
  */
 export function WordListScreen(): React.JSX.Element {
-  // State for words list
-  const [words, setWords] = useState<Word[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use word store
+  const { 
+    words, 
+    isLoading, 
+    loadWords, 
+    toggleReadStatus: toggleReadStatusStore,
+    deleteWord: deleteWordStore,
+    setFilter: setStoreFilter 
+  } = useWordStore();
 
-  // Filter and sort state
+  // Filter and sort state (local UI state)
   const [filter, setFilter] = useState<FilterOption>('all');
   const [sortBy, setSortBy] = useState<SortOption>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   /**
-   * Load words from database
+   * Load words from database using store
    */
-  const loadWords = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      
-      const wordFilter: WordFilter = {
-        isRead: filter === 'all' ? null : filter === 'read',
-        sortBy,
-        sortOrder,
-        limit: 1000,
-        offset: 0,
-      };
+  const loadWordsWithFilter = useCallback(async () => {
+    const wordFilter: WordFilter = {
+      isRead: filter === 'all' ? null : filter === 'read',
+      sortBy,
+      sortOrder,
+      limit: 1000,
+      offset: 0,
+    };
 
-      const result = await getWords(wordFilter);
-
-      if (result.success) {
-        setWords(result.data);
-      } else {
-        console.error('Failed to load words:', result.error);
-        Alert.alert('エラー', '単語の読み込みに失敗しました');
-      }
-    } catch (error) {
-      console.error('Error loading words:', error);
-      Alert.alert('エラー', '単語の読み込み中にエラーが発生しました');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filter, sortBy, sortOrder]);
+    setStoreFilter(wordFilter);
+  }, [filter, sortBy, sortOrder, setStoreFilter]);
 
   /**
    * Load words when screen is focused
    */
   useFocusEffect(
     useCallback(() => {
-      loadWords();
-    }, [loadWords])
+      loadWordsWithFilter();
+    }, [loadWordsWithFilter])
   );
 
   /**
@@ -90,9 +80,9 @@ export function WordListScreen(): React.JSX.Element {
    */
   useEffect(() => {
     if (!isLoading) {
-      loadWords();
+      loadWordsWithFilter();
     }
-  }, [filter, sortBy, sortOrder]);
+  }, [filter, sortBy, sortOrder, loadWordsWithFilter]);
 
   /**
    * Handle filter change
@@ -146,19 +136,11 @@ export function WordListScreen(): React.JSX.Element {
    * Handle checkbox toggle (read status)
    */
   const handleToggleRead = useCallback(async (word: Word) => {
-    try {
-      const result = await toggleReadStatus(word.id);
-      if (result.success) {
-        // Reload words to reflect changes
-        await loadWords();
-      } else {
-        Alert.alert('エラー', result.error.message);
-      }
-    } catch (error) {
-      console.error('Failed to toggle read status:', error);
-      Alert.alert('エラー', '既読状態の更新に失敗しました');
+    const result = await toggleReadStatusStore(word.id);
+    if (!result.success) {
+      Alert.alert('エラー', result.error.message);
     }
-  }, [loadWords]);
+  }, [toggleReadStatusStore]);
 
   /**
    * Handle word delete
@@ -173,24 +155,17 @@ export function WordListScreen(): React.JSX.Element {
           text: '削除',
           style: 'destructive',
           onPress: async () => {
-            try {
-              const result = await deleteWord(word.id);
-              if (result.success) {
-                // Reload words to reflect changes
-                await loadWords();
-                Alert.alert('成功', '単語を削除しました');
-              } else {
-                Alert.alert('エラー', result.error.message);
-              }
-            } catch (error) {
-              console.error('Failed to delete word:', error);
-              Alert.alert('エラー', '単語の削除に失敗しました');
+            const result = await deleteWordStore(word.id);
+            if (result.success) {
+              Alert.alert('成功', '単語を削除しました');
+            } else {
+              Alert.alert('エラー', result.error.message);
             }
           },
         },
       ]
     );
-  }, [loadWords]);
+  }, [deleteWordStore]);
 
   /**
    * Render word item

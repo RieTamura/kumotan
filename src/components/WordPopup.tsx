@@ -15,6 +15,7 @@ import {
   Dimensions,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { DictionaryResult, TranslateResult, JapaneseWordInfo } from '../types/word';
@@ -26,6 +27,7 @@ import {
 } from '../services/dictionary/yahooJapan';
 import { Validators } from '../utils/validators';
 import { Button } from './common/Button';
+import { useWordStore } from '../store/wordStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
@@ -92,6 +94,9 @@ export function WordPopup({
   const [yahooClientIdAvailable, setYahooClientIdAvailable] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isJapanese, setIsJapanese] = useState(false);
+  
+  // Get addWord from word store
+  const addWordToStore = useWordStore(state => state.addWord);
 
   /**
    * Animate popup open/close
@@ -262,32 +267,57 @@ export function WordPopup({
             ).join('\n\n')
           : null;
         
-        onAddToWordList(
-          word,
-          reading,
-          morphologyResult,
-          postUri ?? null,
-          postText ?? null
-        );
+        // Add to word store
+        const result = await addWordToStore({
+          english: word,
+          japanese: reading ?? undefined,
+          definition: morphologyResult ?? undefined,
+          postUrl: postUri ?? undefined,
+          postText: postText ?? undefined,
+        });
+        
+        if (result.success) {
+          // Show success message
+          Alert.alert('成功', '単語を追加しました！');
+          
+          // Close popup after adding successfully
+          setTimeout(() => {
+            onClose();
+          }, 500);
+        } else {
+          // Show error alert and don't close popup
+          Alert.alert('エラー', result.error.message);
+        }
       } else {
         // English word
-        onAddToWordList(
-          word,
-          translation?.text ?? null,
-          definition?.definition ?? null,
-          postUri ?? null,
-          postText ?? null
-        );
+        const result = await addWordToStore({
+          english: word,
+          japanese: translation?.text ?? undefined,
+          definition: definition?.definition ?? undefined,
+          postUrl: postUri ?? undefined,
+          postText: postText ?? undefined,
+        });
+        
+        if (result.success) {
+          // Show success message
+          Alert.alert('成功', '単語を追加しました！');
+          
+          // Close popup after adding successfully
+          setTimeout(() => {
+            onClose();
+          }, 500);
+        } else {
+          // Show error alert and don't close popup
+          Alert.alert('エラー', result.error.message);
+        }
       }
-      
-      // Close popup after adding
-      setTimeout(() => {
-        onClose();
-      }, 500);
+    } catch (error) {
+      console.error('Failed to add word:', error);
+      Alert.alert('エラー', '単語の追加に失敗しました');
     } finally {
       setIsAdding(false);
     }
-  }, [word, isJapanese, japaneseInfo, translation, definition, postUri, postText, onAddToWordList, onClose]);
+  }, [word, isJapanese, japaneseInfo, translation, definition, postUri, postText, addWordToStore, onAddToWordList, onClose]);
 
   /**
    * Handle backdrop press
