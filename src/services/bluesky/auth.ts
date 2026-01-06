@@ -366,7 +366,7 @@ export async function getProfile(actor?: string): Promise<Result<BlueskyProfile,
     return {
       success: false,
       error: new AppError(
-        ErrorCode.BLUESKY_ERROR,
+        ErrorCode.API_ERROR,
         'プロフィール情報の取得に失敗しました。',
         error
       ),
