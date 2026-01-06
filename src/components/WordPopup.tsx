@@ -298,6 +298,19 @@ export function WordPopup({
   }, []);
 
   /**
+   * Convert JapaneseWordInfo to WordInfo for sentence mode
+   */
+  const convertJapaneseInfoToWordInfo = useCallback((tokens: JapaneseWordInfo[]): WordInfo[] => {
+    return tokens.map(token => ({
+      word: token.word,
+      japanese: token.reading,
+      definition: `${token.partOfSpeech} - 基本形: ${token.baseForm}`,
+      isRegistered: false,
+      isSelected: true,
+    }));
+  }, []);
+
+  /**
    * Fetch definition and translation
    */
   const fetchWordData = useCallback(async () => {
@@ -397,12 +410,11 @@ export function WordPopup({
   }, [word]);
 
   /**
-   * Fetch data for sentence mode
+   * Fetch data for English sentence mode
    */
-  const fetchSentenceData = useCallback(async () => {
+  const fetchEnglishSentenceData = useCallback(async () => {
     const hasKey = await hasApiKey();
     setApiKeyAvailable(hasKey);
-    setIsJapanese(false);
 
     // 1. Translate the entire sentence
     if (hasKey) {
@@ -433,10 +445,10 @@ export function WordPopup({
 
     // 4. Fetch info for each word
     updateLoading('wordsInfo', true);
-    
+
     const wordsInfoPromises = words.map(async (w): Promise<WordInfo> => {
       const isRegistered = registeredWordsSet.has(w.toLowerCase());
-      
+
       // If already registered, don't fetch new data
       if (isRegistered) {
         const registeredWord = registeredWords.find(
@@ -470,6 +482,68 @@ export function WordPopup({
     setWordsInfo(wordsInfoResults);
     updateLoading('wordsInfo', false);
   }, [word]);
+
+  /**
+   * Fetch data for Japanese sentence mode
+   */
+  const fetchJapaneseSentenceData = useCallback(async () => {
+    const hasYahooId = await hasYahooClientId();
+    setYahooClientIdAvailable(hasYahooId);
+
+    if (!hasYahooId) {
+      console.log('WordPopup: Yahoo Client ID not available');
+      return;
+    }
+
+    console.log('WordPopup: Analyzing Japanese sentence with morphology');
+
+    // Morphological analysis
+    updateLoading('wordsInfo', true);
+    const result = await analyzeMorphology(word);
+    updateLoading('wordsInfo', false);
+
+    if (result.success) {
+      console.log(`WordPopup: Extracted ${result.data.length} words from sentence:`, result.data);
+
+      // Convert morphological analysis results to WordInfo
+      const wordInfos = convertJapaneseInfoToWordInfo(result.data);
+
+      // Get registered words from store
+      const registeredWords = useWordStore.getState().words;
+      const registeredWordsSet = new Set(
+        registeredWords.map(w => w.english.toLowerCase())
+      );
+
+      // Update isRegistered flag
+      const updatedWordInfos = wordInfos.map(info => ({
+        ...info,
+        isRegistered: registeredWordsSet.has(info.word.toLowerCase()),
+        isSelected: !registeredWordsSet.has(info.word.toLowerCase()),
+      }));
+
+      setWordsInfo(updatedWordInfos);
+    } else {
+      console.error('WordPopup: Morphological analysis error:', result.error.message);
+      setSentenceError(result.error.message);
+    }
+  }, [word, convertJapaneseInfoToWordInfo]);
+
+  /**
+   * Fetch data for sentence mode
+   */
+  const fetchSentenceData = useCallback(async () => {
+    // Japanese detection
+    const sentenceIsJapanese = Validators.isJapanese(word);
+    setIsJapanese(sentenceIsJapanese);
+
+    if (sentenceIsJapanese) {
+      // Japanese sentence processing
+      await fetchJapaneseSentenceData();
+    } else {
+      // English sentence processing
+      await fetchEnglishSentenceData();
+    }
+  }, [word, fetchJapaneseSentenceData, fetchEnglishSentenceData]);
 
   /**
    * Handle add to word list

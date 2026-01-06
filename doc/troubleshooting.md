@@ -3337,6 +3337,190 @@ highlightedSentence: {
 
 ## 問題報告テンプレート
 
+---
+
+## 19. 日本語文章の長押し選択時に形態素解析が実行されない問題
+
+### 発生日
+2026年1月6日
+
+### 症状
+
+- 日本語文章を長押しして選択すると、単語登録ポップアップが表示される
+- しかし、Yahoo! JAPAN Text Analysis APIによる形態素解析が実行されない
+- ログに「Extracted 0 words from sentence: []」と表示され、単語が抽出されていない
+- 英語文章の長押しは正常に動作し、英単語が抽出される
+
+### 調査過程
+
+1. **ログの確認** - スクリーンショットのログから以下を確認：
+
+   ```text
+   WordPopup: Fetching data for sentence "待て待て、近いうちにまた正座する機会あるし、ここはジムで有酸素か"
+   WordPopup: Extracted 0 words from sentence: []
+   ```
+
+2. **コードフローの確認** - `WordPopup.tsx`のコードを確認したところ、以下の流れになっていた：
+   - `fetchWordData()` → `fetchSentenceData()` が呼ばれる
+   - `fetchSentenceData()` は `extractEnglishWords()` で英単語を抽出する処理のみ実装
+   - Yahoo APIの `analyzeMorphology()` は `fetchSingleWordData()` 内でのみ呼ばれる
+
+3. **根本原因の特定** - 文章モード（`isSentenceMode = true`）では、日本語判定がされず、英語文章処理のみが実行されていた
+
+### 原因
+`src/components/WordPopup.tsx`の`fetchSentenceData()`関数で以下の問題があった：
+
+1. **日本語判定の欠如** - `setIsJapanese(false)`で常にfalseに設定されており、日本語文章が検出されていなかった
+
+2. **処理分岐の欠如** - 文章モードは英語専用として実装されており、日本語文章の場合の処理フローが存在しなかった
+
+3. **形態素解析の呼び出しがない** - `analyzeMorphology()`は単語モードの`fetchSingleWordData()`内でのみ呼ばれており、文章モードでは実行されていなかった
+
+### 解決策
+
+**1. ヘルパー関数の追加（300-311行目）：**
+
+形態素解析結果を単語リスト形式に変換する関数を追加：
+
+```typescript
+const convertJapaneseInfoToWordInfo = useCallback((tokens: JapaneseWordInfo[]): WordInfo[] => {
+  return tokens.map(token => ({
+    word: token.word,
+    japanese: token.reading,
+    definition: `${token.partOfSpeech} - 基本形: ${token.baseForm}`,
+    isRegistered: false,
+    isSelected: true,
+  }));
+}, []);
+```
+
+**2. 既存の英語文章処理をリファクタリング（412-484行目）：**
+
+`fetchSentenceData()`のコードを`fetchEnglishSentenceData()`に分離：
+
+```typescript
+const fetchEnglishSentenceData = useCallback(async () => {
+  const hasKey = await hasApiKey();
+  setApiKeyAvailable(hasKey);
+
+  // 1. Translate the entire sentence
+  if (hasKey) {
+    updateLoading('sentenceTranslation', true);
+    const sentenceResult = await translateToJapanese(word);
+    updateLoading('sentenceTranslation', false);
+    // ...
+  }
+
+  // 2. Extract words from sentence
+  const words = extractEnglishWords(word);
+  // ...
+
+  // 3-4. Fetch info for each word
+  // ...
+}, [word]);
+```
+
+**3. 日本語文章処理用の新関数を追加（486-529行目）：**
+
+```typescript
+const fetchJapaneseSentenceData = useCallback(async () => {
+  const hasYahooId = await hasYahooClientId();
+  setYahooClientIdAvailable(hasYahooId);
+
+  if (!hasYahooId) {
+    console.log('WordPopup: Yahoo Client ID not available');
+    return;
+  }
+
+  console.log('WordPopup: Analyzing Japanese sentence with morphology');
+
+  // Morphological analysis
+  updateLoading('wordsInfo', true);
+  const result = await analyzeMorphology(word);
+  updateLoading('wordsInfo', false);
+
+  if (result.success) {
+    console.log(`WordPopup: Extracted ${result.data.length} words from sentence:`, result.data);
+
+    // Convert morphological analysis results to WordInfo
+    const wordInfos = convertJapaneseInfoToWordInfo(result.data);
+
+    // Get registered words from store
+    const registeredWords = useWordStore.getState().words;
+    const registeredWordsSet = new Set(
+      registeredWords.map(w => w.english.toLowerCase())
+    );
+
+    // Update isRegistered flag
+    const updatedWordInfos = wordInfos.map(info => ({
+      ...info,
+      isRegistered: registeredWordsSet.has(info.word.toLowerCase()),
+      isSelected: !registeredWordsSet.has(info.word.toLowerCase()),
+    }));
+
+    setWordsInfo(updatedWordInfos);
+  } else {
+    console.error('WordPopup: Morphological analysis error:', result.error.message);
+    setSentenceError(result.error.message);
+  }
+}, [word, convertJapaneseInfoToWordInfo]);
+```
+
+**4. fetchSentenceData()に日本語判定と分岐処理を追加（534-546行目）：**
+
+```typescript
+const fetchSentenceData = useCallback(async () => {
+  // Japanese detection
+  const sentenceIsJapanese = Validators.isJapanese(word);
+  setIsJapanese(sentenceIsJapanese);
+
+  if (sentenceIsJapanese) {
+    // Japanese sentence processing
+    await fetchJapaneseSentenceData();
+  } else {
+    // English sentence processing
+    await fetchEnglishSentenceData();
+  }
+}, [word, fetchJapaneseSentenceData, fetchEnglishSentenceData]);
+```
+
+### 実装のポイント
+
+- `Validators.isJapanese()`で日本語を検出し、処理を分岐
+- 形態素解析結果を`WordInfo`形式に変換し、既存の単語リストUIで表示
+- 各単語の読み、品詞、基本形を`definition`フィールドにフォーマットして保存
+- 登録済み単語のチェック機能も日本語に対応
+- エラーハンドリングとログ出力で動作を追跡可能に
+
+### データフロー
+
+**日本語文章を長押しした場合：**
+
+1. `fetchWordData()` が呼ばれる
+2. `isSentenceMode = true` なので `fetchSentenceData()` が実行
+3. `Validators.isJapanese()` で日本語と判定
+4. `fetchJapaneseSentenceData()` が実行される
+5. `analyzeMorphology()` でYahoo APIを呼び出し
+6. 形態素解析結果を `WordInfo[]` に変換
+7. `setWordsInfo()` で単語リストに設定
+8. 既存のUIで単語カード形式で表示
+
+### 関連ファイル
+
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント（主な修正箇所）
+- `src/services/dictionary/yahooJapan.ts` - Yahoo! API連携サービス
+- `src/utils/validators.ts` - 日本語判定関数
+- `src/types/word.ts` - 型定義（JapaneseWordInfo, WordInfo）
+
+### 得られた知見
+
+- 新機能追加時は、既存の処理フローに統合する必要がある
+- 単語モードと文章モードで同じAPIを使う場合、両方から呼び出せるように設計する
+- 言語別の処理は、早い段階で分岐させることで可読性が向上する
+- useCallbackの依存配列を正しく設定しないと、関数が正しく更新されない
+
+---
+
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：
 
 ```markdown
