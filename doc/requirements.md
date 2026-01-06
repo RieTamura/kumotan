@@ -15,7 +15,7 @@
   - expo-sqlite（単語データ、学習統計）
   - expo-secure-store（認証トークン、DeepL API Key、Yahoo! Client ID）
   - AsyncStorage（UI設定、キャッシュ）
-- **辞書API**: 
+- **辞書API**:
   - Free Dictionary API（英語定義）
   - DeepL API Free（日本語翻訳、月50万文字まで無料）
   - Yahoo! JAPAN Text Analysis API（日本語単語の形態素解析・ふりがな）
@@ -387,11 +387,19 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年1月5日
-**バージョン**: 1.3
+**最終更新日**: 2026年1月6日
+**バージョン**: 1.4
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.4 (2026-01-06)
+- Jisho.org API統合を削除
+  - 日本語単語の処理はYahoo! APIの形態素解析のみに変更
+  - 英語単語はFree Dictionary APIで引き続き対応
+  - src/services/dictionary/jisho.ts削除
+  - JishoResult型定義削除
+  - WordPopup.tsxからJisho API呼び出しを削除
 
 ### v1.3 (2026-01-05)
 - M2.5品質改善・テスト実装マイルストーンを追加

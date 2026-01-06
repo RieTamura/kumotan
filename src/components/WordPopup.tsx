@@ -22,9 +22,9 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { DictionaryResult, TranslateResult, JapaneseWordInfo, WordInfo } from '../types/word';
 import { lookupWord } from '../services/dictionary/freeDictionary';
 import { translateToJapanese, hasApiKey } from '../services/dictionary/deepl';
-import { 
+import {
   analyzeMorphology,
-  hasClientId as hasYahooClientId 
+  hasClientId as hasYahooClientId
 } from '../services/dictionary/yahooJapan';
 import { Validators, extractEnglishWords } from '../utils/validators';
 import { AppError, ErrorCode } from '../utils/errors';
@@ -286,7 +286,8 @@ export function WordPopup({
       setIsAdding(false);
       setIsJapanese(false);
     }
-  }, [visible, word, fetchWordData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, word]);
 
   /**
    * Check API key availability
@@ -332,10 +333,10 @@ export function WordPopup({
     setIsJapanese(wordIsJapanese);
 
     if (wordIsJapanese) {
-      // Japanese word - use Yahoo! API
+      // Japanese word - use Yahoo! API for morphological analysis
       const hasYahooId = await hasYahooClientId();
       setYahooClientIdAvailable(hasYahooId);
-      
+
       if (hasYahooId) {
         updateLoading('japanese', true);
         const japaneseResult = await analyzeMorphology(word);
@@ -453,12 +454,12 @@ export function WordPopup({
       // Fetch new data
       const [defResult, transResult] = await Promise.all([
         lookupWord(w),
-        hasKey ? translateToJapanese(w) : Promise.resolve({ success: false, error: null }),
+        hasKey ? translateToJapanese(w) : Promise.resolve({ success: false, error: new AppError(ErrorCode.VALIDATION_ERROR, 'No API key') }),
       ]);
 
       return {
         word: w,
-        japanese: transResult.success ? transResult.data.text : null,
+        japanese: (transResult.success && 'data' in transResult) ? transResult.data.text : null,
         definition: defResult.success ? defResult.data.definition : null,
         isRegistered: false,
         isSelected: !isRegistered, // Auto-select unregistered words
@@ -517,26 +518,26 @@ export function WordPopup({
           Alert.alert('エラー', 'すべての単語の追加に失敗しました');
         }
       } else if (isJapanese) {
-        // Japanese word
+        // Japanese word - use Yahoo! morphology result
         const mainToken = japaneseInfo.find(
           (token) =>
             !token.partOfSpeech.includes('助詞') &&
             !token.partOfSpeech.includes('記号') &&
             token.word.trim().length > 0
         );
-        
+
         const reading = mainToken?.reading ?? null;
-        
+
         const morphologyResult = japaneseInfo.length > 0
-          ? japaneseInfo.map(token => 
+          ? japaneseInfo.map(token =>
               `${token.word} (${token.reading})\n品詞: ${token.partOfSpeech}\n基本形: ${token.baseForm}`
             ).join('\n\n')
           : null;
-        
+
         const result = await addWordToStore({
           english: word,
           japanese: reading ?? undefined,
-          definition: morphologyResult ?? undefined,
+          definition: morphologyResult || undefined,
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
         });
@@ -942,6 +943,17 @@ const styles = StyleSheet.create({
     color: Colors.text,
     lineHeight: 22,
   },
+  definitionCard: {
+    backgroundColor: Colors.backgroundSecondary,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  partOfSpeechText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+    fontStyle: 'italic',
+  },
   exampleText: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
@@ -976,7 +988,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
-    ...Shadows.card,
+    ...Shadows.md,
     borderWidth: 1,
     borderColor: Colors.border,
   },
