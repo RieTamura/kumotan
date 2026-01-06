@@ -255,14 +255,18 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - セキュリティクリティカルな入力検証が完全テスト済み
 
 #### フェーズ2: 短期（2〜4週間）
-- [ ] データベース操作テスト（src/services/database/__tests__/words.test.ts）
-- [ ] SQLインジェクション対策検証テスト
-- [ ] ADR作成（doc/adr/）
-  - [ ] ADR-001: DeepL API Keyのユーザー入力方式
-  - [ ] ADR-002: App Passwordを保存しない方針
-  - [ ] ADR-003: SQLiteローカルストレージ採用
-  - [ ] ADR-004: Zustand状態管理採用
-  - [ ] ADR-005: ローカル時刻での日時保存
+- [x] データベース操作テスト（src/services/database/__tests__/words.test.ts）
+  - **28テスト全てパス**
+  - **words.ts カバレッジ: 90.83%**（目標60%を大幅超過）
+- [x] SQLインジェクション対策検証テスト
+  - **プレースホルダー使用100%検証**
+  - 悪意のある入力に対する防御をテスト完備
+- [x] ADR作成（doc/adr/）
+  - [x] ADR-001: DeepL API Keyのユーザー入力方式
+  - [x] ADR-002: App Passwordを保存しない方針
+  - [x] ADR-003: SQLiteローカルストレージ採用
+  - [x] ADR-004: Zustand状態管理採用
+  - [x] ADR-005: ローカル時刻での日時保存
 - [ ] API統合モックテスト（DeepL, Free Dictionary, Bluesky）
 - [ ] エラーケーステスト（ネットワークエラー、認証失敗、レート制限）
 - [ ] JSDocコメント追加（データベーストランザクション、複雑なビジネスロジック）
