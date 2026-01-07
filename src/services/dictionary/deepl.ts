@@ -8,6 +8,12 @@ import { Result } from '../../types/result';
 import { TranslateResult } from '../../types/word';
 import { AppError, ErrorCode } from '../../utils/errors';
 import { API, STORAGE_KEYS, TIMEOUT, RATE_LIMIT } from '../../constants/config';
+import { LRUCache, createCacheKey } from '../../utils/cache';
+
+/**
+ * Cache for translations (100 entries, 5 minute TTL)
+ */
+const translationCache = new LRUCache<TranslateResult>(100, 5 * 60 * 1000);
 
 /**
  * DeepL API usage information
@@ -227,6 +233,16 @@ export async function translateToJapanese(
     };
   }
 
+  // Check cache first
+  const cacheKey = createCacheKey('translation', text.trim().toLowerCase());
+  const cachedResult = translationCache.get(cacheKey);
+  if (cachedResult) {
+    if (__DEV__) {
+      console.log(`Translation cache hit: "${text.substring(0, 30)}..."`);
+    }
+    return { success: true, data: cachedResult };
+  }
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT.TRANSLATION);
@@ -298,6 +314,9 @@ export async function translateToJapanese(
       text: translation.text,
       detectedLanguage: translation.detected_source_language,
     };
+
+    // Cache the result
+    translationCache.set(cacheKey, result);
 
     if (__DEV__) {
       console.log(`Translated: "${text}" → "${result.text}"`);

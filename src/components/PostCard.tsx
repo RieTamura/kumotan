@@ -3,7 +3,7 @@
  * Displays a single post from the Bluesky timeline
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -127,9 +127,9 @@ function parseTextIntoTokens(text: string): TextToken[] {
 }
 
 /**
- * PostCard Component
+ * PostCard Component (internal)
  */
-export function PostCard({ post, onWordSelect, onSentenceSelect, clearSelection }: PostCardProps): React.JSX.Element {
+function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelection }: PostCardProps): React.JSX.Element {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -253,10 +253,14 @@ export function PostCard({ post, onWordSelect, onSentenceSelect, clearSelection 
   }, [longPressTimer]);
 
   /**
+   * Memoize parsed tokens to avoid re-parsing on every render
+   */
+  const tokens = useMemo(() => parseTextIntoTokens(post.text), [post.text]);
+
+  /**
    * Render post text with touchable words
    */
   const renderText = () => {
-    const tokens = parseTextIntoTokens(post.text);
 
     return (
       <Text style={styles.postText}>
@@ -452,5 +456,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
 });
+
+/**
+ * PostCard with React.memo for performance optimization
+ * Only re-renders when props change
+ */
+export const PostCard = React.memo(PostCardComponent);
 
 export default PostCard;

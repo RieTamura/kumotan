@@ -129,6 +129,156 @@ npx expo start
 - [データベース設計](./doc/database.md)
 - [トラブルシューティング](./doc/troubleshooting.md)
 
+## 👨‍💻 開発者向けガイド
+
+### 開発環境セットアップ
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/RieTamura/kumotan.git
+cd kumotan
+
+# 依存関係をインストール
+npm install
+
+# 型チェック
+npm run type-check
+
+# テストを実行
+npm test
+
+# カバレッジ付きテスト
+npm run test:coverage
+
+# 開発サーバーを起動
+npx expo start
+```
+
+### コード品質ツール
+
+このプロジェクトは以下のツールで品質を維持しています：
+
+- **TypeScript**：型安全性の確保
+- **Jest**：ユニットテスト（目標カバレッジ：60%以上）
+- **ESLint**：コードスタイルチェック
+- **Prettier**：コードフォーマット（自動）
+
+### テストガイドライン
+
+テストは以下のファイルに記述してください：
+
+```
+src/
+├── utils/__tests__/validators.test.ts          # バリデーション関数
+├── services/database/__tests__/words.test.ts   # データベース操作
+├── services/dictionary/__tests__/deepl.test.ts # DeepL API
+└── services/dictionary/__tests__/freeDictionary.test.ts # Free Dictionary API
+```
+
+**テストコマンド:**
+
+```bash
+# すべてのテストを実行
+npm test
+
+# カバレッジレポート生成
+npm run test:coverage
+
+# ウォッチモード（開発時）
+npm test -- --watch
+```
+
+### アーキテクチャ概要
+
+#### 状態管理
+
+- **Zustand**: グローバル状態管理（単語データ、認証状態）
+- **React Hooks**: ローカル状態管理
+- **useReducer**: 複雑なコンポーネント状態（WordPopup）
+
+#### パフォーマンス最適化
+
+- **React.memo**: コンポーネントの不要な再レンダリング防止（PostCard, SwipeableWordCard）
+- **useMemo**: 高コストな計算のメモ化（parseTextIntoTokens）
+- **LRUキャッシュ**: API結果のキャッシング（翻訳・辞書検索）
+
+#### データフロー
+
+```text
+User Action → Screen Component → Service Layer → External API/Database
+                                        ↓
+                                   Store (Zustand)
+                                        ↓
+                                 UI Component Update
+```
+
+### 重要な設計判断（ADR）
+
+プロジェクトの重要な設計判断は [doc/adr/](./doc/adr/) に記録されています：
+
+- [ADR-001: DeepL API Keyのユーザー入力方式](./doc/adr/001-deepl-api-key-user-input.md)
+- [ADR-002: App Passwordを保存しない方針](./doc/adr/002-no-app-password-storage.md)
+- [ADR-003: SQLiteローカルストレージ採用](./doc/adr/003-sqlite-local-storage.md)
+- [ADR-004: Zustand状態管理採用](./doc/adr/004-zustand-state-management.md)
+- [ADR-005: ローカル時刻での日時保存](./doc/adr/005-local-datetime-storage.md)
+
+### セキュリティガイドライン
+
+- **APIキー**: 絶対にハードコードしない（ユーザー入力方式）
+- **認証情報**: expo-secure-storeで暗号化保存
+- **SQLインジェクション**: プレースホルダー使用を必須化
+- **入力検証**: すべての外部入力を検証（Validators.tsを使用）
+
+### コントリビューションワークフロー
+
+1. **Issue作成**: 新機能やバグ修正の提案
+2. **ブランチ作成**: `feature/機能名` または `fix/バグ名`
+3. **コミット**: [Conventional Commits](https://www.conventionalcommits.org/)形式
+   - `feat:` 新機能
+   - `fix:` バグ修正
+   - `docs:` ドキュメント変更
+   - `test:` テスト追加・修正
+   - `refactor:` リファクタリング
+   - `chore:` ビルド・設定変更
+4. **テスト**: 必ずテストを追加・更新
+5. **プルリクエスト**: mainブランチへのPR作成
+
+### よくある開発タスク
+
+#### 新しいスクリーンを追加
+
+1. `src/screens/` に新しいスクリーンコンポーネント作成
+2. `src/types/navigation.ts` に型定義追加
+3. `App.tsx` のNavigatorに画面を登録
+
+#### 新しいAPIサービスを追加
+
+1. `src/services/` に新しいサービスファイル作成
+2. エラーハンドリングは `Result<T, AppError>` パターンを使用
+3. タイムアウト処理を実装（TIMEOUT定数を使用）
+4. ユニットテストを作成（`__tests__/` ディレクトリ）
+
+#### データベーススキーマ変更
+
+1. `src/services/database/schema.ts` を更新
+2. マイグレーション処理を実装
+3. 関連する型定義を `src/types/word.ts` で更新
+4. テストを更新
+
+### デバッグ Tips
+
+```bash
+# React Native Debugger
+# Chrome DevToolsを開く
+npx expo start --devClient
+
+# ログ表示（開発モードのみ）
+# __DEV__ガードでラップされたconsole.logを確認
+
+# SQLite データベースを直接確認
+# Expo SQLite Browser extension使用を推奨
+```
+
 ## 🤝 コントリビューション
 
 プルリクエストや Issue の報告を歓迎します！

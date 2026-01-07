@@ -305,16 +305,20 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - [x] useSentenceLookup.ts作成（文レベル処理ロジック）
   - [x] SwipeableWordCard.tsx分離（スワイプカードUI）
   - [x] index.ts作成（モジュールエクスポート）
-  - [ ] WordPopupModal.tsx作成（メインコンポーネント簡略化）
-  - [ ] useReducerで状態管理統一
-- [ ] N+1問題解決（WordPopup.tsx:449-481）
-  - [ ] API結果のキャッシュ実装（LRU）
-  - [ ] レート制限対策強化
-- [ ] パフォーマンス最適化
-  - [ ] parseTextIntoTokensのメモ化
-  - [ ] PostCardのReact.memo化
-- [ ] READMEに開発者向けセクション追加
-- [ ] ドキュメント同期チェックリスト作成（doc/UPDATING.md）
+  - [x] WordPopupModal.tsx作成（メインコンポーネント簡略化）
+  - [x] useReducerで状態管理統一（reducer.ts作成）
+- [x] N+1問題解決
+  - [x] API結果のキャッシュ実装（LRUCache）
+    - [x] src/utils/cache.ts作成
+    - [x] FreeDictionary APIにキャッシュ統合
+    - [x] DeepL APIにキャッシュ統合
+  - [x] レート制限対策（キャッシュによる重複リクエスト削減）
+- [x] パフォーマンス最適化
+  - [x] parseTextIntoTokensのメモ化（useMemo）
+  - [x] PostCardのReact.memo化
+  - [x] SwipeableWordCardのReact.memo化
+- [x] READMEに開発者向けセクション追加
+- [x] ドキュメント同期チェックリスト作成（doc/UPDATING.md）
 
 **品質指標目標**:
 - テストカバレッジ: 60%以上（バリデーション、DB操作、エラーハンドリング）

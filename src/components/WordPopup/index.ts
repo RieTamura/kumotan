@@ -15,6 +15,7 @@ export type {
 } from './types';
 
 // Components
+export { WordPopupModal } from './WordPopupModal';
 export { SwipeableWordCard } from './components/SwipeableWordCard';
 
 // Hooks
@@ -25,3 +26,6 @@ export { useSentenceLookup } from './hooks/useSentenceLookup';
 export type { UseWordLookupResult } from './hooks/useWordLookup';
 export type { UseJapaneseMorphologyResult } from './hooks/useJapaneseMorphology';
 export type { UseSentenceLookupResult } from './hooks/useSentenceLookup';
+
+// Reducer
+export { wordPopupReducer, initialState } from './reducer';

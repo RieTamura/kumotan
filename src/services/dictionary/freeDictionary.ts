@@ -7,6 +7,12 @@ import { Result } from '../../types/result';
 import { DictionaryResult } from '../../types/word';
 import { AppError, ErrorCode } from '../../utils/errors';
 import { API, TIMEOUT } from '../../constants/config';
+import { LRUCache, createCacheKey } from '../../utils/cache';
+
+/**
+ * Cache for dictionary lookups (100 entries, 5 minute TTL)
+ */
+const dictionaryCache = new LRUCache<DictionaryResult>(100, 5 * 60 * 1000);
 
 /**
  * Raw response from Free Dictionary API
@@ -79,6 +85,16 @@ export async function lookupWord(
     };
   }
 
+  // Check cache first
+  const cacheKey = createCacheKey('dictionary', normalizedWord);
+  const cachedResult = dictionaryCache.get(cacheKey);
+  if (cachedResult) {
+    if (__DEV__) {
+      console.log(`Dictionary cache hit: "${word}"`);
+    }
+    return { success: true, data: cachedResult };
+  }
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT.API_REQUEST);
@@ -129,6 +145,9 @@ export async function lookupWord(
     // Parse the first result
     const entry = data[0];
     const result = parseFreeDictionaryResponse(entry);
+
+    // Cache the result
+    dictionaryCache.set(cacheKey, result);
 
     if (__DEV__) {
       console.log(`Dictionary lookup: "${word}" → "${result.definition}"`);

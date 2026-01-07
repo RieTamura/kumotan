@@ -9,7 +9,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../../constants/colors';
 import { SwipeableWordCardProps } from '../types';
 
-export function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): React.JSX.Element {
+function SwipeableWordCardComponent({ wordInfo, onRemove }: SwipeableWordCardProps): React.JSX.Element {
   const swipeableRef = useRef<Swipeable>(null);
 
   // Right swipe action background (delete)
@@ -200,3 +200,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
 });
+
+/**
+ * SwipeableWordCard with React.memo for performance optimization
+ * Only re-renders when wordInfo or onRemove changes
+ */
+export const SwipeableWordCard = React.memo(SwipeableWordCardComponent);
