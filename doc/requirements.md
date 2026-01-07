@@ -326,14 +326,69 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - パフォーマンス: N+1問題ゼロ、メモリリークゼロ
 - ドキュメント: ADR 5個作成、主要関数にJSDoc追加
 
-### M3: ベータリリース（8週間）
+### M2.6: OAuth認証実装（1週間）🔄 進行中
+
+**目的**: App Password併用でOAuth認証を実装し、競合と同等の認証UXを提供
+
+**背景**:
+- ユーザーフィードバック「App Passwordが面倒」（検証済みの問題点）
+- 競合BlueskyアプリがOAuth/PDS対応済み
+- 段階的リリース戦略（v1.1.0 OAuth → v1.2.0 PDS）
+
+#### Phase 1: 基盤セットアップ（8-10時間）
+- [ ] 依存関係インストール（`@atproto/oauth-client-expo`, `expo-crypto`）
+- [ ] `src/utils/pkce.ts` 作成（PKCE生成ユーティリティ）
+- [ ] PKCEユニットテスト作成（100%カバレッジ目標）
+- [ ] `app.json` Deep Link設定
+- [ ] `src/constants/config.ts` OAuth定数追加
+- [ ] 型定義更新（`src/types/bluesky.ts`）
+- [ ] ADR-006作成（OAuth認証設計判断記録）
+
+**成果物**: PKCE動作、Deep Link設定完了
+
+#### Phase 2: OAuthサービス層（12-15時間）
+- [ ] `src/services/bluesky/oauth.ts` 実装
+  - `generatePKCEChallenge()` - PKCE生成
+  - `buildAuthorizationUrl()` - 認証URL構築
+  - `exchangeCodeForTokens()` - トークン交換
+  - `storeOAuthState()` / `retrieveOAuthState()` - State管理
+- [ ] OAuthサービステスト作成（90%カバレッジ目標）
+- [ ] `src/services/bluesky/auth.ts` に `loginWithOAuth()` 追加
+- [ ] `src/store/authStore.ts` にOAuthアクション追加
+- [ ] Bluesky Staging APIでテスト
+
+**成果物**: OAuthトークン交換が動作
+
+#### Phase 3: UI統合（10-12時間）
+- [ ] `src/hooks/useOAuthFlow.ts` フック作成
+- [ ] `src/components/OAuthButton.tsx` コンポーネント作成
+- [ ] `src/screens/LoginScreen.tsx` UI更新
+  - OAuthボタンを追加（メインCTA）
+  - App Passwordフォームを「詳細オプション」に移動
+- [ ] `App.tsx` Deep Linkハンドラー追加
+- [ ] iOS実機テスト
+
+**成果物**: 完全なOAuthログインフロー
+
+#### 実装方針
+- **App Password併用設計**: 後方互換性確保、両方式が共存
+- **OAuth優先UI**: OAuthをデフォルト推奨、App Passwordは詳細オプション
+- **リスク管理**: OAuth不安定時はApp Passwordで運用可能
+- **セキュリティ**: PKCE (RFC 7636)、expo-secure-storeでトークン管理
+
+**工数**: 30-37時間（MVP版 Phase 1-3のみ）= 4-5営業日
+
+### M3: ベータリリース（v1.1.0）（2週間）
+- [ ] OAuth統合テスト
 - [ ] UI/UXの洗練
 - [ ] エラーハンドリング統一
 - [ ] バグフィックス
 - [ ] TestFlight配信
+- [ ] OAuth/App Password両方テスト
 - [ ] ユーザーフィードバック収集
 
-### M4: 正式リリース（10週間）
+### M4: 正式リリース（v1.2.0）（1〜2週間）
+- [ ] ベータフィードバック反映
 - [ ] App Store申請
 - [ ] プロモーション準備
 - [ ] ドキュメント整備
