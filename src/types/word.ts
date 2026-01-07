@@ -40,26 +40,6 @@ export interface WordFilter {
 }
 
 /**
- * 日別学習統計
- */
-export interface DailyStats {
-  date: string;
-  wordsReadCount: number;
-}
-
-/**
- * 全体統計
- */
-export interface Stats {
-  totalWords: number;
-  readWords: number;
-  readPercentage: number;
-  thisWeekDays: number;
-  streak: number;
-  todayCount: number;
-}
-
-/**
  * 辞書API（Free Dictionary）のレスポンス
  */
 export interface DictionaryResult {

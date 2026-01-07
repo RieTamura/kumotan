@@ -84,8 +84,8 @@ export const Input = forwardRef<TextInput, InputProps>(
             ref={ref}
             style={[
               styles.input,
-              leftIcon && styles.inputWithLeftIcon,
-              (rightIcon || showPasswordToggle) && styles.inputWithRightIcon,
+              leftIcon ? styles.inputWithLeftIcon : undefined,
+              rightIcon || showPasswordToggle ? styles.inputWithRightIcon : undefined,
               style,
             ]}
             placeholderTextColor={Colors.placeholder}

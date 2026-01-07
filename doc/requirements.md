@@ -284,12 +284,30 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - APIサービスカバレッジ：DeepL 97.7%, FreeDictionary 89.36%, words.ts 90.83%
 - セキュリティ：SQLインジェクション対策100%、API認証・エラーハンドリング完全テスト
 
-#### フェーズ3: 中期（リファクタリング）
-- [ ] WordPopup.tsxリファクタリング（1075行 → 300-400行目標）
-  - [ ] カスタムフック化（useWordLookup, useSentenceLookup）
-  - [ ] SwipeableWordCard分離
+#### フェーズ3: 中期（リファクタリング）🔄 進行中
+
+**準備タスク**（2026-01-07完了）:
+
+- [x] TypeScriptコンパイルエラー修正
+  - [x] Input.tsx style型エラー解消（leftIcon/rightIcon条件式をundefinedに統一）
+  - [x] types/word.ts 重複型定義削除（DailyStats, Stats）
+- [x] デバッグログ削除（本番コード）
+  - [x] words.ts: insertWord()内の4つのconsole.log削除
+  - [x] yahooJapan.ts: 3つのconsole.log削除
+  - 注: __DEV__ガード内のログは開発用に保持
+
+**リファクタリングタスク**:
+
+- [x] WordPopup.tsxリファクタリング - モジュール分割完了（2026-01-07）
+  - [x] types.ts作成（型定義の分離）
+  - [x] useWordLookup.ts作成（英単語検索ロジック）
+  - [x] useJapaneseMorphology.ts作成（日本語形態素解析ロジック）
+  - [x] useSentenceLookup.ts作成（文レベル処理ロジック）
+  - [x] SwipeableWordCard.tsx分離（スワイプカードUI）
+  - [x] index.ts作成（モジュールエクスポート）
+  - [ ] WordPopupModal.tsx作成（メインコンポーネント簡略化）
   - [ ] useReducerで状態管理統一
-- [ ] N+1問題解決（WordPopup.tsx:434-467）
+- [ ] N+1問題解決（WordPopup.tsx:449-481）
   - [ ] API結果のキャッシュ実装（LRU）
   - [ ] レート制限対策強化
 - [ ] パフォーマンス最適化

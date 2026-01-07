@@ -253,7 +253,6 @@ export async function analyzeMorphology(
     }
 
     const data: MorphologicalAnalysisResponse = await response.json();
-    console.log('Yahoo! MA API Response:', JSON.stringify(data, null, 2));
 
     if (!data.result || !data.result.tokens) {
       console.error('Invalid MA response structure:', data);
@@ -413,16 +412,12 @@ export async function addFurigana(
 export async function getJapaneseWordInfo(
   text: string
 ): Promise<Result<JapaneseWordInfo, AppError>> {
-  console.log(`getJapaneseWordInfo called with: "${text}"`);
-  
   const result = await analyzeMorphology(text);
 
   if (!result.success) {
     console.error('analyzeMorphology failed:', result.error);
     return result;
   }
-
-  console.log('analyzeMorphology result:', result.data);
 
   // 最初の有意義なトークン（助詞や記号以外）を返す
   const mainToken = result.data.find(
@@ -443,6 +438,5 @@ export async function getJapaneseWordInfo(
     };
   }
 
-  console.log('Main token selected:', mainToken);
   return { success: true, data: mainToken };
 }

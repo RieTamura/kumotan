@@ -58,8 +58,6 @@ export async function insertWord(
     const database = getDatabase();
     const sanitizedEnglish = sanitizeWord(input.english);
 
-    console.log(`[insertWord] Original: "${input.english}", Sanitized: "${sanitizedEnglish}"`);
-
     // Check for duplicate
     const existing = await database.getFirstAsync<Record<string, unknown>>(
       'SELECT id FROM words WHERE english = ? LIMIT 1',
@@ -67,7 +65,6 @@ export async function insertWord(
     );
 
     if (existing) {
-      console.log(`[insertWord] Duplicate found for "${sanitizedEnglish}":`, existing);
       return {
         success: false,
         error: new AppError(
@@ -76,8 +73,6 @@ export async function insertWord(
         ),
       };
     }
-
-    console.log(`[insertWord] No duplicate, inserting "${sanitizedEnglish}"`);
 
     // Insert the word with explicit local timestamp
     const result = await database.runAsync(
@@ -91,8 +86,6 @@ export async function insertWord(
         input.postText ?? null,
       ]
     );
-
-    console.log(`[insertWord] Inserted with ID: ${result.lastInsertRowId}`);
 
     // Retrieve the inserted word
     const insertedWord = await database.getFirstAsync<Record<string, unknown>>(
