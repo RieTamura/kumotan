@@ -118,3 +118,64 @@ export interface BlueskyProfile {
   followsCount?: number;
   postsCount?: number;
 }
+
+/**
+ * OAuth PKCE challenge pair
+ */
+export interface PKCEChallenge {
+  verifier: string;
+  challenge: string;
+}
+
+/**
+ * OAuth state stored during authorization flow
+ */
+export interface OAuthState {
+  state: string;
+  codeVerifier: string;
+  timestamp: number;
+}
+
+/**
+ * OAuth token response from authorization server
+ */
+export interface OAuthTokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in?: number;
+  scope?: string;
+}
+
+/**
+ * OAuth authorization URL parameters
+ */
+export interface OAuthAuthorizationParams {
+  response_type: string;
+  client_id: string;
+  redirect_uri: string;
+  scope: string;
+  state: string;
+  code_challenge: string;
+  code_challenge_method: string;
+}
+
+/**
+ * OAuth token exchange request
+ */
+export interface OAuthTokenRequest {
+  grant_type: string;
+  code: string;
+  redirect_uri: string;
+  client_id: string;
+  code_verifier: string;
+}
+
+/**
+ * OAuth error response
+ */
+export interface OAuthErrorResponse {
+  error: string;
+  error_description?: string;
+  error_uri?: string;
+}

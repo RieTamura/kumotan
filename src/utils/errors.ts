@@ -13,6 +13,7 @@ export enum ErrorCode {
   // Authentication errors
   AUTH_FAILED = 'AUTH_FAILED',
   TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  OAUTH_ERROR = 'OAUTH_ERROR',
 
   // API errors
   RATE_LIMIT = 'RATE_LIMIT',

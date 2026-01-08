@@ -2,11 +2,12 @@
  * Kumotan - Main App Entry Point
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 // import * as SplashScreen from 'expo-splash-screen';  // 一時的に無効化
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, StyleSheet, Text } from 'react-native';
+import * as Linking from 'expo-linking';
 
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
@@ -32,6 +33,45 @@ export default function App(): React.JSX.Element {
 
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const resumeSession = useAuthStore((state) => state.resumeSession);
+  const completeOAuth = useAuthStore((state) => state.completeOAuth);
+
+  // Handle deep link for OAuth callback
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      const url = event.url;
+      console.log('Deep link received:', url);
+
+      // Check if this is an OAuth callback
+      if (url.includes('/oauth/callback')) {
+        try {
+          console.log('Processing OAuth callback...');
+          const result = await completeOAuth(url);
+
+          if (result.success) {
+            console.log('OAuth authentication successful');
+          } else {
+            console.error('OAuth authentication failed:', result.error);
+          }
+        } catch (error) {
+          console.error('Error processing OAuth callback:', error);
+        }
+      }
+    };
+
+    // Listen for deep links when app is in foreground
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check for deep link that opened the app
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [completeOAuth]);
 
   useEffect(() => {
     async function initializeApp() {

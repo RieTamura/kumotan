@@ -51,10 +51,7 @@ export async function login(
 
     // Store tokens and user info in Secure Store
     // Note: App password is intentionally NOT stored for security
-    await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, session.accessJwt);
-    await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, session.refreshJwt);
-    await SecureStore.setItemAsync(STORAGE_KEYS.USER_DID, session.did);
-    await SecureStore.setItemAsync(STORAGE_KEYS.USER_HANDLE, session.handle);
+    await storeAuth(session);
 
     if (__DEV__) {
       console.log('Login successful:', session.handle);
@@ -99,6 +96,19 @@ export async function login(
       error: authError('ログインに失敗しました。', error),
     };
   }
+}
+
+/**
+ * Store authentication data in Secure Store
+ * @param session - Bluesky session data to store
+ */
+export async function storeAuth(session: BlueskySession): Promise<void> {
+  await Promise.all([
+    SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, session.accessJwt),
+    SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, session.refreshJwt),
+    SecureStore.setItemAsync(STORAGE_KEYS.USER_DID, session.did),
+    SecureStore.setItemAsync(STORAGE_KEYS.USER_HANDLE, session.handle),
+  ]);
 }
 
 /**
@@ -318,6 +328,79 @@ export function hasActiveSession(): boolean {
 }
 
 /**
+ * Login to Bluesky with OAuth
+ * Uses PKCE flow for secure authentication
+ * @param accessToken - OAuth access token from token exchange
+ * @param refreshToken - OAuth refresh token
+ * @returns Bluesky session
+ */
+export async function loginWithOAuth(
+  accessToken: string,
+  refreshToken: string
+): Promise<Result<BlueskySession, AppError>> {
+  try {
+    const bskyAgent = getAgent();
+
+    // Resume session with OAuth tokens
+    await bskyAgent.resumeSession({
+      accessJwt: accessToken,
+      refreshJwt: refreshToken,
+      // DID and handle will be populated after session resume
+      did: '',
+      handle: '',
+      active: true,
+    });
+
+    if (!bskyAgent.session) {
+      return {
+        success: false,
+        error: authError('Failed to create session with OAuth tokens'),
+      };
+    }
+
+    const session: BlueskySession = {
+      accessJwt: bskyAgent.session.accessJwt,
+      refreshJwt: bskyAgent.session.refreshJwt,
+      handle: bskyAgent.session.handle,
+      did: bskyAgent.session.did,
+      email: bskyAgent.session.email,
+    };
+
+    // Store tokens and user info in Secure Store
+    await storeAuth(session);
+
+    if (__DEV__) {
+      console.log('OAuth login successful:', session.handle);
+    }
+
+    return { success: true, data: session };
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+
+    if (__DEV__) {
+      console.error('OAuth login failed:', errorMessage);
+    }
+
+    if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.NETWORK_ERROR,
+          'ネットワーク接続を確認してください。',
+          error
+        ),
+      };
+    }
+
+    return {
+      success: false,
+      error: authError('OAuthログインに失敗しました。', error),
+    };
+  }
+}
+
+/**
  * Get user profile information
  */
 export async function getProfile(actor?: string): Promise<Result<BlueskyProfile, AppError>> {
@@ -373,3 +456,8 @@ export async function getProfile(actor?: string): Promise<Result<BlueskyProfile,
     };
   }
 }
+
+/**
+ * Re-export OAuth functions from oauth.ts
+ */
+export { startOAuthFlow, completeOAuthFlow } from './oauth';

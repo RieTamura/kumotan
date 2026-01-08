@@ -26,6 +26,9 @@ interface AuthState {
 
   // Actions
   login: (identifier: string, appPassword: string) => Promise<Result<void, AppError>>;
+  loginWithOAuth: (accessToken: string, refreshToken: string) => Promise<Result<void, AppError>>;
+  startOAuth: () => Promise<Result<{ authorizationUrl: string }, AppError>>;
+  completeOAuth: (callbackUrl: string) => Promise<Result<void, AppError>>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
   resumeSession: () => Promise<Result<void, AppError>>;
@@ -64,10 +67,100 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         },
         error: null,
       });
-      
+
       // Fetch profile automatically after login
       get().fetchProfile();
-      
+
+      return { success: true, data: undefined };
+    } else {
+      set({
+        isAuthenticated: false,
+        isLoading: false,
+        user: null,
+        error: result.error,
+      });
+      return result;
+    }
+  },
+
+  /**
+   * Login with OAuth tokens
+   */
+  loginWithOAuth: async (accessToken: string, refreshToken: string) => {
+    set({ isLoading: true, error: null });
+
+    const result = await AuthService.loginWithOAuth(accessToken, refreshToken);
+
+    if (result.success) {
+      set({
+        isAuthenticated: true,
+        isLoading: false,
+        user: {
+          handle: result.data.handle,
+          did: result.data.did,
+        },
+        error: null,
+      });
+
+      // Fetch profile automatically after OAuth login
+      get().fetchProfile();
+
+      return { success: true, data: undefined };
+    } else {
+      set({
+        isAuthenticated: false,
+        isLoading: false,
+        user: null,
+        error: result.error,
+      });
+      return result;
+    }
+  },
+
+  /**
+   * Start OAuth authentication flow
+   * Generates authorization URL for user to authenticate
+   */
+  startOAuth: async () => {
+    set({ isLoading: true, error: null });
+
+    const result = await AuthService.startOAuthFlow();
+
+    if (result.success) {
+      // Don't set isLoading to false yet - wait for callback
+      return { success: true, data: { authorizationUrl: result.data } };
+    } else {
+      set({
+        isLoading: false,
+        error: result.error,
+      });
+      return result;
+    }
+  },
+
+  /**
+   * Complete OAuth authentication flow
+   * Exchanges authorization code for tokens
+   */
+  completeOAuth: async (callbackUrl: string) => {
+    set({ isLoading: true, error: null });
+
+    const result = await AuthService.completeOAuthFlow(callbackUrl);
+
+    if (result.success) {
+      set({
+        isAuthenticated: true,
+        isLoading: false,
+        user: {
+          handle: result.data.handle,
+          did: result.data.did,
+        },
+        error: null,
+      });
+
+      // Fetch profile automatically after OAuth completion
+      get().fetchProfile();
+
       return { success: true, data: undefined };
     } else {
       set({

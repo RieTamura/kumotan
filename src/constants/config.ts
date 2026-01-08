@@ -9,6 +9,13 @@ export const API = {
   BLUESKY: {
     SERVICE: 'https://bsky.social',
     XRPC: 'https://bsky.social/xrpc',
+    OAUTH: {
+      AUTHORIZE: 'https://bsky.social/oauth/authorize',
+      TOKEN: 'https://bsky.social/oauth/token',
+      CLIENT_ID: 'kumotan://oauth/callback',
+      REDIRECT_URI: 'kumotan://oauth/callback',
+      SCOPE: 'atproto transition:generic',
+    },
   },
   DEEPL: {
     FREE_ENDPOINT: 'https://api-free.deepl.com/v2',
@@ -31,6 +38,8 @@ export const STORAGE_KEYS = {
   YAHOO_CLIENT_ID: 'yahoo_client_id',
   USER_HANDLE: 'user_handle',
   DEEPL_API_KEY: 'deepl_api_key',
+  OAUTH_STATE: 'oauth_state',
+  OAUTH_CODE_VERIFIER: 'oauth_code_verifier',
 
   // AsyncStorage (non-sensitive)
   THEME: 'theme',
@@ -110,4 +119,15 @@ export const FEATURES = {
   ENABLE_DICTIONARY: true,
   ENABLE_OFFLINE_MODE: true,
   ENABLE_SHARE: true,
+  ENABLE_OAUTH: true, // OAuth authentication feature
+} as const;
+
+/**
+ * OAuth configuration
+ */
+export const OAUTH = {
+  CODE_CHALLENGE_METHOD: 'S256', // SHA-256
+  RESPONSE_TYPE: 'code',
+  STATE_LENGTH: 16, // bytes
+  CODE_VERIFIER_LENGTH: 32, // bytes (256 bits)
 } as const;

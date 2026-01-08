@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@atproto/api": "^0.13.0",
+    "@atproto/oauth-client-expo": "^0.0.7",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-navigation/bottom-tabs": "^7.3.13",
@@ -32,6 +33,7 @@
     "date-fns": "^3.6.0",
     "expo": "~54.0.0",
     "expo-clipboard": "~8.0.8",
+    "expo-crypto": "^15.0.8",
     "expo-linking": "~8.0.11",
     "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",
@@ -51,8 +53,10 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.28.5",
     "@types/jest": "^29.5.0",
     "@types/react": "~19.1.10",
+    "babel-jest": "^30.2.0",
     "babel-preset-expo": "^54.0.9",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~10.0.0",

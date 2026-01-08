@@ -25,6 +25,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 import { StaticOfflineBanner } from '../components/OfflineBanner';
+import { OAuthButton } from '../components/OAuthButton';
 
 /**
  * LoginScreen Component
@@ -39,6 +40,7 @@ export function LoginScreen(): React.JSX.Element {
   // Form state
   const [identifier, setIdentifier] = useState('');
   const [appPassword, setAppPassword] = useState('');
+  const [showAppPasswordForm, setShowAppPasswordForm] = useState(false);
 
   // Validation errors
   const [identifierError, setIdentifierError] = useState<string | undefined>();
@@ -201,68 +203,106 @@ export function LoginScreen(): React.JSX.Element {
               </View>
             )}
 
-            {/* Identifier Input */}
-            <Input
-              label="ユーザー名"
-              placeholder="user.bsky.social"
-              value={identifier}
-              onChangeText={handleIdentifierChange}
-              error={identifierError}
-              hint="Blueskyのハンドル名またはメールアドレス"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              textContentType="username"
-              returnKeyType="next"
-              onSubmitEditing={handleIdentifierSubmit}
-              editable={!isLoading}
-            />
+            {/* OAuth Login (Primary) */}
+            <View style={styles.oauthSection}>
+              <OAuthButton disabled={!isConnected} />
+            </View>
 
-            {/* App Password Input */}
-            <Input
-              ref={passwordInputRef}
-              label="App Password"
-              placeholder="xxxx-xxxx-xxxx-xxxx"
-              value={appPassword}
-              onChangeText={handleAppPasswordChange}
-              error={appPasswordError}
-              secureTextEntry
-              showPasswordToggle
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="password"
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-              editable={!isLoading}
-            />
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>または</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-            {/* App Password Help Link */}
-            <Pressable
-              onPress={handleAppPasswordHelp}
-              style={styles.helpLink}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.helpLinkText}>
-                App Passwordの取得方法 →
-              </Text>
-            </Pressable>
+            {/* App Password Login (Advanced Option) */}
+            <View style={styles.appPasswordSection}>
+              {!showAppPasswordForm ? (
+                <Pressable
+                  onPress={() => setShowAppPasswordForm(true)}
+                  style={styles.advancedOptionButton}
+                >
+                  <Text style={styles.advancedOptionText}>
+                    App Passwordでログイン
+                  </Text>
+                </Pressable>
+              ) : (
+                <>
+                  {/* Identifier Input */}
+                  <Input
+                    label="ユーザー名"
+                    placeholder="user.bsky.social"
+                    value={identifier}
+                    onChangeText={handleIdentifierChange}
+                    error={identifierError}
+                    hint="Blueskyのハンドル名またはメールアドレス"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    textContentType="username"
+                    returnKeyType="next"
+                    onSubmitEditing={handleIdentifierSubmit}
+                    editable={!isLoading}
+                  />
 
-            {/* Login Button */}
-            <Button
-              title={isLoading ? 'ログイン中...' : 'ログイン'}
-              onPress={handleLogin}
-              loading={isLoading}
-              disabled={!isConnected || isLoading}
-              fullWidth
-              size="large"
-              style={styles.loginButton}
-            />
+                  {/* App Password Input */}
+                  <Input
+                    ref={passwordInputRef}
+                    label="App Password"
+                    placeholder="xxxx-xxxx-xxxx-xxxx"
+                    value={appPassword}
+                    onChangeText={handleAppPasswordChange}
+                    error={appPasswordError}
+                    secureTextEntry
+                    showPasswordToggle
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="password"
+                    returnKeyType="done"
+                    onSubmitEditing={handleLogin}
+                    editable={!isLoading}
+                  />
 
-            {/* Security Note */}
-            <View style={styles.securityNote}>
-              <Text style={styles.securityNoteText}>
-                🔒 App Passwordは認証にのみ使用され、保存されません。
-              </Text>
+                  {/* App Password Help Link */}
+                  <Pressable
+                    onPress={handleAppPasswordHelp}
+                    style={styles.helpLink}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text style={styles.helpLinkText}>
+                      App Passwordの取得方法 →
+                    </Text>
+                  </Pressable>
+
+                  {/* Login Button */}
+                  <Button
+                    title={isLoading ? 'ログイン中...' : 'ログイン'}
+                    onPress={handleLogin}
+                    loading={isLoading}
+                    disabled={!isConnected || isLoading}
+                    fullWidth
+                    size="large"
+                    style={styles.loginButton}
+                  />
+
+                  {/* Security Note */}
+                  <View style={styles.securityNote}>
+                    <Text style={styles.securityNoteText}>
+                      🔒 App Passwordは認証にのみ使用され、保存されません。
+                    </Text>
+                  </View>
+
+                  {/* Hide Form Button */}
+                  <Pressable
+                    onPress={() => setShowAppPasswordForm(false)}
+                    style={styles.hideFormButton}
+                  >
+                    <Text style={styles.hideFormText}>
+                      フォームを閉じる
+                    </Text>
+                  </Pressable>
+                </>
+              )}
             </View>
           </View>
 
@@ -367,6 +407,48 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: FontSizes.sm,
     color: Colors.textTertiary,
+  },
+  // OAuth Section
+  oauthSection: {
+    marginBottom: Spacing.lg,
+  },
+  // Divider
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.xl,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginHorizontal: Spacing.md,
+  },
+  // App Password Section
+  appPasswordSection: {
+    marginBottom: Spacing.lg,
+  },
+  advancedOptionButton: {
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+  },
+  advancedOptionText: {
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    fontWeight: '500',
+  },
+  hideFormButton: {
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  hideFormText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
   },
 });
 
