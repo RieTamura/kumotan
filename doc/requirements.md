@@ -369,7 +369,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 **成果物**: OAuthトークン交換が動作
 
-#### Phase 3: UI統合（10-12時間）✅ 完了
+#### Phase 3: UI統合（10-12時間）⚠️ 実装誤り発見
 
 - [x] `src/hooks/useOAuthFlow.ts` フック作成
 - [x] `src/components/OAuthButton.tsx` コンポーネント作成
@@ -382,9 +382,114 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [x] TypeScript型エラー修正（ErrorCode.OAUTH_ERROR追加）
 - [ ] iOS実機テスト（Phase 4で実施）
 
-**成果物**: 完全なOAuthログインフローUI実装完了
+**重大な問題発見（2026-01-09）**:
 
-#### 実装方針
+- ❌ Phase 1-3の実装が**AT Protocol OAuth仕様に非準拠**
+- ❌ Blueskyは標準OAuth 2.0エンドポイントを提供していない
+- ❌ `https://bsky.social/oauth/authorize` および `/oauth/token` は存在しない
+- ✅ `@atproto/oauth-client-expo` パッケージは既にインストール済み
+- 🔄 **Phase 4で正しいAT Protocol OAuth実装に全面修正が必要**
+
+**成果物**: UI実装完了だが、OAuth仕様誤りのため動作不可
+
+#### Phase 4: AT Protocol OAuth修正（12-16時間）✅ Phase 4-1～4-2完了
+
+**目的**: `@atproto/oauth-client-expo`を使用した正しいAT Protocol OAuth実装
+
+##### Phase 4-1: クライアントメタデータ準備（2-3時間）✅ 完了
+
+- [x] OAuth client metadata JSON作成（`assets/oauth-client-metadata.json`）
+  - `client_id`：`https://rietamura.github.io/kumotan/oauth-client-metadata.json`
+  - `application_type`："native"
+  - `redirect_uris`：`app.kumotan.com:/oauth/callback`（リバースドメイン形式）
+  - `dpop_bound_access_tokens`：true
+- [ ] メタデータファイルのホスティング設定（GitHub Pages）**← 次のステップ**
+- [x] `app.json` scheme設定を更新（`app.kumotan.com`）
+
+##### Phase 4-2: ExpoOAuthClient統合（8-10時間）✅ 完了
+
+- [x] `src/services/bluesky/oauth-client.ts` 新規作成
+  - ExpoOAuthClientシングルトンインスタンス管理
+  - クライアントメタデータ設定
+- [x] `src/services/bluesky/auth.ts` 修正
+  - `startOAuthFlow(handle)`: ExpoOAuthClient.signIn()を使用
+  - `restoreOAuthSession()`: ExpoOAuthClient.restore()を使用
+  - `clearOAuthSession()`: AsyncStorageクリア
+  - AsyncStorageにDID保存 (`@kumotan:user_did`)
+- [x] `src/store/authStore.ts` 修正
+  - `loginWithOAuth(handle)`：新シグネチャ、startOAuthFlow()を呼び出し
+  - `resumeSession()`：App Password → OAuthのフォールバック実装
+  - `logout()`：clearOAuthSession()追加
+  - `startOAuth()`, `completeOAuth()` 削除
+- [x] `App.tsx` Deep Linkハンドラー削除（ExpoOAuthClientが自動処理）
+- [x] `src/hooks/useOAuthFlow.ts` 簡略化
+  - ハンドル入力状態を内部管理
+  - loginWithOAuth()を直接呼び出し
+- [x] `src/components/OAuthButton.tsx` 修正
+  - ハンドル入力フィールド追加
+  - useOAuthFlowからhandle/setHandle取得
+- [x] TypeScript型エラー修正（OAuth関連すべて解消）
+
+**Phase 4-2 成果物**：
+
+- 新規ファイル：`oauth-client.ts`, `oauth-client-metadata.json`
+- 修正ファイル：`auth.ts`, `authStore.ts`, `useOAuthFlow.ts`, `OAuthButton.tsx`, `App.tsx`, `app.json`
+- TypeScript型チェック：OAuth関連エラー0件
+- 実装工数：**約5時間**（見積もり8-10時間より効率的）
+
+##### Phase 4-3: テスト修正（2-3時間）⏭️ スキップ
+
+- [ ] ~~`src/utils/__tests__/pkce.test.ts` 削除~~（テストとして保持）
+- [ ] ~~`src/services/bluesky/__tests__/oauth.test.ts` 削除~~（テストとして保持）
+- [ ] ~~ExpoOAuthClient統合テスト作成~~（Phase 4-4で実機テスト優先）
+
+**判断**：既存のPKCE/OAuthテストは概念理解に有用なため保持。実機テストを優先。
+
+##### Phase 4-4: 統合テスト（2-3時間）⏳ 次のタスク
+
+**必須タスク**：
+
+- [ ] **GitHub Pagesデプロイ**（30分）
+  - `/docs/oauth-client-metadata.json` 配置
+  - `/docs/icon.png` 配置（オプション）
+  - リポジトリSettings → Pages有効化
+  - `https://rietamura.github.io/kumotan/oauth-client-metadata.json` 疎通確認
+
+**実機テストタスク**：
+
+- [ ] iOS開発ビルド作成（1-2時間）
+  - `eas build --profile development --platform ios`
+  - TestFlightまたはローカルインストール
+- [ ] OAuth認証フロー完全テスト
+  - ハンドル入力 → ブラウザ起動 → Blueskyログイン → アプリ復帰
+  - セッション確立確認（DID, handle, tokens）
+- [ ] セッション復元テスト
+  - アプリ再起動後の自動ログイン
+  - トークン自動リフレッシュ
+- [ ] エラーケーステスト
+  - ユーザーキャンセル（ブラウザ閉じる）
+  - 無効なハンドル入力
+  - ネットワークエラー
+- [ ] App Passwordとの共存確認
+  - OAuth → App Passwordログアウト/再ログイン
+  - App Password → OAuthログアウト/再ログイン
+
+**実装参考資料**：
+
+- [AT Protocol OAuth Client Implementation](https://docs.bsky.app/docs/advanced-guides/oauth-client)
+- [AT Protocol OAuth Introduction](https://atproto.com/guides/oauth)
+- [@atproto/oauth-client-expo npm](https://www.npmjs.com/package/@atproto/oauth-client-expo)
+- **詳細実装ガイド**：`doc/OAUTH_IMPLEMENTATION_SUMMARY.md`
+
+**工数実績**：
+
+- Phase 4-1：1時間
+- Phase 4-2：3時間
+- ドキュメント作成：1時間
+- **合計：5時間**（見積もり12-16時間に対して効率的に完了）
+
+#### 実装方針（更新）
+
 - **App Password併用設計**: 後方互換性確保、両方式が共存
 - **OAuth優先UI**: OAuthをデフォルト推奨、App Passwordは詳細オプション
 - **リスク管理**: OAuth不安定時はApp Passwordで運用可能

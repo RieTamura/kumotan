@@ -3,12 +3,14 @@
  * Handles login, logout, token management, and session refresh
  */
 
-import { BskyAgent } from '@atproto/api';
+import { BskyAgent, Agent } from '@atproto/api';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Result } from '../../types/result';
 import { BlueskySession, StoredAuth, BlueskyProfile } from '../../types/bluesky';
 import { AppError, ErrorCode, authError } from '../../utils/errors';
 import { STORAGE_KEYS, API } from '../../constants/config';
+import { getOAuthClient } from './oauth-client';
 
 /**
  * Bluesky agent instance
@@ -458,6 +460,182 @@ export async function getProfile(actor?: string): Promise<Result<BlueskyProfile,
 }
 
 /**
- * Re-export OAuth functions from oauth.ts
+ * OAuth authentication using @atproto/oauth-client-expo
  */
-export { startOAuthFlow, completeOAuthFlow } from './oauth';
+
+/**
+ * AsyncStorage key for storing user DID
+ */
+const USER_DID_STORAGE_KEY = '@kumotan:user_did';
+
+/**
+ * Start OAuth authentication flow
+ * @param handle - Bluesky handle (e.g., user.bsky.social) or DID
+ * @returns Authorization URL for the user to visit, or error
+ */
+export async function startOAuthFlow(
+  handle: string
+): Promise<Result<{ session?: BlueskySession; cancelled?: boolean }, AppError>> {
+  try {
+    const oauthClient = getOAuthClient();
+
+    // Start OAuth flow - this will open browser and wait for callback
+    const result = await oauthClient.signIn(handle);
+
+    // Handle different result types
+    if (result.status === 'success') {
+      const oauthSession = result.session;
+
+      // Create Agent from OAuth session
+      const oauthAgent = new Agent(oauthSession);
+
+      // Get user info from the session
+      const session: BlueskySession = {
+        accessJwt: oauthSession.accessJwt || '',
+        refreshJwt: oauthSession.refreshJwt || '',
+        handle: oauthSession.did.split(':')[2] || '', // Extract handle from DID
+        did: oauthSession.did,
+        email: undefined,
+      };
+
+      // Store DID for session restoration
+      await AsyncStorage.setItem(USER_DID_STORAGE_KEY, oauthSession.did);
+
+      // Store auth in secure storage
+      await storeAuth(session);
+
+      if (__DEV__) {
+        console.log('OAuth authentication successful:', session.did);
+      }
+
+      return { success: true, data: { session } };
+    } else if (result.status === 'error') {
+      if (__DEV__) {
+        console.error('OAuth authentication error:', result.error);
+      }
+
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.OAUTH_ERROR,
+          'OAuth認証に失敗しました。もう一度お試しください。',
+          result.error
+        ),
+      };
+    } else {
+      // User cancelled (dismissed, locked, etc.)
+      if (__DEV__) {
+        console.log('OAuth authentication cancelled:', result.status);
+      }
+
+      return {
+        success: true,
+        data: { cancelled: true },
+      };
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (__DEV__) {
+      console.error('OAuth flow error:', errorMessage);
+    }
+
+    if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.NETWORK_ERROR,
+          'ネットワーク接続を確認してください。',
+          error
+        ),
+      };
+    }
+
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.OAUTH_ERROR,
+        'OAuth認証中にエラーが発生しました。',
+        error
+      ),
+    };
+  }
+}
+
+/**
+ * Restore OAuth session from stored DID
+ * @returns Restored session or error
+ */
+export async function restoreOAuthSession(): Promise<Result<BlueskySession, AppError>> {
+  try {
+    const storedDid = await AsyncStorage.getItem(USER_DID_STORAGE_KEY);
+
+    if (!storedDid) {
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.AUTH_FAILED,
+          'OAuth セッションが見つかりません。'
+        ),
+      };
+    }
+
+    const oauthClient = getOAuthClient();
+
+    // Restore session (auto-refreshes if needed)
+    const oauthSession = await oauthClient.restore(storedDid);
+
+    // Create session object
+    const session: BlueskySession = {
+      accessJwt: oauthSession.accessJwt || '',
+      refreshJwt: oauthSession.refreshJwt || '',
+      handle: oauthSession.did.split(':')[2] || '',
+      did: oauthSession.did,
+      email: undefined,
+    };
+
+    // Update stored auth
+    await storeAuth(session);
+
+    if (__DEV__) {
+      console.log('OAuth session restored:', session.did);
+    }
+
+    return { success: true, data: session };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (__DEV__) {
+      console.error('Failed to restore OAuth session:', errorMessage);
+    }
+
+    // Clear invalid DID
+    await AsyncStorage.removeItem(USER_DID_STORAGE_KEY);
+
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.TOKEN_EXPIRED,
+        'セッションの復元に失敗しました。再度ログインしてください。',
+        error
+      ),
+    };
+  }
+}
+
+/**
+ * Clear OAuth session data
+ */
+export async function clearOAuthSession(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(USER_DID_STORAGE_KEY);
+
+    if (__DEV__) {
+      console.log('OAuth session cleared');
+    }
+  } catch (error) {
+    if (__DEV__) {
+      console.error('Failed to clear OAuth session:', error);
+    }
+  }
+}

@@ -1,13 +1,14 @@
 /**
  * OAuth Button Component
- * Button to initiate OAuth authentication with Bluesky
+ * Simplified button for OAuth authentication using @atproto/oauth-client-expo
  */
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from './common/Button';
+import { Input } from './common/Input';
 import { useOAuthFlow } from '../hooks/useOAuthFlow';
-import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
+import { Colors, Spacing, FontSizes } from '../constants/colors';
 
 /**
  * OAuth Button props
@@ -18,24 +19,40 @@ interface OAuthButtonProps {
 
 /**
  * OAuthButton Component
- * Renders a button to start OAuth authentication flow
+ * Renders handle input and button to start OAuth authentication
  */
 export function OAuthButton({ disabled = false }: OAuthButtonProps): React.JSX.Element {
-  const { isLoading, error, startOAuthFlow, clearError } = useOAuthFlow();
+  const { isLoading, error, handle, setHandle, startOAuthFlow, clearError } = useOAuthFlow();
 
-  // Clear error when user interacts with button
-  const handlePress = () => {
+  // Clear error when user starts typing
+  const handleChange = (text: string) => {
     if (error) {
       clearError();
     }
-    startOAuthFlow();
+    setHandle(text);
   };
 
   return (
     <View style={styles.container}>
+      {/* Handle Input */}
+      <Input
+        label="Blueskyハンドル"
+        placeholder="user.bsky.social"
+        value={handle}
+        onChangeText={handleChange}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="email-address"
+        textContentType="username"
+        returnKeyType="go"
+        onSubmitEditing={startOAuthFlow}
+        editable={!isLoading && !disabled}
+        hint="ハンドル名またはDIDを入力"
+      />
+
       <Button
-        title={isLoading ? 'ブラウザを起動中...' : 'Blueskyでログイン'}
-        onPress={handlePress}
+        title={isLoading ? '認証中...' : 'Blueskyでログイン'}
+        onPress={startOAuthFlow}
         loading={isLoading}
         disabled={disabled || isLoading}
         variant="primary"
@@ -50,15 +67,6 @@ export function OAuthButton({ disabled = false }: OAuthButtonProps): React.JSX.E
           🔒 Blueskyの公式ログイン画面で安全に認証
         </Text>
       </View>
-
-      {/* Error Display */}
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
-            {error.getUserMessage()}
-          </Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -68,6 +76,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   button: {
+    marginTop: Spacing.md,
     marginBottom: Spacing.md,
   },
   infoContainer: {
@@ -77,18 +86,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     textAlign: 'center',
-  },
-  errorContainer: {
-    marginTop: Spacing.md,
-    padding: Spacing.md,
-    backgroundColor: Colors.errorLight,
-    borderRadius: BorderRadius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.error,
-  },
-  errorText: {
-    fontSize: FontSizes.sm,
-    color: Colors.error,
   },
 });
 

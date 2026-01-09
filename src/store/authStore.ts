@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { StoredAuth, BlueskyProfile } from '../types/bluesky';
 import * as AuthService from '../services/bluesky/auth';
 import { Result } from '../types/result';
-import { AppError } from '../utils/errors';
+import { AppError, ErrorCode } from '../utils/errors';
 
 /**
  * Auth store state interface
@@ -26,9 +26,7 @@ interface AuthState {
 
   // Actions
   login: (identifier: string, appPassword: string) => Promise<Result<void, AppError>>;
-  loginWithOAuth: (accessToken: string, refreshToken: string) => Promise<Result<void, AppError>>;
-  startOAuth: () => Promise<Result<{ authorizationUrl: string }, AppError>>;
-  completeOAuth: (callbackUrl: string) => Promise<Result<void, AppError>>;
+  loginWithOAuth: (handle: string) => Promise<Result<void, AppError>>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
   resumeSession: () => Promise<Result<void, AppError>>;
@@ -84,20 +82,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /**
-   * Login with OAuth tokens
+   * Login with OAuth
+   * Uses @atproto/oauth-client-expo for authentication
    */
-  loginWithOAuth: async (accessToken: string, refreshToken: string) => {
+  loginWithOAuth: async (handle: string) => {
     set({ isLoading: true, error: null });
 
-    const result = await AuthService.loginWithOAuth(accessToken, refreshToken);
+    const result = await AuthService.startOAuthFlow(handle);
 
-    if (result.success) {
+    if (result.success && result.data.session) {
       set({
         isAuthenticated: true,
         isLoading: false,
         user: {
-          handle: result.data.handle,
-          did: result.data.did,
+          handle: result.data.session.handle,
+          did: result.data.session.did,
         },
         error: null,
       });
@@ -106,70 +105,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       get().fetchProfile();
 
       return { success: true, data: undefined };
-    } else {
-      set({
-        isAuthenticated: false,
-        isLoading: false,
-        user: null,
-        error: result.error,
-      });
-      return result;
-    }
-  },
-
-  /**
-   * Start OAuth authentication flow
-   * Generates authorization URL for user to authenticate
-   */
-  startOAuth: async () => {
-    set({ isLoading: true, error: null });
-
-    const result = await AuthService.startOAuthFlow();
-
-    if (result.success) {
-      // Don't set isLoading to false yet - wait for callback
-      return { success: true, data: { authorizationUrl: result.data } };
-    } else {
+    } else if (result.success && result.data.cancelled) {
+      // User cancelled authentication
       set({
         isLoading: false,
-        error: result.error,
-      });
-      return result;
-    }
-  },
-
-  /**
-   * Complete OAuth authentication flow
-   * Exchanges authorization code for tokens
-   */
-  completeOAuth: async (callbackUrl: string) => {
-    set({ isLoading: true, error: null });
-
-    const result = await AuthService.completeOAuthFlow(callbackUrl);
-
-    if (result.success) {
-      set({
-        isAuthenticated: true,
-        isLoading: false,
-        user: {
-          handle: result.data.handle,
-          did: result.data.did,
-        },
         error: null,
       });
-
-      // Fetch profile automatically after OAuth completion
-      get().fetchProfile();
-
-      return { success: true, data: undefined };
+      return { success: false, error: new AppError(ErrorCode.AUTH_FAILED, 'ログインがキャンセルされました。') };
     } else {
+      const error = result.success ? new AppError(ErrorCode.AUTH_FAILED, 'ログインに失敗しました。') : result.error;
       set({
         isAuthenticated: false,
         isLoading: false,
         user: null,
-        error: result.error,
+        error,
       });
-      return result;
+      return { success: false, error };
     }
   },
 
@@ -179,6 +130,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     set({ isLoading: true });
     await AuthService.logout();
+    await AuthService.clearOAuthSession(); // Clear OAuth session data
     set({
       isAuthenticated: false,
       isLoading: false,
@@ -228,11 +180,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Resume session from stored tokens
+   * Tries App Password session first, then OAuth session
    */
   resumeSession: async () => {
     set({ isLoading: true, error: null });
 
-    const result = await AuthService.resumeSession();
+    // Try to resume App Password session first
+    let result = await AuthService.resumeSession();
+
+    // If App Password session fails, try OAuth session restoration
+    if (!result.success) {
+      const oauthResult = await AuthService.restoreOAuthSession();
+      // Map BlueskySession to void for consistency
+      if (oauthResult.success) {
+        result = { success: true, data: undefined };
+      } else {
+        result = oauthResult;
+      }
+    }
 
     if (result.success) {
       const storedAuth = await AuthService.getStoredAuth();
@@ -246,7 +211,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           },
           error: null,
         });
-        
+
         // Fetch profile automatically after session resume
         get().fetchProfile();
       }
@@ -258,7 +223,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: null,
         error: result.error,
       });
-      return result;
+      return { success: false, error: result.error };
     }
   },
 

@@ -1,12 +1,12 @@
 /**
  * OAuth Flow Hook
- * Manages the OAuth authentication flow with Bluesky
+ * Simplified hook for OAuth authentication using @atproto/oauth-client-expo
  */
 
 import { useState, useCallback } from 'react';
-import { Linking, Alert } from 'react-native';
+import { Alert } from 'react-native';
 import { useAuthStore } from '../store/authStore';
-import { AppError, ErrorCode } from '../utils/errors';
+import { AppError } from '../utils/errors';
 
 /**
  * OAuth flow state
@@ -14,6 +14,7 @@ import { AppError, ErrorCode } from '../utils/errors';
 interface OAuthFlowState {
   isLoading: boolean;
   error: AppError | null;
+  handle: string;
 }
 
 /**
@@ -22,6 +23,8 @@ interface OAuthFlowState {
 interface UseOAuthFlowReturn {
   isLoading: boolean;
   error: AppError | null;
+  handle: string;
+  setHandle: (handle: string) => void;
   startOAuthFlow: () => Promise<void>;
   clearError: () => void;
 }
@@ -33,8 +36,9 @@ interface UseOAuthFlowReturn {
  *
  * @example
  * ```tsx
- * const { isLoading, error, startOAuthFlow, clearError } = useOAuthFlow();
+ * const { isLoading, error, handle, setHandle, startOAuthFlow } = useOAuthFlow();
  *
+ * <TextInput value={handle} onChangeText={setHandle} />
  * <Button onPress={startOAuthFlow} loading={isLoading}>
  *   ログイン with Bluesky
  * </Button>
@@ -44,81 +48,58 @@ export function useOAuthFlow(): UseOAuthFlowReturn {
   const [state, setState] = useState<OAuthFlowState>({
     isLoading: false,
     error: null,
+    handle: '',
   });
 
-  const { startOAuth } = useAuthStore();
+  const { loginWithOAuth } = useAuthStore();
+
+  /**
+   * Set handle value
+   */
+  const setHandle = useCallback((handle: string) => {
+    setState(prev => ({ ...prev, handle, error: null }));
+  }, []);
 
   /**
    * Start the OAuth authentication flow
-   * Opens the browser for user authorization
+   * ExpoOAuthClient automatically handles browser opening and callback
    */
   const startOAuthFlow = useCallback(async () => {
-    try {
-      setState({ isLoading: true, error: null });
+    if (!state.handle.trim()) {
+      Alert.alert('エラー', 'ハンドル名を入力してください。');
+      return;
+    }
 
-      // Start OAuth flow - this will generate the authorization URL
-      const result = await startOAuth();
+    try {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // Start OAuth flow - ExpoOAuthClient handles everything
+      const result = await loginWithOAuth(state.handle.trim());
 
       if (!result.success) {
-        setState({ isLoading: false, error: result.error });
+        setState(prev => ({ ...prev, isLoading: false, error: result.error }));
 
-        // Show alert for critical errors
-        if (result.error.code === 'NETWORK_ERROR') {
-          Alert.alert(
-            'ネットワークエラー',
-            result.error.message,
-            [{ text: 'OK' }]
-          );
-        }
-        return;
-      }
-
-      // Open the authorization URL in browser
-      const authUrl = result.data?.authorizationUrl;
-      if (!authUrl) {
-        const error = new AppError(
-          ErrorCode.OAUTH_ERROR,
-          'OAuth URLの生成に失敗しました',
-          { context: 'useOAuthFlow.startOAuthFlow' }
-        );
-        setState({ isLoading: false, error });
-        return;
-      }
-
-      const canOpen = await Linking.canOpenURL(authUrl);
-      if (!canOpen) {
-        const error = new AppError(
-          ErrorCode.OAUTH_ERROR,
-          'ブラウザを開けませんでした',
-          { context: 'useOAuthFlow.startOAuthFlow', url: authUrl }
-        );
-        setState({ isLoading: false, error });
+        // Show alert for errors
         Alert.alert(
-          'エラー',
-          'ブラウザを開けませんでした。デバイスの設定を確認してください。',
+          'ログインエラー',
+          result.error.getUserMessage(),
           [{ text: 'OK' }]
         );
-        return;
+      } else {
+        // Success - auth store will handle state update
+        setState(prev => ({ ...prev, isLoading: false, error: null }));
       }
-
-      // Open browser for OAuth authorization
-      await Linking.openURL(authUrl);
-
-      // Keep loading state until callback is handled
-      // The loading state will be cleared when the app receives the deep link callback
-      // or when the user cancels (handled by clearError or timeout)
-
     } catch (error) {
       console.error('OAuth flow error:', error);
       const appError = error instanceof AppError
         ? error
         : new AppError(
-            ErrorCode.OAUTH_ERROR,
+            'OAUTH_ERROR' as any,
             error instanceof Error ? error.message : 'OAuth認証中にエラーが発生しました',
             { originalError: error }
           );
 
-      setState({ isLoading: false, error: appError });
+      setState(prev => ({ ...prev, isLoading: false, error: appError }));
 
       Alert.alert(
         'エラー',
@@ -126,7 +107,7 @@ export function useOAuthFlow(): UseOAuthFlowReturn {
         [{ text: 'OK' }]
       );
     }
-  }, [startOAuth]);
+  }, [state.handle, loginWithOAuth]);
 
   /**
    * Clear error state
@@ -138,6 +119,8 @@ export function useOAuthFlow(): UseOAuthFlowReturn {
   return {
     isLoading: state.isLoading,
     error: state.error,
+    handle: state.handle,
+    setHandle,
     startOAuthFlow,
     clearError,
   };
