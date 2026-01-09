@@ -11,6 +11,7 @@ import { BlueskySession, StoredAuth, BlueskyProfile } from '../../types/bluesky'
 import { AppError, ErrorCode, authError } from '../../utils/errors';
 import { STORAGE_KEYS, API } from '../../constants/config';
 import { getOAuthClient } from './oauth-client';
+import { oauthLogger } from '../../utils/logger';
 
 /**
  * Bluesky agent instance
@@ -477,20 +478,21 @@ export async function startOAuthFlow(
   handle: string
 ): Promise<Result<{ session?: BlueskySession; cancelled?: boolean }, AppError>> {
   try {
-    if (__DEV__) {
-      console.log('Starting OAuth flow for handle:', handle);
-    }
+    oauthLogger.info('Starting OAuth flow', { handle });
+    console.log('[OAuth] Starting OAuth flow for handle:', handle);
 
     // Get OAuth client instance
     const oauthClient = getOAuthClient();
 
-    if (__DEV__) {
-      console.log('OAuth client initialized, calling signIn...');
-    }
+    oauthLogger.info('OAuth client initialized, calling signIn...');
+    console.log('[OAuth] OAuth client initialized, calling signIn...');
 
     // Start OAuth flow - this will open browser and wait for callback
     // signIn() returns OAuthSession on success, throws on error
     const oauthSession = await oauthClient.signIn(handle);
+
+    oauthLogger.info('OAuth session obtained successfully', { did: oauthSession.did });
+    console.log('[OAuth] OAuth session obtained successfully');
 
     if (__DEV__) {
       console.log('OAuth session obtained:', oauthSession.did);
@@ -535,12 +537,28 @@ export async function startOAuthFlow(
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    if (__DEV__) {
-      console.error('OAuth flow error:', errorMessage, error);
+    // Log detailed error information (always, not just in dev)
+    const errorDetails = {
+      message: errorMessage,
+      type: typeof error,
+      name: error instanceof Error ? error.name : undefined,
+      stack: error instanceof Error ? error.stack : undefined,
+    };
+
+    oauthLogger.error('OAuth flow error', errorDetails);
+    console.error('[OAuth] OAuth flow error:', errorMessage);
+    console.error('[OAuth] Error type:', typeof error);
+    console.error('[OAuth] Error object:', error);
+
+    if (error instanceof Error) {
+      console.error('[OAuth] Error name:', error.name);
+      console.error('[OAuth] Error stack:', error.stack);
     }
 
     // Check for user cancellation
     if (errorMessage.includes('cancelled') || errorMessage.includes('dismissed')) {
+      oauthLogger.info('User cancelled authentication');
+      console.log('[OAuth] User cancelled authentication');
       return {
         success: true,
         data: { cancelled: true },
@@ -549,6 +567,8 @@ export async function startOAuthFlow(
 
     // Check for network errors
     if (errorMessage.includes('Network') || errorMessage.includes('fetch') || errorMessage.includes('network')) {
+      oauthLogger.error('Network error detected');
+      console.error('[OAuth] Network error detected');
       return {
         success: false,
         error: new AppError(
@@ -560,11 +580,13 @@ export async function startOAuthFlow(
     }
 
     // Default OAuth error
+    oauthLogger.error('Unhandled OAuth error');
+    console.error('[OAuth] Unhandled OAuth error');
     return {
       success: false,
       error: new AppError(
         ErrorCode.OAUTH_ERROR,
-        `OAuth認証中にエラーが発生しました。${errorMessage}`,
+        `OAuth認証中にエラーが発生しました。\n\nエラー詳細: ${errorMessage}`,
         error
       ),
     };

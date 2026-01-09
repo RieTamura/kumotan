@@ -26,6 +26,7 @@ import ProgressScreen from '../screens/ProgressScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ApiKeySetupScreen from '../screens/ApiKeySetupScreen';
 import LicenseScreen from '../screens/LicenseScreen';
+import { DebugLogsScreen } from '../screens/DebugLogsScreen';
 
 /**
  * Stack Navigator Types
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   Main: undefined;
   ApiKeySetup: { section?: 'deepl' | 'yahoo' };
   License: undefined;
+  DebugLogs: undefined;
 };
 
 /**
@@ -205,6 +207,19 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: 'ライセンス',
+              headerBackTitle: '戻る',
+              headerTintColor: Colors.primary,
+              headerStyle: {
+                backgroundColor: Colors.background,
+              },
+            }}
+          />
+          <Stack.Screen
+            name="DebugLogs"
+            component={DebugLogsScreen}
+            options={{
+              headerShown: true,
+              headerTitle: 'デバッグログ',
               headerBackTitle: '戻る',
               headerTintColor: Colors.primary,
               headerStyle: {

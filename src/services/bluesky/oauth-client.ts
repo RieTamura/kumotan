@@ -66,6 +66,11 @@ export function getOAuthClient(): ExpoOAuthClient {
         });
       }
 
+      // Check if ExpoOAuthClient is properly imported
+      if (typeof ExpoOAuthClient !== 'function') {
+        throw new Error(`ExpoOAuthClient is not a constructor. Type: ${typeof ExpoOAuthClient}`);
+      }
+
       oauthClientInstance = new ExpoOAuthClient({
         handleResolver: HANDLE_RESOLVER,
         clientMetadata,
@@ -78,6 +83,8 @@ export function getOAuthClient(): ExpoOAuthClient {
       if (__DEV__) {
         console.error('Failed to initialize OAuth client:', error);
         console.error('Error type:', typeof error);
+        console.error('ExpoOAuthClient type:', typeof ExpoOAuthClient);
+        console.error('ExpoOAuthClient value:', ExpoOAuthClient);
         if (error instanceof Error) {
           console.error('Error message:', error.message);
           console.error('Error stack:', error.stack);

@@ -445,11 +445,11 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 **判断**：既存のPKCE/OAuthテストは概念理解に有用なため保持。実機テストを優先。
 
-##### Phase 4-4: 統合テスト（2-3時間）⏳ 次のタスク
+##### Phase 4-4: 統合テスト（2-3時間）🔄 進行中
 
 **必須タスク**：
 
-- [ ] **GitHub Pagesデプロイ**（30分）
+- [x] **GitHub Pagesデプロイ**（30分）
   - `/docs/oauth-client-metadata.json` 配置
   - `/docs/icon.png` 配置（オプション）
   - リポジトリSettings → Pages有効化
@@ -457,10 +457,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 **実機テストタスク**：
 
-- [ ] iOS開発ビルド作成（1-2時間）
-  - `eas build --profile development --platform ios`
-  - TestFlightまたはローカルインストール
-- [ ] OAuth認証フロー完全テスト
+- [x] iOS本番ビルド作成（TestFlight配信済み）
+  - `eas build --profile production --platform ios`
+  - TestFlight配信完了
+- [x] OAuth認証フロー初期テスト
+  - TestFlightで「undefined is not a function」エラー発見
+  - 原因診断：`@atproto/oauth-client-expo`のリダイレクト処理問題
+- [ ] OAuth認証フロー完全テスト（デバッグ後）
   - ハンドル入力 → ブラウザ起動 → Blueskyログイン → アプリ復帰
   - セッション確立確認（DID, handle, tokens）
 - [ ] セッション復元テスト
@@ -481,12 +484,50 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [@atproto/oauth-client-expo npm](https://www.npmjs.com/package/@atproto/oauth-client-expo)
 - **詳細実装ガイド**：`doc/OAUTH_IMPLEMENTATION_SUMMARY.md`
 
+##### Phase 4-5: TestFlightデバッグシステム構築（3-4時間）✅ 完了
+
+**背景**：TestFlightでOAuth認証時に「undefined is not a function」エラーが発生。Windows環境ではiOSデバイスログを直接確認できないため、リモートデバッグシステムを構築。
+
+**実装内容**：
+
+- [x] ローカルログ収集システム（`src/utils/logger.ts`）
+  - AsyncStorageにログ保存（最大200件）
+  - info/warn/errorレベルでログ記録
+  - タイムスタンプと詳細情報を含む
+- [x] デバッグログ閲覧画面（`src/screens/DebugLogsScreen.tsx`）
+  - ログ表示、コピー、共有、再読み込み、削除機能
+  - TestFlight環境でのログ確認を可能に
+- [x] 設定画面に「デバッグログ」項目追加
+- [x] ナビゲーション統合（`AppNavigator.tsx`）
+- [x] OAuth認証フローの詳細ログ記録
+  - `auth.ts`に`oauthLogger`統合
+  - エラー詳細（メッセージ、型、スタック）を記録
+- [x] エラーメッセージに詳細情報を含める
+  - ユーザーに表示されるエラーに具体的な情報を追加
+- [x] トラブルシューティングドキュメント更新
+  - `doc/troubleshooting.md`に問題30として記録
+  - Windows環境でのデバッグ方法を記載
+
+**成果物**：
+
+- 新規ファイル：`logger.ts`, `DebugLogsScreen.tsx`
+- 修正ファイル：`auth.ts`, `oauth-client.ts`, `SettingsScreen.tsx`, `AppNavigator.tsx`
+- ドキュメント：`troubleshooting.md`（TestFlightデバッグ手順）
+- 実装工数：**約3時間**
+
+**次のステップ**：
+
+1. 新しいビルドをTestFlightにアップロード
+2. デバッグログから詳細エラー情報を収集
+3. `@atproto/oauth-client-expo`の問題を特定・修正
+
 **工数実績**：
 
 - Phase 4-1：1時間
 - Phase 4-2：3時間
+- Phase 4-5（デバッグシステム）：3時間
 - ドキュメント作成：1時間
-- **合計：5時間**（見積もり12-16時間に対して効率的に完了）
+- **合計：8時間**（見積もり12-16時間に対して効率的に完了）
 
 #### 実装方針（更新）
 
@@ -583,11 +624,24 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年1月6日
-**バージョン**: 1.4
+**最終更新日**: 2026年1月9日
+**バージョン**: 1.5
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.5 (2026-01-09)
+
+- M2.6 OAuth認証実装のPhase 4-4とPhase 4-5を追加
+- TestFlightデバッグシステム構築を記録
+  - Windows環境でのリモートログ収集システム実装
+  - `src/utils/logger.ts`によるローカルログ保存
+  - `src/screens/DebugLogsScreen.tsx`によるログ閲覧・共有機能
+  - TestFlightでのOAuth認証エラー診断体制を整備
+- OAuth認証フロー実機テスト状況を更新
+  - TestFlight配信完了
+  - 「undefined is not a function」エラーを発見・診断中
+- Phase 4工数実績を更新（5時間 → 8時間）
 
 ### v1.4 (2026-01-06)
 - Jisho.org API統合を削除

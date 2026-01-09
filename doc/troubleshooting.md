@@ -3521,6 +3521,130 @@ const fetchSentenceData = useCallback(async () => {
 
 ---
 
+## 30. TestFlight環境でOAuthリダイレクト時に「undefined is not a function」エラー
+
+### 発生日
+2026年1月9日
+
+### 症状
+- TestFlightビルドでOAuth認証を試みると、リダイレクト時に「undefined is not a function」エラーが表示される
+- 開発環境（Expo Go）では問題なく動作する
+- エラーメッセージは「OAuth認証中にエラーが発生しました。undefined is not a function」
+
+### 原因
+`@atproto/oauth-client-expo` v0.0.7の初期バージョンで、以下の問題が考えられる：
+
+1. **ネイティブモジュールの初期化問題**
+   - 依存関係の`react-native-mmkv`がTestFlight環境で正しく初期化されていない可能性
+   - Metro bundlerのキャッシュ問題
+
+2. **ExpoOAuthClientの内部エラー**
+   - `signIn()`メソッドがリダイレクトを処理する際に、未定義の関数を呼び出している
+   - デバッグログが不足しているため、具体的なエラー箇所が不明
+
+3. **リダイレクトURI設定の問題**
+   - app.json: `scheme: "io.github.rietamura"`
+   - oauth-client-metadata.json: `redirect_uris: ["io.github.rietamura:/oauth/callback"]`
+   - 設定自体は正しいが、TestFlightでURL Schemeが正しく登録されていない可能性
+
+### 解決策
+
+#### 1. 詳細なデバッグログの追加
+
+[auth.ts:476-579](src/services/bluesky/auth.ts#L476-L579)と[oauth-client.ts:69-94](src/services/bluesky/oauth-client.ts#L69-L94)に詳細なログを追加：
+
+```typescript
+// 常にログを出力（__DEV__条件を削除）
+console.log('[OAuth] Starting OAuth flow for handle:', handle);
+console.error('[OAuth] OAuth flow error:', errorMessage);
+console.error('[OAuth] Error type:', typeof error);
+console.error('[OAuth] Error object:', error);
+```
+
+エラーメッセージにも詳細を含める：
+```typescript
+`OAuth認証中にエラーが発生しました。\n\nエラー詳細: ${errorMessage}`
+```
+
+#### 2. TestFlightでのデバッグ方法
+
+TestFlightでコンソールログを確認する方法：
+
+1. **Xcodeでデバイスログを確認**
+   ```bash
+   # デバイスを接続
+   # Xcode > Window > Devices and Simulators > デバイス選択
+   # Open Consoleをクリック
+   ```
+
+2. **コンソールアプリで確認（Mac）**
+   ```bash
+   # デバイスを接続して、コンソールアプリを起動
+   # デバイスを選択して、アプリのログをフィルタリング
+   ```
+
+3. **Remote Loggingサービスを使う**
+   - Sentry, Bugsnag, LogRocketなどのサービスを導入して本番環境のログを収集
+
+#### 3. Metro Bundlerキャッシュのクリア
+
+```bash
+# キャッシュをクリア
+npx expo start -c
+
+# より徹底的に
+npx react-native clean
+npx expo start -c --reset-cache
+```
+
+#### 4. node_modulesの再インストール
+
+```bash
+rm -rf node_modules
+rm package-lock.json
+npm install
+npx expo start -c
+```
+
+#### 5. Development Buildへの移行（最終手段）
+
+`@atproto/oauth-client-expo`が`react-native-mmkv`に依存しているため、Expo Goでは動作しない可能性がある。その場合はDevelopment Buildが必要：
+
+```bash
+npx expo prebuild
+npx expo run:ios  # または run:android
+```
+
+#### 6. ExpoOAuthClient初期化チェックの追加
+
+[oauth-client.ts:69-72](src/services/bluesky/oauth-client.ts#L69-L72)で、コンストラクタが正しく呼び出せるか確認：
+
+```typescript
+// Check if ExpoOAuthClient is properly imported
+if (typeof ExpoOAuthClient !== 'function') {
+  throw new Error(`ExpoOAuthClient is not a constructor. Type: ${typeof ExpoOAuthClient}`);
+}
+```
+
+### 次のステップ
+
+1. TestFlightで再テストして、追加したログからエラーの詳細を確認
+2. エラーメッセージに表示される「エラー詳細」を確認
+3. 必要に応じて、上記の解決策を順番に試す
+4. それでも解決しない場合は、`@atproto/oauth-client-expo`のIssueを確認、または報告
+
+### 関連ファイル
+- [src/services/bluesky/auth.ts](src/services/bluesky/auth.ts) - OAuth認証フロー
+- [src/services/bluesky/oauth-client.ts](src/services/bluesky/oauth-client.ts) - OAuth Client初期化
+- [app.json](app.json) - URL Scheme設定
+- [docs/oauth-client-metadata.json](docs/oauth-client-metadata.json) - OAuth Client Metadata
+
+### 参考リンク
+- [@atproto/oauth-client-expo GitHub](https://github.com/bluesky-social/atproto/tree/main/packages/oauth/oauth-client-expo)
+- [Expo Deep Linking Guide](https://docs.expo.dev/guides/deep-linking/)
+
+---
+
 新しい問題が発生した場合は、以下のテンプレートを使用して記録してください：
 
 ```markdown

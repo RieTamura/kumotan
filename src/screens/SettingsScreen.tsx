@@ -324,6 +324,11 @@ export function SettingsScreen(): React.JSX.Element {
         {/* About Section */}
         <SettingsSection title="その他">
           <SettingsItem
+            title="デバッグログ"
+            subtitle="TestFlight デバッグ用"
+            onPress={() => navigation.navigate('DebugLogs')}
+          />
+          <SettingsItem
             title="ライセンス"
             onPress={handleLicensePress}
           />
