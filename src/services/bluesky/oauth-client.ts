@@ -57,14 +57,19 @@ let oauthClientInstance: ExpoOAuthClient | null = null;
 export function getOAuthClient(): ExpoOAuthClient {
   if (!oauthClientInstance) {
     try {
-      if (__DEV__) {
-        console.log('Initializing OAuth client with:', {
-          handleResolver: HANDLE_RESOLVER,
-          clientId: CLIENT_ID,
-          redirectUri: REDIRECT_URI,
-          clientMetadata,
-        });
-      }
+      // Log initialization attempt (always, not just in dev)
+      console.log('[OAuth Client] Initializing OAuth client with:', {
+        handleResolver: HANDLE_RESOLVER,
+        clientId: CLIENT_ID,
+        redirectUri: REDIRECT_URI,
+      });
+
+      // Check if Constants is available
+      console.log('[OAuth Client] Constants check:', {
+        exists: typeof Constants !== 'undefined',
+        hasExpoConfig: Constants?.expoConfig !== undefined,
+        configValues: Constants?.expoConfig?.extra?.oauth,
+      });
 
       // Check if ExpoOAuthClient is properly imported
       if (typeof ExpoOAuthClient !== 'function') {
@@ -76,19 +81,25 @@ export function getOAuthClient(): ExpoOAuthClient {
         clientMetadata,
       });
 
-      if (__DEV__) {
-        console.log('OAuth client initialized successfully');
+      // Verify instance has required methods
+      console.log('[OAuth Client] Instance created. Checking methods:', {
+        hasSignIn: typeof oauthClientInstance.signIn === 'function',
+        hasRestore: typeof oauthClientInstance.restore === 'function',
+        allMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(oauthClientInstance)),
+      });
+
+      if (!oauthClientInstance.signIn || typeof oauthClientInstance.signIn !== 'function') {
+        throw new Error('ExpoOAuthClient instance does not have signIn method');
       }
+
+      console.log('[OAuth Client] OAuth client initialized successfully');
     } catch (error) {
-      if (__DEV__) {
-        console.error('Failed to initialize OAuth client:', error);
-        console.error('Error type:', typeof error);
-        console.error('ExpoOAuthClient type:', typeof ExpoOAuthClient);
-        console.error('ExpoOAuthClient value:', ExpoOAuthClient);
-        if (error instanceof Error) {
-          console.error('Error message:', error.message);
-          console.error('Error stack:', error.stack);
-        }
+      console.error('[OAuth Client] Failed to initialize OAuth client:', error);
+      console.error('[OAuth Client] Error type:', typeof error);
+      console.error('[OAuth Client] ExpoOAuthClient type:', typeof ExpoOAuthClient);
+      if (error instanceof Error) {
+        console.error('[OAuth Client] Error message:', error.message);
+        console.error('[OAuth Client] Error stack:', error.stack);
       }
       throw error;
     }
