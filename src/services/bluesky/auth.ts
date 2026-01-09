@@ -471,7 +471,7 @@ const USER_DID_STORAGE_KEY = '@kumotan:user_did';
 /**
  * Start OAuth authentication flow
  * @param handle - Bluesky handle (e.g., user.bsky.social) or DID
- * @returns Authorization URL for the user to visit, or error
+ * @returns Bluesky session or error
  */
 export async function startOAuthFlow(
   handle: string
@@ -479,68 +479,71 @@ export async function startOAuthFlow(
   try {
     const oauthClient = getOAuthClient();
 
+    if (__DEV__) {
+      console.log('Starting OAuth flow for handle:', handle);
+    }
+
     // Start OAuth flow - this will open browser and wait for callback
-    const result = await oauthClient.signIn(handle);
+    // signIn() returns OAuthSession on success, throws on error
+    const oauthSession = await oauthClient.signIn(handle);
 
-    // Handle different result types
-    if (result.status === 'success') {
-      const oauthSession = result.session;
+    if (__DEV__) {
+      console.log('OAuth session obtained:', oauthSession.did);
+    }
 
-      // Create Agent from OAuth session
-      const oauthAgent = new Agent(oauthSession);
+    // Create Agent from OAuth session to get user profile
+    const oauthAgent = new Agent(oauthSession);
 
-      // Get user info from the session
-      const session: BlueskySession = {
-        accessJwt: oauthSession.accessJwt || '',
-        refreshJwt: oauthSession.refreshJwt || '',
-        handle: oauthSession.did.split(':')[2] || '', // Extract handle from DID
-        did: oauthSession.did,
-        email: undefined,
-      };
-
-      // Store DID for session restoration
-      await AsyncStorage.setItem(USER_DID_STORAGE_KEY, oauthSession.did);
-
-      // Store auth in secure storage
-      await storeAuth(session);
-
+    // Get user profile to retrieve handle
+    let userHandle = '';
+    try {
+      const profile = await oauthAgent.getProfile({ actor: oauthSession.did });
+      userHandle = profile.data.handle;
+    } catch (profileError) {
       if (__DEV__) {
-        console.log('OAuth authentication successful:', session.did);
+        console.warn('Failed to fetch profile, using DID as handle:', profileError);
       }
+      // Fallback: use DID if profile fetch fails
+      userHandle = oauthSession.did;
+    }
 
-      return { success: true, data: { session } };
-    } else if (result.status === 'error') {
-      if (__DEV__) {
-        console.error('OAuth authentication error:', result.error);
-      }
+    // Create Bluesky session
+    const session: BlueskySession = {
+      accessJwt: oauthSession.accessJwt || '',
+      refreshJwt: oauthSession.refreshJwt || '',
+      handle: userHandle,
+      did: oauthSession.did,
+      email: undefined,
+    };
 
-      return {
-        success: false,
-        error: new AppError(
-          ErrorCode.OAUTH_ERROR,
-          'OAuth認証に失敗しました。もう一度お試しください。',
-          result.error
-        ),
-      };
-    } else {
-      // User cancelled (dismissed, locked, etc.)
-      if (__DEV__) {
-        console.log('OAuth authentication cancelled:', result.status);
-      }
+    // Store DID for session restoration
+    await AsyncStorage.setItem(USER_DID_STORAGE_KEY, oauthSession.did);
 
+    // Store auth in secure storage
+    await storeAuth(session);
+
+    if (__DEV__) {
+      console.log('OAuth authentication successful:', session.handle, session.did);
+    }
+
+    return { success: true, data: { session } };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (__DEV__) {
+      console.error('OAuth flow error:', errorMessage, error);
+    }
+
+    // Check for user cancellation
+    if (errorMessage.includes('cancelled') || errorMessage.includes('dismissed')) {
       return {
         success: true,
         data: { cancelled: true },
       };
     }
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    if (__DEV__) {
-      console.error('OAuth flow error:', errorMessage);
-    }
-
-    if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+    // Check for network errors
+    if (errorMessage.includes('Network') || errorMessage.includes('fetch') || errorMessage.includes('network')) {
       return {
         success: false,
         error: new AppError(
@@ -551,11 +554,12 @@ export async function startOAuthFlow(
       };
     }
 
+    // Default OAuth error
     return {
       success: false,
       error: new AppError(
         ErrorCode.OAUTH_ERROR,
-        'OAuth認証中にエラーが発生しました。',
+        `OAuth認証中にエラーが発生しました。${errorMessage}`,
         error
       ),
     };
@@ -582,14 +586,34 @@ export async function restoreOAuthSession(): Promise<Result<BlueskySession, AppE
 
     const oauthClient = getOAuthClient();
 
+    if (__DEV__) {
+      console.log('Restoring OAuth session for DID:', storedDid);
+    }
+
     // Restore session (auto-refreshes if needed)
     const oauthSession = await oauthClient.restore(storedDid);
+
+    // Create Agent from OAuth session to get user profile
+    const oauthAgent = new Agent(oauthSession);
+
+    // Get user profile to retrieve handle
+    let userHandle = '';
+    try {
+      const profile = await oauthAgent.getProfile({ actor: oauthSession.did });
+      userHandle = profile.data.handle;
+    } catch (profileError) {
+      if (__DEV__) {
+        console.warn('Failed to fetch profile during restore, using DID as handle:', profileError);
+      }
+      // Fallback: use DID if profile fetch fails
+      userHandle = oauthSession.did;
+    }
 
     // Create session object
     const session: BlueskySession = {
       accessJwt: oauthSession.accessJwt || '',
       refreshJwt: oauthSession.refreshJwt || '',
-      handle: oauthSession.did.split(':')[2] || '',
+      handle: userHandle,
       did: oauthSession.did,
       email: undefined,
     };
@@ -598,7 +622,7 @@ export async function restoreOAuthSession(): Promise<Result<BlueskySession, AppE
     await storeAuth(session);
 
     if (__DEV__) {
-      console.log('OAuth session restored:', session.did);
+      console.log('OAuth session restored:', session.handle, session.did);
     }
 
     return { success: true, data: session };
