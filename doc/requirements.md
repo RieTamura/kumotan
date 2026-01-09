@@ -463,7 +463,22 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [x] OAuth認証フロー初期テスト
   - TestFlightで「undefined is not a function」エラー発見
   - 原因診断：`@atproto/oauth-client-expo`のリダイレクト処理問題
-- [ ] OAuth認証フロー完全テスト（デバッグ後）
+- [x] OAuth redirect URI修正（PR #1）
+  - 修正前：`app.kumotan.com:/oauth/callback`
+  - 修正後：`io.github.rietamura:/oauth/callback`
+  - 公式ドキュメント形式（reverse FQDN）に準拠
+  - `oauth-client-metadata.json` と `oauth-client.ts` を統一
+  - `app.json` scheme設定を `io.github.rietamura` に更新
+- [x] OAuth redirect URI仕様完全準拠修正（PR #2）
+  - 設定ファイル間の不一致を解消（パスあり/なしの混在）
+  - パスなし形式（`io.github.rietamura:/`）に統一
+  - AT Protocol OAuth仕様に完全準拠
+  - 修正理由：シンプルさと保守性を優先、多くのネイティブアプリが採用
+  - 修正ファイル：
+    - `assets/oauth-client-metadata.json`: `io.github.rietamura:/`
+    - `src/services/bluesky/oauth-client.ts`: `io.github.rietamura:/`
+  - 確認済み：`app.json`と`docs/oauth-client-metadata.json`は既に正しい設定
+- [ ] OAuth認証フロー完全テスト（修正後）
   - ハンドル入力 → ブラウザ起動 → Blueskyログイン → アプリ復帰
   - セッション確立確認（DID, handle, tokens）
 - [ ] セッション復元テスト
@@ -624,11 +639,47 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年1月9日
-**バージョン**: 1.5
+**最終更新日**: 2026年1月10日
+**バージョン**: 1.7
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.7 (2026-01-10)
+
+- OAuth設定のAT Protocol仕様完全準拠対応（PR #2予定）
+  - redirect URIの設定ファイル間不一致を解消
+  - パスなし形式（`io.github.rietamura:/`）に統一
+  - AT Protocol OAuth仕様（https://atproto.com/specs/oauth）の分析結果を記録
+  - 修正理由：
+    - PR #1で部分的な修正（パスあり形式`/oauth/callback`への変更）
+    - 実装時に`app.json`（パスなし）と`assets/oauth-client-metadata.json`（パスあり）の不一致が判明
+    - AT Protocol仕様ではパスはオプションであることを確認
+    - シンプルさと保守性を優先しパスなし形式を採用
+  - 影響範囲：
+    - `assets/oauth-client-metadata.json`: redirect_urisを`io.github.rietamura:/`に変更
+    - `src/services/bluesky/oauth-client.ts`: REDIRECT_URI定数を`io.github.rietamura:/`に変更
+    - `app.json`: 既に正しい設定（変更不要）
+    - `docs/oauth-client-metadata.json`: 既に正しい設定（変更不要）
+  - 仕様準拠の確認事項：
+    - ✅ スキーム名: `io.github.rietamura`（client_idのreverse domain形式）
+    - ✅ 形式: `スキーム:/` （スラッシュは1つのみ、`://`は無効）
+    - ✅ パス: `/`（末尾スラッシュのみ、追加パスはオプション）
+    - ✅ application_type: `native`
+    - ✅ 全設定ファイルで統一
+    - ✅ `@atproto/oauth-client-expo`公式仕様に準拠
+
+### v1.6 (2026-01-10)
+
+- PR #1「OAuth redirect URI修正」のマージを記録
+  - OAuth redirect URIを公式ドキュメント形式（reverse FQDN）に修正
+  - `oauth-client-metadata.json`と`oauth-client.ts`の設定を統一
+  - `app.json` scheme設定を`io.github.rietamura`に更新
+  - 詳細なエラーロギングを追加（デバッグ用）
+  - expo-constants重複依存問題を解決
+- Phase 4-4実機テストタスクを更新
+  - OAuth redirect URI修正タスクを完了に変更
+  - 次の実機テスト段階に進む準備完了
 
 ### v1.5 (2026-01-09)
 

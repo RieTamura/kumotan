@@ -16,7 +16,7 @@ const CLIENT_ID = Constants.expoConfig?.extra?.oauth?.clientId ||
  * OAuth redirect URI
  */
 const REDIRECT_URI = Constants.expoConfig?.extra?.oauth?.redirectUri ||
-  'io.github.rietamura:/oauth/callback';
+  'io.github.rietamura:/';
 
 /**
  * Handle resolver for Bluesky
