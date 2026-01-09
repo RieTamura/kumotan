@@ -477,10 +477,15 @@ export async function startOAuthFlow(
   handle: string
 ): Promise<Result<{ session?: BlueskySession; cancelled?: boolean }, AppError>> {
   try {
+    if (__DEV__) {
+      console.log('Starting OAuth flow for handle:', handle);
+    }
+
+    // Get OAuth client instance
     const oauthClient = getOAuthClient();
 
     if (__DEV__) {
-      console.log('Starting OAuth flow for handle:', handle);
+      console.log('OAuth client initialized, calling signIn...');
     }
 
     // Start OAuth flow - this will open browser and wait for callback

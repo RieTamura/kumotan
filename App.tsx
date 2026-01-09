@@ -2,6 +2,11 @@
  * Kumotan - Main App Entry Point
  */
 
+// Import OAuth client polyfills first
+import 'core-js/proposals/explicit-resource-management';
+import 'event-target-polyfill';
+import 'react-native-url-polyfill/auto';
+
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 // import * as SplashScreen from 'expo-splash-screen';  // 一時的に無効化
