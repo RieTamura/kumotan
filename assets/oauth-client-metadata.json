@@ -1,10 +1,10 @@
 {
   "client_id": "https://rietamura.github.io/kumotan/oauth-client-metadata.json",
   "client_name": "くもたん (Kumotan)",
-  "client_uri": "https://github.com/RieTamura/kumotan",
+  "client_uri": "https://rietamura.github.io/kumotan/",
   "logo_uri": "https://rietamura.github.io/kumotan/icon.png",
-  "tos_uri": "https://github.com/RieTamura/kumotan#readme",
-  "policy_uri": "https://github.com/RieTamura/kumotan#readme",
+  "tos_uri": "https://rietamura.github.io/kumotan/",
+  "policy_uri": "https://rietamura.github.io/kumotan/",
   "redirect_uris": [
     "app.kumotan.com:/oauth/callback"
   ],
