@@ -39,14 +39,14 @@
       "expo-secure-store",
       "expo-sqlite"
     ],
-    "scheme": "app.kumotan.com",
+    "scheme": "io.github.rietamura",
     "extra": {
       "eas": {
         "projectId": "c9480379-b17d-4c68-ac12-b4922290cf74"
       },
       "oauth": {
         "clientId": "https://rietamura.github.io/kumotan/oauth-client-metadata.json",
-        "redirectUri": "app.kumotan.com:/oauth/callback"
+        "redirectUri": "io.github.rietamura:/oauth/callback"
       }
     },
     "owner": "rietamura"
