@@ -46,7 +46,7 @@
       },
       "oauth": {
         "clientId": "https://rietamura.github.io/kumotan/oauth-client-metadata.json",
-        "redirectUri": "io.github.rietamura:/oauth/callback"
+        "redirectUri": "io.github.rietamura:/"
       }
     },
     "owner": "rietamura"
