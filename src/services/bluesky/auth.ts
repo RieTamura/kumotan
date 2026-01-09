@@ -538,16 +538,21 @@ export async function startOAuthFlow(
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     // Log detailed error information (always, not just in dev)
+    const errorType = typeof error;
+    const errorName = error instanceof Error ? error.name : 'N/A';
+    const errorStack = error instanceof Error ? error.stack : 'N/A';
+
     const errorDetails = {
       message: errorMessage,
-      type: typeof error,
-      name: error instanceof Error ? error.name : undefined,
-      stack: error instanceof Error ? error.stack : undefined,
+      type: errorType,
+      name: errorName,
+      stack: errorStack,
     };
 
-    oauthLogger.error('OAuth flow error', errorDetails);
+    // Log with detailed message for better visibility in TestFlight
+    oauthLogger.error(`OAuth flow error - Message: "${errorMessage}", Type: ${errorType}, Name: ${errorName}`, errorDetails);
     console.error('[OAuth] OAuth flow error:', errorMessage);
-    console.error('[OAuth] Error type:', typeof error);
+    console.error('[OAuth] Error type:', errorType);
     console.error('[OAuth] Error object:', error);
 
     if (error instanceof Error) {
@@ -579,9 +584,10 @@ export async function startOAuthFlow(
       };
     }
 
-    // Default OAuth error
-    oauthLogger.error('Unhandled OAuth error');
-    console.error('[OAuth] Unhandled OAuth error');
+    // Default OAuth error - include full error details
+    const unhandledMessage = `Unhandled OAuth error - Message: "${errorMessage}", Type: ${errorType}, Name: ${errorName}${errorStack !== 'N/A' ? ', Stack: ' + errorStack.substring(0, 200) : ''}`;
+    oauthLogger.error(unhandledMessage);
+    console.error('[OAuth] Unhandled OAuth error:', unhandledMessage);
     return {
       success: false,
       error: new AppError(
