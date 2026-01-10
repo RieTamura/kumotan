@@ -484,6 +484,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - **解決策**: Expo Development Buildに移行
   - **実施内容**:
     - `expo-dev-client`をインストール
+    - `react-native-mmkv`をインストール（`@atproto/oauth-client-expo`の必須依存関係）
     - `eas.json`に`production-dev`プロファイル追加（developmentClient: true）
     - `.gitignore`に`android/`と`ios/`を追加
 - [ ] Development Buildでの実機テスト
