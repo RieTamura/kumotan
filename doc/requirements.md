@@ -478,7 +478,18 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - `assets/oauth-client-metadata.json`: `io.github.rietamura:/`
     - `src/services/bluesky/oauth-client.ts`: `io.github.rietamura:/`
   - 確認済み：`app.json`と`docs/oauth-client-metadata.json`は既に正しい設定
-- [ ] OAuth認証フロー完全テスト（修正後）
+- [x] **react-native-mmkv問題の診断と解決**（2026-01-10）
+  - **問題**: TestFlightで「undefined is not a function at _construct」エラー
+  - **根本原因**: `@atproto/oauth-client-expo`が依存する`react-native-mmkv`（ネイティブモジュール）がExpo managed workflowで動作しない
+  - **解決策**: Expo Development Buildに移行
+  - **実施内容**:
+    - `expo-dev-client`をインストール
+    - `eas.json`に`production-dev`プロファイル追加（developmentClient: true）
+    - `.gitignore`に`android/`と`ios/`を追加
+- [ ] Development Buildでの実機テスト
+  - `eas build --profile production-dev --platform ios`でビルド
+  - TestFlightに配信
+  - OAuth認証フロー完全テスト（修正後）
   - ハンドル入力 → ブラウザ起動 → Blueskyログイン → アプリ復帰
   - セッション確立確認（DID, handle, tokens）
 - [ ] セッション復元テスト

@@ -585,7 +585,7 @@ export async function startOAuthFlow(
     }
 
     // Default OAuth error - include full error details
-    const unhandledMessage = `Unhandled OAuth error - Message: "${errorMessage}", Type: ${errorType}, Name: ${errorName}${errorStack !== 'N/A' ? ', Stack: ' + errorStack.substring(0, 200) : ''}`;
+    const unhandledMessage = `Unhandled OAuth error - Message: "${errorMessage}", Type: ${errorType}, Name: ${errorName}${errorStack && errorStack !== 'N/A' ? ', Stack: ' + errorStack.substring(0, 200) : ''}`;
     oauthLogger.error(unhandledMessage);
     console.error('[OAuth] Unhandled OAuth error:', unhandledMessage);
     return {

@@ -18,6 +18,15 @@
       }
     },
     "production": {
+      "developmentClient": false,
+      "autoIncrement": true,
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production-dev": {
+      "developmentClient": true,
+      "distribution": "internal",
       "autoIncrement": true,
       "ios": {
         "simulator": false
