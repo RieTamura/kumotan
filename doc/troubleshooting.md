@@ -3733,3 +3733,57 @@ Pluginsセクションに`expo-build-properties`の設定を追加し、iOS/Andr
 - **解決策**: eact-native-mmkv をOld Architecture対応のv2.x系 (^2.12.2) にダウングレードし、pp.jsonのNew Architecture設定を削除した。
 - **ステータス**: 解決済み (v1.8で対応)
 
+
+---
+
+## 問題31: react-native-mmkvのネストされた依存関係バージョン競合（2026-01-11）
+
+### 症状
+- TestFlightでOAuth認証時にエラーが発生
+- エラーメッセージ: `Failed to create a new MMKV instance: react-native-mmkv 3.x.x requires TurboModules, but the new architecture is not enabled!`
+- `package.json`で`react-native-mmkv@2.12.2`を指定しているにもかかわらず、エラーが発生
+
+### 原因
+`@atproto/oauth-client-expo@0.0.7`がネストされた依存関係として`react-native-mmkv@3.3.3`を持っている。`package.json`の直接依存として追加した`react-native-mmkv@2.12.2`とは別に、ネストされた依存としてv3が使用されていた。
+
+`ash
+# npm ls で確認した結果
+kumotan@1.0.0
+ @atproto/oauth-client-expo@0.0.7
+  react-native-mmkv@3.3.3  #  これがv3を使用
+ react-native-mmkv@2.12.2   #  直接依存はv2
+`
+
+### 解決策
+`package.json`に`overrides`フィールドを追加して、すべての依存関係（ネストされたものを含む）で`react-native-mmkv@2.12.2`を強制使用するように設定。
+
+`json
+{
+  "dependencies": {
+    "react-native-mmkv": "2.12.2"
+  },
+  "overrides": {
+    "react-native-mmkv": "2.12.2"
+  }
+}
+`
+
+**注意点**:
+- `overrides`と`dependencies`で同じパッケージを指定する場合、バージョンを完全一致させる必要がある
+- `^2.12.2`（キャレット付き）ではなく`2.12.2`（完全固定）を使用すること
+
+### 修正後の確認
+`ash
+npm ls react-native-mmkv
+# 結果
+ @atproto/oauth-client-expo@0.0.7
+  react-native-mmkv@2.12.2 deduped
+ react-native-mmkv@2.12.2 overridden
+`
+
+### ステータス
+- **解決済み** (v1.9で対応)
+
+### 関連ファイル
+- `package.json` - overridesフィールド追加
+

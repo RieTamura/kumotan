@@ -682,6 +682,17 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - ✅ 全設定ファイルで統一
     - ✅ `@atproto/oauth-client-expo`公式仕様に準拠
 
+### v1.9 (2026-01-11)
+
+- `react-native-mmkv` ネストされた依存関係バージョン競合の解決
+  - 症状：v1.8の修正後もTestFlightで同じエラーが継続
+  - 原因：`@atproto/oauth-client-expo@0.0.7`がネストされた依存として`react-native-mmkv@3.3.3`を持っていた
+  - 対応：
+    - `package.json`に`overrides`フィールドを追加
+    - `react-native-mmkv`を`2.12.2`に強制固定（キャレットなし完全一致）
+    - すべての依存関係（ネストされたものを含む）でv2.12.2を使用するように設定
+  - 確認方法：`npm ls react-native-mmkv`で`deduped`または`overridden`が表示されれば成功
+
 ### v1.8 (2026-01-11)
 
 - `react-native-mmkv` エラー対応のためダウングレードを実施
@@ -691,6 +702,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - `react-native-mmkv` を v2.x 系にダウングレード
     - `app.json` から `newArchEnabled` 設定を削除（Old Architectureに戻す）
     - OAuthクライアントの互換性を確保
+
 
 ### v1.6 (2026-01-10)
 
