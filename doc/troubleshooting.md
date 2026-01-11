@@ -3725,3 +3725,11 @@ Pluginsセクションに`expo-build-properties`の設定を追加し、iOS/Andr
 ### 教訁E
 - ネイチE��ブモジュールを使用するライブラリ�E�特に`react-native-mmkv`などの高性能なも�E�E��E、React NativeのアーキチE��チャ�E�Eld vs New/TurboModules�E�に依存する場合がある、E
 - メジャーバ�EジョンアチE�E時には要件�E�Erchitecture�E�が変わることがあるため、エラーメチE��ージをよく読み、忁E��な設定を行うこと、E
+
+### 問題31：TestFlightでのOAuth認証エラー (MMKV New Architecture)
+
+- **症状**: TestFlightでOAuth認証を行うと、MMKV関連のエラー (eact-native-mmkv 3.x.x requires TurboModules) が発生し、クラッシュまたは赤画面になる。
+- **原因**: eact-native-mmkv v3以降はNew Architecture (TurboModules) が必須だが、アプリがOld Architectureでビルドされていたため。
+- **解決策**: eact-native-mmkv をOld Architecture対応のv2.x系 (^2.12.2) にダウングレードし、pp.jsonのNew Architecture設定を削除した。
+- **ステータス**: 解決済み (v1.8で対応)
+

@@ -684,12 +684,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 ### v1.8 (2026-01-11)
 
-- `react-native-mmkv` v4.x 対応のため New Architecture を有効化
+- `react-native-mmkv` エラー対応のためダウングレードを実施
   - 症状：TestFlightでのOAuth認証時にエラー（`react-native-mmkv 3.x.x requires TurboModules`）
-  - 原因：`react-native-mmkv`の新しいバージョンはTurboModules（新アーキテクチャ）が必須だが、Expo SDK 52以前のデフォルトは旧アーキテクチャのため
+  - 原因：`react-native-mmkv` v3以降はNew Architecture (TurboModules) が必須だが、現在のExpo managed workflow設定と競合していたため
   - 対応：
-    - `expo-build-properties`プラグインを追加
-    - `app.json`で`newArchEnabled: true`を設定
+    - `react-native-mmkv` を v2.x 系にダウングレード
+    - `app.json` から `newArchEnabled` 設定を削除（Old Architectureに戻す）
+    - OAuthクライアントの互換性を確保
 
 ### v1.6 (2026-01-10)
 
