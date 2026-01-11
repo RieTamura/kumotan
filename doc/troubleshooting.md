@@ -1,4 +1,4 @@
-# トラブルシューティング記録
+﻿# トラブルシューティング記録
 
 このドキュメントは、開発中に発生した問題とその解決策を記録したものです。
 
@@ -3670,29 +3670,29 @@ YYYY年MM月DD日
 
 ---
 
-## 31. TestFlightでOAuth認証時にエラーが発生する問題！EMKV / TurboModules�E�E
+## 31. TestFlightでOAuth認証時にエラーが発生する問題！EMKV / TurboModules�E�E
 
 ### 発生日
 2026年1朁E1日
 
-### 痁E��
-- TestFlightでアプリを起動し、「Blueskyでログイン」�Eタンを押してハンドル名を入力し、認証フローを開始しようとすると、以下�Eエラー画面が表示される、E
-  - **エラーメチE��ージ**: `Failed to create a new MMKV instance: react-native-mmkv 3.x.x requires TurboModules, but the new architecture is not enabled!`
+### 痁E��
+- TestFlightでアプリを起動し、「Blueskyでログイン」�Eタンを押してハンドル名を入力し、認証フローを開始しようとすると、以下�Eエラー画面が表示される、E
+  - **エラーメチE��ージ**: `Failed to create a new MMKV instance: react-native-mmkv 3.x.x requires TurboModules, but the new architecture is not enabled!`
   - **詳細**: `Downgrade to react-native-mmkv 2.x.x if you want to stay on the old architecture. Enable the new architecture in your app to use react-native-mmkv 3.x.x.`
 
 ### 調査過稁E
 
-1. **package.jsonの確誁E* - `react-native-mmkv`のバ�Eジョンを確認したところ、`^4.1.1`がインスト�EルされてぁE��、E
-2. **エラーメチE��ージの刁E��** - エラーメチE��ージが示す通り、バージョン3以降�E`react-native-mmkv`は、React Nativeの新しいアーキチE��チャ�E�EurboModules/JSI�E�を忁E��とすることがわかった、E
-3. **プロジェクト設定�E確誁E* - `app.json`や`eas.json`を確認したが、New Architectureを有効にする設定が含まれてぁE��かった、Expo SDK 52以前�EチE��ォルト�E旧アーキチE��チャであるため、�E示皁E��有効化する忁E��があった、E
+1. **package.jsonの確誁E* - `react-native-mmkv`のバ�Eジョンを確認したところ、`^4.1.1`がインスト�EルされてぁE��、E
+2. **エラーメチE��ージの刁E��** - エラーメチE��ージが示す通り、バージョン3以降�E`react-native-mmkv`は、React Nativeの新しいアーキチE��チャ�E�EurboModules/JSI�E�を忁E��とすることがわかった、E
+3. **プロジェクト設定�E確誁E* - `app.json`や`eas.json`を確認したが、New Architectureを有効にする設定が含まれてぁE��かった、Expo SDK 52以前�EチE��ォルト�E旧アーキチE��チャであるため、�E示皁E��有効化する忁E��があった、E
 
 ### 原因
-`@atproto/oauth-client-expo`が依存する`react-native-mmkv`のバ�Eジョン�E�E.x�E�が、React Native New Architecture (TurboModules) を忁E��としてぁE��が、�Eロジェクト設定でNew Architectureが無効になってぁE��ため、E
+`@atproto/oauth-client-expo`が依存する`react-native-mmkv`のバ�Eジョン�E�E.x�E�が、React Native New Architecture (TurboModules) を忁E��としてぁE��が、�Eロジェクト設定でNew Architectureが無効になってぁE��ため、E
 
 ### 解決筁E
 New Architectureを有効化することで対応した、E
 
-**1. `expo-build-properties`のインスト�Eル:**
+**1. `expo-build-properties`のインスト�Eル:**
 ```bash
 npx expo install expo-build-properties
 ```
@@ -3723,8 +3723,8 @@ Pluginsセクションに`expo-build-properties`の設定を追加し、iOS/Andr
 - `package.json` - 依存関俁E
 
 ### 教訁E
-- ネイチE��ブモジュールを使用するライブラリ�E�特に`react-native-mmkv`などの高性能なも�E�E��E、React NativeのアーキチE��チャ�E�Eld vs New/TurboModules�E�に依存する場合がある、E
-- メジャーバ�EジョンアチE�E時には要件�E�Erchitecture�E�が変わることがあるため、エラーメチE��ージをよく読み、忁E��な設定を行うこと、E
+- ネイチE��ブモジュールを使用するライブラリ�E�特に`react-native-mmkv`などの高性能なも�E�E��E、React NativeのアーキチE��チャ�E�Eld vs New/TurboModules�E�に依存する場合がある、E
+- メジャーバ�EジョンアチE�E時には要件�E�Erchitecture�E�が変わることがあるため、エラーメチE��ージをよく読み、忁E��な設定を行うこと、E
 
 ### 問題31：TestFlightでのOAuth認証エラー (MMKV New Architecture)
 
@@ -3790,6 +3790,10 @@ npm ls react-native-mmkv
 
 ---
 
+
+
+---
+
 ## 問題32: TestFlightでのJSI初期化エラー (react-native-mmkv)（2026-01-11）
 
 ### 症状
@@ -3802,28 +3806,54 @@ npm ls react-native-mmkv
 
 ### 原因
 eact-native-mmkv v2.x 系を使用しているが、pp.json で New Architecture (TurboModules) の設定が曖昧、またはデフォルトで有効になっていた可能性がある。
-v1.8の修正で config.newArchEnabled を削除したが、Expo SDK 54 環境では expo-build-properties プラグインで明示的に alse を指定しないと、意図しないアーキテクチャ設定となり、JSIモジュールがロードされない場合がある。
+Expo SDK 54 環境ではデフォルトの設定により、Old Architecture用のモジュールが正しくロードされなかった可能性がある。
 
 ### 解決策
-pp.json の plugins セクションで expo-build-properties を設定し、
-ewArchEnabled: false を明示的に指定する。
+pp.json の expo オブジェクト直下に 
+ewArchEnabled: false を設定する（Expo SDK 52以降の推奨設定）。
+expo-build-properties プラグイン経由ではなく、ルートプロパティとして設定する必要がある。
 
 `json
+  "expo": {
+    "newArchEnabled": false,
     "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "newArchEnabled": false
-          },
-          "android": {
-            "newArchEnabled": false
-          }
-        }
-      ]
+       ...
     ]
+  }
 `
 
 ### ステータス
-- **修正済み** (v1.10で対応)
+- **解決済み** (v1.11で対応)
+
+
+---
+
+## 問題33: New Architecture (TurboModules) への移行（2026-01-11）
+
+### 背景
+Old Architecture環境下で eact-native-mmkv v2 を使用する試み（問題32）は、Expo SDK 54 環境でのビルドエラーやJSI初期化エラーの解決に至らず、設定が複雑化していた。
+また、@atproto/oauth-client-expo は内部でNew Architecture対応の eact-native-mmkv v3 を使用することを前提としている。
+
+### 解決策
+根本的な解決として、React Nativeの **New Architecture (TurboModules/Fabric)** を有効にする方針へ転換。
+
+1. **pp.json 設定:**
+   pp.json のルート配下で 
+ewArchEnabled: true を設定。
+   `json
+   "expo": {
+     "newArchEnabled": true,
+     ...
+   }
+   `
+
+2. **依存関係の更新:**
+   package.json で overrides を削除し、eact-native-mmkv を ^3.2.0 にアップグレード。
+
+### 検証
+- ビルドエラー（Install pods phase）の解消
+- TestFlightでのOAuth認証（JSIエラーの解消）
+
+### ステータス
+- **対応済み** (v1.12)
 

@@ -682,6 +682,12 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - ✅ 全設定ファイルで統一
     - ✅ `@atproto/oauth-client-expo`公式仕様に準拠
 
+### v1.12 (2026-01-11)
+
+- New Architecture (TurboModules) への移行
+  - 症状：Old Architectureでのビルド不整合、JSIエラーの頻発
+  - 対応：`app.json`で`newArchEnabled: true`に設定。`react-native-mmkv`を`^3.2.0`にアップグレードし、`overrides`を削除。
+
 ### v1.11 (2026-01-11)
 
 - Build Configuration修正
