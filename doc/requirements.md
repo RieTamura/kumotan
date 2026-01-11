@@ -481,12 +481,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [x] **react-native-mmkv問題の診断と解決**（2026-01-10）
   - **問題**: TestFlightで「undefined is not a function at _construct」エラー
   - **根本原因**: `@atproto/oauth-client-expo`が依存する`react-native-mmkv`（ネイティブモジュール）がExpo managed workflowで動作しない
-  - **解決策**: Expo Development Buildに移行
+  - **解決策**: Expo Development Buildへの移行、および **New Architecture (TurboModules) の有効化**
   - **実施内容**:
     - `expo-dev-client`をインストール
     - `react-native-mmkv`をインストール（`@atproto/oauth-client-expo`の必須依存関係）
     - `eas.json`に`production-dev`プロファイル追加（developmentClient: true）
     - `.gitignore`に`android/`と`ios/`を追加
+    - **[追加] `expo-build-properties`をインストールし、New Architectureを有効化**（`react-native-mmkv` v3+要件対応）
 - [ ] Development Buildでの実機テスト
   - `eas build --profile production-dev --platform ios`でビルド
   - TestFlightに配信
@@ -680,6 +681,15 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - ✅ application_type: `native`
     - ✅ 全設定ファイルで統一
     - ✅ `@atproto/oauth-client-expo`公式仕様に準拠
+
+### v1.8 (2026-01-11)
+
+- `react-native-mmkv` v4.x 対応のため New Architecture を有効化
+  - 症状：TestFlightでのOAuth認証時にエラー（`react-native-mmkv 3.x.x requires TurboModules`）
+  - 原因：`react-native-mmkv`の新しいバージョンはTurboModules（新アーキテクチャ）が必須だが、Expo SDK 52以前のデフォルトは旧アーキテクチャのため
+  - 対応：
+    - `expo-build-properties`プラグインを追加
+    - `app.json`で`newArchEnabled: true`を設定
 
 ### v1.6 (2026-01-10)
 

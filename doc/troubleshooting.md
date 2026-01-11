@@ -3667,3 +3667,61 @@ YYYY蟷ｴMM譛�DD譌･
 - 繝輔ぃ繧､繝ｫ1
 - 繝輔ぃ繧､繝ｫ2
 ```
+
+---
+
+## 31. TestFlight縺ｧOAuth隱崎ｨｼ譎ゅ↓繧ｨ繝ｩ繝ｼ縺檎匱逕溘☆繧句撫鬘鯉ｼ・MKV / TurboModules・・
+
+### 逋ｺ逕滓律
+2026蟷ｴ1譛・1譌･
+
+### 逞・憾
+- TestFlight縺ｧ繧｢繝励Μ繧定ｵｷ蜍輔＠縲√沓luesky縺ｧ繝ｭ繧ｰ繧､繝ｳ縲阪・繧ｿ繝ｳ繧呈款縺励※繝上Φ繝峨Ν蜷阪ｒ蜈･蜉帙＠縲∬ｪ崎ｨｼ繝輔Ο繝ｼ繧帝幕蟋九＠繧医≧縺ｨ縺吶ｋ縺ｨ縲∽ｻ･荳九・繧ｨ繝ｩ繝ｼ逕ｻ髱｢縺瑚｡ｨ遉ｺ縺輔ｌ繧九・
+  - **繧ｨ繝ｩ繝ｼ繝｡繝・そ繝ｼ繧ｸ**: `Failed to create a new MMKV instance: react-native-mmkv 3.x.x requires TurboModules, but the new architecture is not enabled!`
+  - **隧ｳ邏ｰ**: `Downgrade to react-native-mmkv 2.x.x if you want to stay on the old architecture. Enable the new architecture in your app to use react-native-mmkv 3.x.x.`
+
+### 隱ｿ譟ｻ驕守ｨ・
+
+1. **package.json縺ｮ遒ｺ隱・* - `react-native-mmkv`縺ｮ繝舌・繧ｸ繝ｧ繝ｳ繧堤｢ｺ隱阪＠縺溘→縺薙ｍ縲～^4.1.1`縺後う繝ｳ繧ｹ繝医・繝ｫ縺輔ｌ縺ｦ縺・◆縲・
+2. **繧ｨ繝ｩ繝ｼ繝｡繝・そ繝ｼ繧ｸ縺ｮ蛻・梵** - 繧ｨ繝ｩ繝ｼ繝｡繝・そ繝ｼ繧ｸ縺檎､ｺ縺咎壹ｊ縲√ヰ繝ｼ繧ｸ繝ｧ繝ｳ3莉･髯阪・`react-native-mmkv`縺ｯ縲ヽeact Native縺ｮ譁ｰ縺励＞繧｢繝ｼ繧ｭ繝・け繝√Ε・・urboModules/JSI・峨ｒ蠢・ｦ√→縺吶ｋ縺薙→縺後ｏ縺九▲縺溘・
+3. **繝励Ο繧ｸ繧ｧ繧ｯ繝郁ｨｭ螳壹・遒ｺ隱・* - `app.json`繧Яeas.json`繧堤｢ｺ隱阪＠縺溘′縲¨ew Architecture繧呈怏蜉ｹ縺ｫ縺吶ｋ險ｭ螳壹′蜷ｫ縺ｾ繧後※縺・↑縺九▲縺溘・xpo SDK 52莉･蜑阪・繝・ヵ繧ｩ繝ｫ繝医・譌ｧ繧｢繝ｼ繧ｭ繝・け繝√Ε縺ｧ縺ゅｋ縺溘ａ縲∵・遉ｺ逧・↓譛牙柑蛹悶☆繧句ｿ・ｦ√′縺ゅ▲縺溘・
+
+### 蜴溷屏
+`@atproto/oauth-client-expo`縺御ｾ晏ｭ倥☆繧義react-native-mmkv`縺ｮ繝舌・繧ｸ繝ｧ繝ｳ・・.x・峨′縲ヽeact Native New Architecture (TurboModules) 繧貞ｿ・医→縺励※縺・ｋ縺後√・繝ｭ繧ｸ繧ｧ繧ｯ繝郁ｨｭ螳壹〒New Architecture縺檎┌蜉ｹ縺ｫ縺ｪ縺｣縺ｦ縺・◆縺溘ａ縲・
+
+### 隗｣豎ｺ遲・
+New Architecture繧呈怏蜉ｹ蛹悶☆繧九％縺ｨ縺ｧ蟇ｾ蠢懊＠縺溘・
+
+**1. `expo-build-properties`縺ｮ繧､繝ｳ繧ｹ繝医・繝ｫ:**
+```bash
+npx expo install expo-build-properties
+```
+
+**2. `app.json`縺ｮ險ｭ螳壼､画峩:**
+Plugins繧ｻ繧ｯ繧ｷ繝ｧ繝ｳ縺ｫ`expo-build-properties`縺ｮ險ｭ螳壹ｒ霑ｽ蜉縺励（OS/Android荳｡譁ｹ縺ｧ`newArchEnabled`繧蛋true`縺ｫ險ｭ螳壹・
+
+```json
+"plugins": [
+  "expo-secure-store",
+  "expo-sqlite",
+  [
+    "expo-build-properties",
+    {
+      "ios": {
+        "newArchEnabled": true
+      },
+      "android": {
+        "newArchEnabled": true
+      }
+    }
+  ]
+],
+```
+
+### 髢｢騾｣繝輔ぃ繧､繝ｫ
+- `app.json` - 繝薙Ν繝芽ｨｭ螳・
+- `package.json` - 萓晏ｭ倬未菫・
+
+### 謨呵ｨ・
+- 繝阪う繝・ぅ繝悶Δ繧ｸ繝･繝ｼ繝ｫ繧剃ｽｿ逕ｨ縺吶ｋ繝ｩ繧､繝悶Λ繝ｪ・育音縺ｫ`react-native-mmkv`縺ｪ縺ｩ縺ｮ鬮俶ｧ閭ｽ縺ｪ繧ゅ・・峨・縲ヽeact Native縺ｮ繧｢繝ｼ繧ｭ繝・け繝√Ε・・ld vs New/TurboModules・峨↓萓晏ｭ倥☆繧句ｴ蜷医′縺ゅｋ縲・
+- 繝｡繧ｸ繝｣繝ｼ繝舌・繧ｸ繝ｧ繝ｳ繧｢繝・・譎ゅ↓縺ｯ隕∽ｻｶ・・rchitecture・峨′螟峨ｏ繧九％縺ｨ縺後≠繧九◆繧√√お繝ｩ繝ｼ繝｡繝・そ繝ｼ繧ｸ繧偵ｈ縺剰ｪｭ縺ｿ縲∝ｿ・ｦ√↑險ｭ螳壹ｒ陦後≧縺薙→縲・
