@@ -682,6 +682,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - ✅ 全設定ファイルで統一
     - ✅ `@atproto/oauth-client-expo`公式仕様に準拠
 
+### v1.10 (2026-01-11)
+
+- JSI初期化エラー (`React Native is not running on-device`) の修正
+  - 症状：TestFlightで `Failed to create a new MMKV instance: React Native is not running on-device` エラーが発生
+  - 原因：`app.json` でアーキテクチャ設定が省略されていたため、Expo SDK 54のデフォルト等によりJSIモジュールが正しくロードされなかった
+  - 対応：`expo-build-properties` を設定し、`newArchEnabled: false` を明示的に指定
+
 ### v1.9 (2026-01-11)
 
 - `react-native-mmkv` ネストされた依存関係バージョン競合の解決

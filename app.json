@@ -38,7 +38,17 @@
     "plugins": [
       "expo-secure-store",
       "expo-sqlite",
-      "expo-build-properties"
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": false
+          },
+          "android": {
+            "newArchEnabled": false
+          }
+        }
+      ]
     ],
     "scheme": "io.github.rietamura",
     "extra": {

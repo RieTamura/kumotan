@@ -3787,3 +3787,43 @@ npm ls react-native-mmkv
 ### 関連ファイル
 - `package.json` - overridesフィールド追加
 
+
+---
+
+## 問題32: TestFlightでのJSI初期化エラー (react-native-mmkv)（2026-01-11）
+
+### 症状
+- TestFlightでOAuth認証時にエラーが発生
+- エラーメッセージ:
+  `
+  Failed to create a new MMKV instance: React Native is not running on-device.
+  MMKV can only be used when synchronous method invocations (JSI) are possible.
+  `
+
+### 原因
+eact-native-mmkv v2.x 系を使用しているが、pp.json で New Architecture (TurboModules) の設定が曖昧、またはデフォルトで有効になっていた可能性がある。
+v1.8の修正で config.newArchEnabled を削除したが、Expo SDK 54 環境では expo-build-properties プラグインで明示的に alse を指定しないと、意図しないアーキテクチャ設定となり、JSIモジュールがロードされない場合がある。
+
+### 解決策
+pp.json の plugins セクションで expo-build-properties を設定し、
+ewArchEnabled: false を明示的に指定する。
+
+`json
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": false
+          },
+          "android": {
+            "newArchEnabled": false
+          }
+        }
+      ]
+    ]
+`
+
+### ステータス
+- **修正済み** (v1.10で対応)
+
