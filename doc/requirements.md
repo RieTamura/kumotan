@@ -682,6 +682,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - ✅ 全設定ファイルで統一
     - ✅ `@atproto/oauth-client-expo`公式仕様に準拠
 
+### v1.11 (2026-01-11)
+
+- Build Configuration修正
+  - 症状：v1.10の修正でビルドエラー発生 (Install pods phase)
+  - 原因：Expo SDK 54では`newArchEnabled`設定を`plugins`内ではなく`app.json`ルートに記述する必要があった
+  - 対応：`newArchEnabled: false`を`expo`オブジェクト直下に移動
+
 ### v1.10 (2026-01-11)
 
 - JSI初期化エラー (`React Native is not running on-device`) の修正

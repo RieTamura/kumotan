@@ -35,20 +35,11 @@
       "package": "com.kumotan.app"
     },
     "web": {},
+    "newArchEnabled": false,
     "plugins": [
       "expo-secure-store",
       "expo-sqlite",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "newArchEnabled": false
-          },
-          "android": {
-            "newArchEnabled": false
-          }
-        }
-      ]
+      "expo-build-properties"
     ],
     "scheme": "io.github.rietamura",
     "extra": {
