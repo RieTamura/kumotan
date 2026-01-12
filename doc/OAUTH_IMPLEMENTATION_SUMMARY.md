@@ -648,3 +648,187 @@ completeOAuth: async (callbackUrl: string) => {
 ### まとめ
 
 **Expo SDK 54の制約により、ExpoOAuthClientは使用不可**と判断しました。既存のカスタムOAuth実装に戻すことで、短期間で動作するOAuth認証を実装します。AT Protocol仕様への完全準拠は将来的な課題として、まずは動作する実装を優先します。
+
+---
+
+## Phase 4-5: react-native-mmkv v4へのアップグレード成功
+
+**作成日**: 2026-01-12
+**ステータス**: mmkv v4へのアップグレード完了、TestFlightテスト待ち
+
+### 新たな発見
+
+コミュニティからの情報提供により、react-native-mmkv v4.0.0以降で**Old Architectureサポートが復活**していることが判明しました。
+
+### react-native-mmkv v4の重要な変更点
+
+#### v3からv4での主要な改善
+
+1. **アーキテクチャサポート**
+   - v3: New Architecture (TurboModules) **必須**
+   - v4: **Old/New両対応**（Nitroフレームワークへの書き換え）
+   - React Native 0.76以降: New Architecture
+   - React Native 0.82以下: Old Architecture
+
+2. **Nitro Modulesの導入**
+   - 新しいネイティブモジュールシステム
+   - `react-native-nitro-modules` が必須依存関係
+   - より安定したJSI実装
+
+3. **ネイティブ統合の改善**
+   - MMKVCoreをCocoaPods/Gradleから取得
+   - 重複シンボルエラーの解消
+   - ネイティブコードからの直接使用が可能に
+
+### 実施した対応
+
+#### 1. パッケージのアップグレード
+
+```bash
+# 非推奨パッケージを削除
+npm uninstall @aquareum/atproto-oauth-client-react-native
+
+# mmkv v4とnitro-modulesをインストール
+npm install react-native-mmkv@4.1.1 react-native-nitro-modules
+```
+
+#### 2. npm overridesの設定
+
+`@atproto/oauth-client-expo` がmmkv v3.3.3に依存しているため、npm overridesで強制的にv4を使用:
+
+**package.json**:
+```json
+{
+  "overrides": {
+    "react-native-mmkv": "4.1.1"
+  }
+}
+```
+
+#### 3. クリーンインストール
+
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**結果**:
+```
+@atproto/oauth-client-expo@0.0.7
+└── react-native-mmkv@4.1.1 overridden
+```
+
+#### 4. ネイティブコードの再生成
+
+```bash
+npx expo prebuild --clean
+```
+
+**結果**: ✅ 成功（androidディレクトリ生成完了）
+
+### 技術的詳細
+
+#### mmkv v4とExpo SDK 54の互換性
+
+| 項目 | v3 | v4 |
+|------|----|----|
+| New Architecture | 必須 | オプション |
+| Old Architecture | ❌ | ✅ |
+| Expo SDK 54 | 動作しない | **動作する可能性** |
+| nitro-modules | 不要 | 必須 |
+| React Native 0.81.5 | 非対応 | **対応** |
+
+#### アーキテクチャの選択
+
+Expo SDK 54 (React Native 0.81.5) では:
+- New Architectureはまだ実験的
+- Old Architectureが安定版
+- mmkv v4はOld Architectureで動作
+
+### 期待される結果
+
+#### 解決される問題
+
+1. **JSI初期化エラー**
+   ```
+   [ERROR] React Native is not running on-device.
+   MMKV can only be used when synchronous method invocations (JSI) are possible.
+   ```
+   → mmkv v4のOld Architecture対応で解決
+
+2. **Constructor未定義エラー**
+   ```
+   [ERROR] undefined is not a function
+   at construct (native)
+   ```
+   → Nitro Modulesの安定したJSI実装で解決
+
+#### ExpoOAuthClientの動作
+
+- ✅ mmkv v4のストレージ機能を使用
+- ✅ Old ArchitectureでJSI実行
+- ✅ DPoP、PAR、DID解決などAT Protocol仕様準拠
+- ✅ 既存の実装コード（oauth-client.ts）をそのまま使用可能
+
+### 次のステップ
+
+#### Phase 4-6: TestFlightビルドとテスト
+
+1. **EASビルド実行**
+   ```bash
+   eas build --platform ios --profile production
+   ```
+
+2. **TestFlightでの検証項目**
+   - OAuth認証フロー完全テスト
+     - ハンドル入力 → ブラウザ起動
+     - Blueskyログイン → アプリ復帰
+     - セッション確立確認
+   - MMKV初期化エラーが発生しないこと
+   - セッション復元テスト
+   - エラーハンドリング確認
+
+3. **成功した場合**
+   - M2.6完了
+   - M3（ベータリリース）へ進む
+   - 公式ライブラリ使用のメリットを享受
+
+4. **失敗した場合のフォールバック**
+   - カスタムOAuth実装（AsyncStorageベース）に切り替え
+   - AT Protocol完全準拠は将来の課題
+
+### ファイル変更サマリー
+
+#### 修正
+
+- `package.json`:
+  - `react-native-mmkv: ^4.1.1` を削除（overridesで管理）
+  - `react-native-nitro-modules: ^0.32.1` を追加
+  - `overrides` セクションを追加
+
+#### 変更なし
+
+- `src/services/bluesky/oauth-client.ts`: 既存の実装をそのまま使用
+- `src/services/bluesky/auth.ts`: ExpoOAuthClient統合済み
+- `src/store/authStore.ts`: OAuth関数実装済み
+- `app.json`: OAuth設定済み
+
+### 参考資料
+
+- [react-native-mmkv v4.0.0 Release Notes](https://github.com/mrousavy/react-native-mmkv/releases/tag/v4.0.0)
+- [react-native-mmkv v4.1.1 Release Notes](https://github.com/mrousavy/react-native-mmkv/releases/tag/v4.1.1)
+- [Nitro Modules Documentation](https://github.com/mrousavy/nitro)
+- [@atproto/oauth-client-expo npm](https://www.npmjs.com/package/@atproto/oauth-client-expo)
+
+### 所感
+
+react-native-mmkv v4の**Old Architectureサポート復活**は、Expo managed workflowユーザーにとって大きな朗報です。これにより:
+
+1. **公式ライブラリの使用**: カスタム実装不要
+2. **AT Protocol完全準拠**: DPoP、PAR、DID解決など
+3. **保守性の向上**: 公式アップデートに追従可能
+4. **セキュリティの確保**: 暗号化・検証ロジックが正しく実装済み
+
+mmkv v3で動作しなかった理由（New Architecture必須）が、v4で解消されたことで、当初のPhase 4計画（ExpoOAuthClient使用）が実現可能になりました。
+
+TestFlightテストでの動作確認が最後のステップです。
