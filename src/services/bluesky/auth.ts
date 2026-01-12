@@ -480,42 +480,37 @@ export async function getProfile(actor?: string): Promise<Result<BlueskyProfile,
 const USER_DID_STORAGE_KEY = '@kumotan:user_did';
 
 /**
- * Start OAuth authentication flow using custom implementation
- * Note: Changed from @atproto/oauth-client-expo to avoid react-native-mmkv dependency
+ * Start OAuth authentication flow using @atproto/oauth-client-expo
+ * Note: Now using official library after upgrading to react-native-mmkv v4
  * @param handle - Bluesky handle (e.g., user.bsky.social)
- * @returns Success status (browser opens, callback handled by completeOAuthFlow)
+ * @returns Success status (session established)
  */
 export async function startOAuthFlow(
   handle: string
 ): Promise<Result<void, AppError>> {
   try {
-    oauthLogger.info('Starting OAuth flow with custom implementation', { handle });
+    oauthLogger.info('Starting OAuth flow with ExpoOAuthClient', { handle });
     console.log('[OAuth] Starting OAuth flow for handle:', handle);
 
-    // 1. Generate PKCE challenge
-    const { verifier, challenge } = await generatePKCEChallenge();
-    oauthLogger.info('PKCE challenge generated');
+    // Get OAuth client instance
+    const { getOAuthClient } = await import('./oauth-client');
+    const oauthClient = getOAuthClient();
+    console.log('[OAuth] OAuth client initialized, calling signIn...');
 
-    // 2. Generate state for CSRF protection
-    const state = await generateState();
-    oauthLogger.info('OAuth state generated');
+    // Start OAuth sign-in flow (opens browser automatically)
+    const session = await oauthClient.signIn(handle, {
+      signal: new AbortController().signal,
+    });
 
-    // 3. Store OAuth state (AsyncStorage)
-    await saveOAuthState({ state, codeVerifier: verifier, handle });
-    oauthLogger.info('OAuth state stored');
-    console.log('[OAuth] OAuth state stored');
+    console.log('[OAuth] Sign-in successful, session established');
+    oauthLogger.info('OAuth sign-in successful');
 
-    // 4. Build authorization URL
-    const authUrl = buildAuthorizationUrl(handle, challenge, state);
-    oauthLogger.info('Authorization URL built');
-
-    // 5. Open browser
-    oauthLogger.info('Opening browser');
-    console.log('[OAuth] Opening browser with auth URL');
-    await Linking.openURL(authUrl);
-
-    if (__DEV__) {
-      console.log('[OAuth] Browser opened successfully');
+    // Store session data
+    if (session) {
+      const { did } = session;
+      await SecureStore.setItemAsync(STORAGE_KEYS.DID, did);
+      await SecureStore.setItemAsync(STORAGE_KEYS.HANDLE, handle);
+      oauthLogger.info('Session data stored');
     }
 
     return { success: true, data: undefined };
@@ -524,7 +519,7 @@ export async function startOAuthFlow(
 
     // Log detailed error information
     oauthLogger.error('OAuth flow error', { error: errorMessage });
-    console.error('[OAuth] OAuth flow error:', errorMessage);
+    console.log('[OAuth] OAuth flow error:', errorMessage);
 
     // Check for user cancellation
     if (errorMessage.includes('cancelled') || errorMessage.includes('dismissed')) {

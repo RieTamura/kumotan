@@ -832,3 +832,118 @@ react-native-mmkv v4の**Old Architectureサポート復活**は、Expo managed 
 mmkv v3で動作しなかった理由（New Architecture必須）が、v4で解消されたことで、当初のPhase 4計画（ExpoOAuthClient使用）が実現可能になりました。
 
 TestFlightテストでの動作確認が最後のステップです。
+
+---
+
+## Phase 4-6: ExpoOAuthClientへの切り替え完了
+
+**作成日**: 2026-01-12
+**ステータス**: カスタム実装からExpoOAuthClientに切り替え完了
+
+### 問題の特定
+
+TestFlightテストで以下のエラーが発生:
+```
+送信データが正しくありません。フォームをチェックしてもう一度お試しください。
+```
+
+**根本原因**:
+- カスタムOAuth実装が AT Protocol の OAuth仕様に完全準拠していなかった
+- AT Protocol OAuth には以下が必須:
+  1. **PAR (Pushed Authorization Request)**: 認証リクエストをサーバーにプッシュ
+  2. **DPoP (Demonstrating Proof-of-Possession)**: トークンの所有証明
+  3. **Dynamic PDS Discovery**: ユーザーのハンドルからPDSを動的に解決
+  4. **Client Metadata**: 公開されたクライアントメタデータJSON
+
+- カスタム実装 (`buildAuthorizationUrl()`) は単純なURLパラメータ組み立てのみ
+- Blueskyサーバーがリクエストを拒否
+
+### 実施した修正
+
+#### auth.ts の `startOAuthFlow()` 関数を変更
+
+**Before** (カスタム実装):
+```typescript
+// 1. PKCE challenge生成
+// 2. State生成
+// 3. AsyncStorageに保存
+// 4. URL組み立て
+// 5. Linking.openURL()
+```
+
+**After** (ExpoOAuthClient使用):
+```typescript
+// Get OAuth client instance
+const { getOAuthClient } = await import('./oauth-client');
+const oauthClient = getOAuthClient();
+
+// Start OAuth sign-in flow (完全な認証フロー)
+const session = await oauthClient.signIn(handle, {
+  signal: new AbortController().signal,
+});
+
+// Store session data
+await SecureStore.setItemAsync(STORAGE_KEYS.DID, session.did);
+await SecureStore.setItemAsync(STORAGE_KEYS.HANDLE, handle);
+```
+
+**ExpoOAuthClient.signIn() が処理すること**:
+1. ✅ DID解決（handle → DID → PDS）
+2. ✅ Client Metadata取得
+3. ✅ PAR (Pushed Authorization Request)
+4. ✅ ブラウザ起動 (`expo-web-browser`)
+5. ✅ DPoP証明生成
+6. ✅ トークン交換
+7. ✅ セッション確立
+
+### メリット
+
+1. **AT Protocol完全準拠**
+   - PAR、DPoP、動的PDS解決などすべて自動処理
+   - Blueskyサーバーが受け入れる正しい認証フロー
+
+2. **コード量削減**
+   - カスタム実装（100行以上）→ ExpoOAuthClient（10行）
+   - PKCE、State、URL構築などの手動実装が不要
+
+3. **保守性向上**
+   - AT Protocol仕様変更に公式ライブラリが追従
+   - カスタム実装のバグリスクが消滅
+
+4. **セキュリティ強化**
+   - DPoP によるトークン横取り防止
+   - PAR によるリクエスト改ざん防止
+
+### 削除可能なコード
+
+以下のカスタムOAuth実装は不要になりました（後で削除検討）:
+- `src/services/bluesky/oauth.ts` の `buildAuthorizationUrl()`
+- `src/services/bluesky/oauth.ts` の `storeOAuthState()`
+- `src/services/bluesky/oauth.ts` の `exchangeCodeForTokens()`
+- `src/services/bluesky/auth.ts` の `completeOAuthFlow()`
+
+### 変更ファイル
+
+- `src/services/bluesky/auth.ts`:
+  - `startOAuthFlow()`: カスタム実装 → ExpoOAuthClient.signIn() に変更
+  - コメント更新: mmkv v4へのアップグレードを反映
+
+### 次のステップ
+
+1. TestFlightビルド再実行
+2. OAuth認証フローの動作確認
+3. エラー「送信データが正しくありません」が解消されることを確認
+
+### 期待される結果
+
+- ✅ AT Protocol完全準拠のOAuth認証
+- ✅ Blueskyサーバーが正常にリクエストを受け入れる
+- ✅ ブラウザ → ログイン → アプリ復帰 → セッション確立
+- ✅ mmkv v4で安定動作
+
+### トラブルシューティング
+
+もし `ExpoOAuthClient.signIn()` でエラーが発生した場合:
+1. mmkvの初期化エラー → Phase 4-5で解決済み
+2. Client Metadata 404 → GitHub Pagesの設定確認
+3. ブラウザが開かない → expo-web-browser の権限確認
