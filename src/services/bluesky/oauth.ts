@@ -4,6 +4,7 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generatePKCEChallenge as generatePKCE, generateState as generateRandomState } from '../../utils/pkce';
 import { PKCEChallenge, OAuthState, OAuthTokenResponse, BlueskySession } from '../../types/bluesky';
 import { STORAGE_KEYS, API, OAUTH, TIMEOUT } from '../../constants/config';
@@ -11,6 +12,9 @@ import { Result } from '../../types/result';
 import { AppError, ErrorCode } from '../../utils/errors';
 import { getAgent } from './auth';
 import { storeAuth } from './auth';
+
+// AsyncStorage key for OAuth state
+const OAUTH_STATE_KEY = '@kumotan:oauth_state';
 
 /**
  * Generate PKCE challenge for OAuth flow
@@ -30,13 +34,15 @@ export async function generateState(): Promise<string> {
 
 /**
  * Build OAuth authorization URL
- * @param state - Random state for CSRF protection
+ * @param handle - Bluesky handle (e.g., user.bsky.social)
  * @param codeChallenge - PKCE code challenge
+ * @param state - Random state for CSRF protection
  * @returns Authorization URL
  */
 export function buildAuthorizationUrl(
-  state: string,
-  codeChallenge: string
+  handle: string,
+  codeChallenge: string,
+  state: string
 ): string {
   const params = new URLSearchParams({
     response_type: OAUTH.RESPONSE_TYPE,
@@ -46,70 +52,51 @@ export function buildAuthorizationUrl(
     state,
     code_challenge: codeChallenge,
     code_challenge_method: OAUTH.CODE_CHALLENGE_METHOD,
+    // AT Protocol requires login_hint with the handle
+    login_hint: handle,
   });
 
   return `${API.BLUESKY.OAUTH.AUTHORIZE}?${params.toString()}`;
 }
 
 /**
- * Store OAuth state securely
- * @param state - State parameter
- * @param codeVerifier - PKCE code verifier
+ * Store OAuth state in AsyncStorage
+ * Note: Changed from SecureStore to AsyncStorage to avoid react-native-mmkv dependency
+ * @param data - OAuth state data including state, codeVerifier, and handle
  */
-export async function storeOAuthState(
-  state: string,
-  codeVerifier: string
-): Promise<void> {
-  const oauthState: OAuthState = {
-    state,
-    codeVerifier,
+export async function storeOAuthState(data: {
+  state: string;
+  codeVerifier: string;
+  handle: string;
+}): Promise<void> {
+  const oauthState: OAuthState & { handle: string } = {
+    state: data.state,
+    codeVerifier: data.codeVerifier,
+    handle: data.handle,
     timestamp: Date.now(),
   };
 
-  await SecureStore.setItemAsync(
-    STORAGE_KEYS.OAUTH_STATE,
-    JSON.stringify(oauthState)
-  );
+  await AsyncStorage.setItem(OAUTH_STATE_KEY, JSON.stringify(oauthState));
 }
 
 /**
- * Retrieve and verify OAuth state
- * @param receivedState - State parameter received from callback
- * @returns Code verifier if state is valid, null otherwise
+ * Retrieve OAuth state from AsyncStorage
+ * Note: Changed from SecureStore to AsyncStorage to avoid react-native-mmkv dependency
+ * @returns OAuth state data (state, codeVerifier, handle) or null if not found
  */
-export async function retrieveOAuthState(
-  receivedState: string
-): Promise<Result<string, AppError>> {
+export async function retrieveOAuthState(): Promise<{
+  state: string;
+  codeVerifier: string;
+  handle: string;
+} | null> {
   try {
-    const storedStateJson = await SecureStore.getItemAsync(
-      STORAGE_KEYS.OAUTH_STATE
-    );
+    const storedStateJson = await AsyncStorage.getItem(OAUTH_STATE_KEY);
 
     if (!storedStateJson) {
-      return {
-        success: false,
-        error: new AppError(
-          ErrorCode.AUTH_FAILED,
-          'OAuth state not found. Please restart the login process.'
-        ),
-      };
+      return null;
     }
 
-    const storedState: OAuthState = JSON.parse(storedStateJson);
-
-    // Verify state matches (CSRF protection)
-    if (storedState.state !== receivedState) {
-      // Clear invalid state
-      await clearOAuthState();
-
-      return {
-        success: false,
-        error: new AppError(
-          ErrorCode.AUTH_FAILED,
-          'Invalid state parameter. Possible CSRF attack detected.'
-        ),
-      };
-    }
+    const storedState: OAuthState & { handle: string } = JSON.parse(storedStateJson);
 
     // Check if state is not too old (15 minutes)
     const STATE_EXPIRY_MS = 15 * 60 * 1000;
@@ -117,42 +104,28 @@ export async function retrieveOAuthState(
 
     if (isExpired) {
       await clearOAuthState();
-
-      return {
-        success: false,
-        error: new AppError(
-          ErrorCode.TOKEN_EXPIRED,
-          'OAuth state expired. Please restart the login process.'
-        ),
-      };
+      return null;
     }
 
-    // Clear state after successful retrieval (one-time use)
-    await clearOAuthState();
-
-    return { success: true, data: storedState.codeVerifier };
+    return {
+      state: storedState.state,
+      codeVerifier: storedState.codeVerifier,
+      handle: storedState.handle,
+    };
   } catch (error) {
     if (__DEV__) {
       console.error('Failed to retrieve OAuth state:', error);
     }
-
-    return {
-      success: false,
-      error: new AppError(
-        ErrorCode.AUTH_FAILED,
-        'Failed to retrieve OAuth state.',
-        error
-      ),
-    };
+    return null;
   }
 }
 
 /**
- * Clear stored OAuth state
+ * Clear stored OAuth state from AsyncStorage
  */
 export async function clearOAuthState(): Promise<void> {
   try {
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.OAUTH_STATE);
+    await AsyncStorage.removeItem(OAUTH_STATE_KEY);
   } catch (error) {
     if (__DEV__) {
       console.error('Failed to clear OAuth state:', error);
@@ -164,11 +137,13 @@ export async function clearOAuthState(): Promise<void> {
  * Exchange authorization code for tokens
  * @param code - Authorization code from callback
  * @param codeVerifier - PKCE code verifier
+ * @param handle - Bluesky handle for session creation
  * @returns Access and refresh tokens
  */
 export async function exchangeCodeForTokens(
   code: string,
-  codeVerifier: string
+  codeVerifier: string,
+  handle: string
 ): Promise<Result<OAuthTokenResponse, AppError>> {
   try {
     const body = new URLSearchParams({
@@ -385,113 +360,3 @@ export function parseCallbackUrl(url: string): Result<
   }
 }
 
-/**
- * Start OAuth flow
- * Generates PKCE challenge, stores state, and returns authorization URL
- * @returns Authorization URL to open in browser
- */
-export async function startOAuthFlow(): Promise<Result<string, AppError>> {
-  try {
-    // Generate PKCE challenge
-    const { verifier, challenge } = await generatePKCEChallenge();
-
-    // Generate state for CSRF protection
-    const state = await generateState();
-
-    // Store state and verifier securely
-    await storeOAuthState(state, verifier);
-
-    // Build authorization URL
-    const authUrl = buildAuthorizationUrl(state, challenge);
-
-    if (__DEV__) {
-      console.log('OAuth flow started');
-    }
-
-    return { success: true, data: authUrl };
-  } catch (error) {
-    if (__DEV__) {
-      console.error('Failed to start OAuth flow:', error);
-    }
-
-    return {
-      success: false,
-      error: new AppError(
-        ErrorCode.AUTH_FAILED,
-        'Failed to start OAuth flow',
-        error
-      ),
-    };
-  }
-}
-
-/**
- * Complete OAuth flow
- * Handles callback, validates state, and exchanges code for tokens
- * @param callbackUrl - Deep link URL from OAuth callback
- * @returns OAuth tokens
- */
-export async function completeOAuthFlow(
-  callbackUrl: string
-): Promise<Result<BlueskySession, AppError>> {
-  try {
-    // Parse callback URL
-    const parseResult = parseCallbackUrl(callbackUrl);
-    if (!parseResult.success) {
-      return parseResult;
-    }
-
-    const { code, state } = parseResult.data;
-
-    // Retrieve and validate state
-    const stateResult = await retrieveOAuthState(state);
-    if (!stateResult.success) {
-      return stateResult;
-    }
-
-    const codeVerifier = stateResult.data;
-
-    // Exchange code for tokens
-    const tokensResult = await exchangeCodeForTokens(code, codeVerifier);
-    if (!tokensResult.success) {
-      return tokensResult;
-    }
-
-    const tokens = tokensResult.data;
-
-    // Store tokens and create session using auth service
-    const sessionResult = await storeTokensAndCreateSession(
-      tokens.access_token,
-      tokens.refresh_token
-    );
-
-    if (!sessionResult.success) {
-      return sessionResult;
-    }
-
-    // Clear OAuth state after successful completion
-    await clearOAuthState();
-
-    if (__DEV__) {
-      console.log('OAuth flow completed successfully');
-    }
-
-    return sessionResult;
-  } catch (error) {
-    if (__DEV__) {
-      console.error('Failed to complete OAuth flow:', error);
-    }
-
-    // Ensure state is cleared on error
-    await clearOAuthState();
-
-    return {
-      success: false,
-      error: new AppError(
-        ErrorCode.AUTH_FAILED,
-        'Failed to complete OAuth flow',
-        error
-      ),
-    };
-  }
-}

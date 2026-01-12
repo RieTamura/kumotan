@@ -27,6 +27,7 @@ interface AuthState {
   // Actions
   login: (identifier: string, appPassword: string) => Promise<Result<void, AppError>>;
   loginWithOAuth: (handle: string) => Promise<Result<void, AppError>>;
+  completeOAuth: (callbackUrl: string) => Promise<Result<void, AppError>>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
   resumeSession: () => Promise<Result<void, AppError>>;
@@ -82,21 +83,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /**
-   * Login with OAuth
-   * Uses @atproto/oauth-client-expo for authentication
+   * Login with OAuth - Start OAuth flow
+   * Note: Changed from @atproto/oauth-client-expo to custom implementation
+   * Opens browser for authentication, completeOAuth handles the callback
    */
   loginWithOAuth: async (handle: string) => {
     set({ isLoading: true, error: null });
 
     const result = await AuthService.startOAuthFlow(handle);
 
-    if (result.success && result.data.session) {
+    if (result.success) {
+      // OAuth flow started successfully - browser opened
+      // Keep loading state true until completeOAuth is called
+      return { success: true, data: undefined };
+    } else {
+      // Failed to start OAuth flow
+      set({
+        isAuthenticated: false,
+        isLoading: false,
+        user: null,
+        error: result.error,
+      });
+      return result;
+    }
+  },
+
+  /**
+   * Complete OAuth flow after callback
+   * Called when app receives deep link callback from OAuth provider
+   */
+  completeOAuth: async (callbackUrl: string) => {
+    // Keep loading state from loginWithOAuth
+    set({ error: null });
+
+    const result = await AuthService.completeOAuthFlow(callbackUrl);
+
+    if (result.success) {
       set({
         isAuthenticated: true,
         isLoading: false,
         user: {
-          handle: result.data.session.handle,
-          did: result.data.session.did,
+          handle: result.data.handle,
+          did: result.data.did,
         },
         error: null,
       });
@@ -105,22 +133,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       get().fetchProfile();
 
       return { success: true, data: undefined };
-    } else if (result.success && result.data.cancelled) {
-      // User cancelled authentication
-      set({
-        isLoading: false,
-        error: null,
-      });
-      return { success: false, error: new AppError(ErrorCode.AUTH_FAILED, 'ログインがキャンセルされました。') };
     } else {
-      const error = result.success ? new AppError(ErrorCode.AUTH_FAILED, 'ログインに失敗しました。') : result.error;
       set({
         isAuthenticated: false,
         isLoading: false,
         user: null,
-        error,
+        error: result.error,
       });
-      return { success: false, error };
+      return result;
     }
   },
 

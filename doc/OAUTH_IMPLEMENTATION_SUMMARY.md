@@ -339,3 +339,312 @@ Phase 4完了後:
 - **開発効率**: 手動実装の1/10の工数で完了
 
 手動実装したPhase 1-3 (PKCE, oauth.ts) はテストとして残し、実際のOAuth処理は公式SDKに任せるアプローチが最適です。
+
+---
+
+## Phase 4-4: TestFlightエラー発生と根本原因分析
+
+**作成日**: 2026-01-11
+**ステータス**: Phase 4-4でブロック（react-native-mmkv問題）
+
+### 発生したエラー
+
+TestFlightでOAuth認証を試行した際、以下のエラーが発生:
+
+```
+[2026-01-11T08:52:00] [ERROR] React Native is not running on-device.
+MMKV can only be used when synchronous method invocations (JSI) are possible.
+
+[2026-01-11T10:15:04] [ERROR] undefined is not a function
+at construct (native)
+```
+
+### 根本原因の特定
+
+#### 1. 依存関係の確認
+
+```bash
+$ npm ls react-native-mmkv
+kumotan@1.0.0
+├─┬ @atproto/oauth-client-expo@0.0.7
+│ └── react-native-mmkv@3.3.3 deduped
+└── react-native-mmkv@3.3.3
+```
+
+**問題**: `react-native-mmkv` v3.3.3がインストールされている
+
+#### 2. react-native-mmkv v3の要件
+
+- **New Architecture (TurboModules) が必須**
+- Expo SDK 54のmanaged workflowでは不完全
+- `@atproto/oauth-client-expo@0.0.7`が依存している
+
+#### 3. エラーの意味
+
+1. **JSI未初期化エラー** (08:52-08:53):
+   - Old ArchitectureでMMKV v3を使用しようとして失敗
+   - JSI（JavaScript Interface）が正しく初期化されていない
+
+2. **Constructor未定義エラー** (10:15):
+   - New Architecture有効だがTurboModulesが未登録
+   - `at construct (native)` → JSIは動作
+   - `undefined is not a function` → ネイティブコンストラクタが見つからない
+
+#### 4. Expo SDK 54の制約
+
+- `newArchEnabled: true`設定は存在するが、実装が不完全
+- Development Build (`production-dev`)でも同じエラー
+- Expo managed workflowではTurboModulesの完全サポートがない
+
+### 試行した解決策（失敗）
+
+#### 試行1: production-devプロファイルでビルド
+
+**仮説**: 通常の`production`ビルドではなくDevelopment Buildが必要
+
+**結果**: ❌ 同じエラーが発生
+
+**理由**: ビルドプロファイルの問題ではなく、Expo SDK自体の制約
+
+#### 試行2: react-native-mmkv v2へダウングレード
+
+**仮説**: v2はOld/New両対応で動作する
+
+**問題**: `@atproto/oauth-client-expo`がv3.3.3を要求してインストールされる
+
+**結果**: ❌ npm overridesで強制してもビルドエラー
+
+### 決定事項: ExpoOAuthClientを使わない
+
+#### 理由
+
+1. **@atproto/oauth-client-expoの制約**:
+   - react-native-mmkv v3に依存
+   - mmkv v3はExpo SDK 54で動作しない
+   - Expo SDK 55以降まで待つ必要がある
+
+2. **既存の実装が存在**:
+   - `src/services/bluesky/oauth.ts`: カスタムOAuth実装
+   - PKCE、State管理、トークン交換が実装済み
+   - AsyncStorageで動作可能
+
+3. **時間的制約**:
+   - TestFlightテストが進められない
+   - M2.6完了が遅延している
+   - 実用的な解決策が必要
+
+## 新しい実装計画：カスタムOAuth実装への切り替え
+
+### 解決策の概要
+
+**ExpoOAuthClientを使用せず、既存のカスタム実装に戻す**
+
+- ✅ mmkvへの依存を削除
+- ✅ AsyncStorageでOAuth state管理
+- ✅ 既存コード（oauth.ts）を再利用
+- ✅ Expo managed workflowで動作
+
+### 実装変更点
+
+#### 1. oauth-client.tsの無効化
+
+**現在**:
+
+```typescript
+import { ExpoOAuthClient } from '@atproto/oauth-client-expo';
+const oauthClientInstance = new ExpoOAuthClient({...});
+```
+
+**変更後**:
+
+```typescript
+// ExpoOAuthClient を使用しない
+// カスタム実装（oauth.ts）に切り替え
+```
+
+#### 2. auth.tsの修正
+
+**startOAuthFlow()をカスタム実装に変更**:
+
+```typescript
+import { startOAuthFlow as customOAuthFlow } from './oauth';
+
+export async function startOAuthFlow(handle: string): Promise<Result<void, AppError>> {
+  try {
+    // 1. PKCE challenge生成
+    const { codeVerifier, codeChallenge } = await generatePKCEChallenge();
+    const state = generateState();
+
+    // 2. OAuth state保存 (AsyncStorage)
+    await storeOAuthState({ state, codeVerifier, handle });
+
+    // 3. 認証URL構築
+    const authUrl = await buildAuthorizationUrl(handle, codeChallenge, state);
+
+    // 4. ブラウザを開く
+    await Linking.openURL(authUrl);
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    return { success: false, error: createAppError(error, ErrorCode.OAUTH_ERROR) };
+  }
+}
+```
+
+#### 3. OAuth stateストレージ（AsyncStorage）
+
+**oauth.tsに追加**:
+
+```typescript
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const OAUTH_STATE_KEY = '@kumotan:oauth_state';
+
+export async function storeOAuthState(state: OAuthState): Promise<void> {
+  await AsyncStorage.setItem(OAUTH_STATE_KEY, JSON.stringify(state));
+}
+
+export async function retrieveOAuthState(): Promise<OAuthState | null> {
+  const stored = await AsyncStorage.getItem(OAUTH_STATE_KEY);
+  return stored ? JSON.parse(stored) : null;
+}
+
+export async function clearOAuthState(): Promise<void> {
+  await AsyncStorage.removeItem(OAUTH_STATE_KEY);
+}
+```
+
+#### 4. Deep Linkハンドラー復活
+
+**App.tsx**:
+
+```typescript
+useEffect(() => {
+  const handleDeepLink = async (event: { url: string }) => {
+    if (event.url.startsWith('io.github.rietamura:/')) {
+      const authStore = useAuthStore.getState();
+      await authStore.completeOAuth(event.url);
+    }
+  };
+
+  const subscription = Linking.addEventListener('url', handleDeepLink);
+
+  Linking.getInitialURL().then((url) => {
+    if (url) handleDeepLink({ url });
+  });
+
+  return () => subscription.remove();
+}, []);
+```
+
+#### 5. authStore.tsの修正
+
+**completeOAuth()実装**:
+
+```typescript
+completeOAuth: async (callbackUrl: string) => {
+  try {
+    // 1. URLからcodeとstate取得
+    const { code, state } = parseCallbackUrl(callbackUrl);
+
+    // 2. 保存されたstateを検証
+    const storedState = await retrieveOAuthState();
+    if (!storedState || storedState.state !== state) {
+      throw new Error('Invalid OAuth state');
+    }
+
+    // 3. トークン交換
+    const tokens = await exchangeCodeForTokens(
+      code,
+      storedState.codeVerifier,
+      storedState.handle
+    );
+
+    // 4. トークン保存
+    await storeAuth(tokens);
+
+    // 5. OAuth state削除
+    await clearOAuthState();
+
+    set({
+      isAuthenticated: true,
+      user: { handle: tokens.handle, did: tokens.did },
+    });
+  } catch (error) {
+    console.error('[OAuth] Complete flow error:', error);
+    set({ error: createAppError(error, ErrorCode.OAUTH_ERROR) });
+  }
+}
+```
+
+### 変更ファイル一覧
+
+#### 修正が必要
+
+1. `src/services/bluesky/oauth.ts` - AsyncStorage統合
+2. `src/services/bluesky/auth.ts` - カスタムOAuth実装に切り替え
+3. `src/store/authStore.ts` - completeOAuth実装
+4. `App.tsx` - Deep Linkハンドラー復活
+5. `doc/requirements.md` - v1.13変更履歴
+
+#### 削除可能（オプション）
+
+- `src/services/bluesky/oauth-client.ts` - 使用されなくなる
+
+#### 変更不要
+
+- `package.json` - @atproto/oauth-client-expoは残してOK
+- `app.json` - newArchEnabled設定は保持
+- `eas.json` - ビルド設定は正しい
+
+### 技術的トレードオフ
+
+#### メリット
+
+- ✅ **即座に動作**: mmkvの問題を完全回避
+- ✅ **既存コード再利用**: oauth.tsが既に存在
+- ✅ **安定性**: AsyncStorageは枯れた技術
+- ✅ **開発効率**: 3時間で実装完了予定
+
+#### デメリット
+
+- ❌ **AT Protocol仕様準拠**: DPoP未実装
+- ❌ **保守性**: プロトコル変更への対応が必要
+- ❌ **セキュリティ**: 手動実装のリスク
+
+### フォールバックプラン
+
+#### もし失敗した場合
+
+1. **OAuth機能を一時無効化**
+   - App Password専用版としてリリース
+   - M2.6を延期してM3で再挑戦
+
+2. **Expo SDK 55を待つ**
+   - New Architectureサポートが改善される可能性
+   - ExpoOAuthClient再導入
+
+3. **React Native CLIに移行**
+   - 最終手段（工数大）
+
+### 工数見積もり
+
+| タスク | 見積時間 |
+|--------|---------|
+| 既存実装確認 | 15分 |
+| コード修正 | 90分 |
+| ローカルテスト | 30分 |
+| TestFlightビルド | 30分 |
+| ドキュメント更新 | 15分 |
+| **合計** | **3時間** |
+
+### 次のアクション
+
+1. カスタムOAuth実装に切り替え
+2. AsyncStorageでstate管理
+3. TestFlightで動作確認
+4. 成功すればM2.6完了
+
+### まとめ
+
+**Expo SDK 54の制約により、ExpoOAuthClientは使用不可**と判断しました。既存のカスタムOAuth実装に戻すことで、短期間で動作するOAuth認証を実装します。AT Protocol仕様への完全準拠は将来的な課題として、まずは動作する実装を優先します。

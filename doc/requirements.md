@@ -652,11 +652,38 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年1月10日
-**バージョン**: 1.7
+**最終更新日**: 2026年1月12日
+**バージョン**: 1.13
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.13 (2026-01-12)
+
+- TestFlight OAuth認証エラーの根本的解決（カスタムOAuth実装への移行）
+  - 症状：TestFlight環境で `undefined is not a function at construct (native)` エラーが発生
+  - 根本原因：
+    - `@atproto/oauth-client-expo` が `react-native-mmkv` v3に依存
+    - mmkv v3はNew Architecture（TurboModules）が必須
+    - Expo SDK 54のmanaged workflowではTurboModules実装が不完全
+    - v1.8-v1.12の対応（Old/New Architecture切り替え、mmkvバージョン変更）では解決不可
+  - 対応：
+    - `@atproto/oauth-client-expo`の使用を停止し、カスタムOAuth実装に切り替え
+    - 既存の`src/services/bluesky/oauth.ts`を活用（OAuth 2.0 + PKCE実装）
+    - OAuth state管理をMMKV/SecureStoreからAsyncStorageに変更
+    - Deep Linkハンドラーを手動実装（App.tsx）
+  - 変更ファイル：
+    - `src/services/bluesky/oauth.ts`: AsyncStorageベースのstate管理関数に変更
+    - `src/services/bluesky/auth.ts`: `startOAuthFlow`と`completeOAuthFlow`をカスタム実装
+    - `src/store/authStore.ts`: `completeOAuth`アクションを追加
+    - `App.tsx`: OAuth callback用のDeep Linkハンドラーを追加
+  - メリット：
+    - ✅ Expo managed workflowで動作（native module依存なし）
+    - ✅ AsyncStorageは安定・広くサポート
+    - ✅ 既存のテスト済みOAuth実装を再利用
+  - 注意事項：
+    - AT Protocol OAuth仕様完全準拠ではない（DPoP未実装）
+    - 将来的にExpo SDKのNew Architecture対応が完了すれば、公式クライアントへの移行を検討
 
 ### v1.7 (2026-01-10)
 
