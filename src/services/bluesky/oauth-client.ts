@@ -3,8 +3,24 @@
  * Uses @atproto/oauth-client-expo for native OAuth authentication
  */
 
-import { ExpoOAuthClient } from '@atproto/oauth-client-expo';
 import Constants from 'expo-constants';
+
+// Dynamic import to catch initialization errors
+let ExpoOAuthClient: typeof import('@atproto/oauth-client-expo').ExpoOAuthClient;
+let importError: Error | null = null;
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const oauthModule = require('@atproto/oauth-client-expo');
+  ExpoOAuthClient = oauthModule.ExpoOAuthClient;
+
+  if (!ExpoOAuthClient) {
+    importError = new Error('ExpoOAuthClient not found in @atproto/oauth-client-expo module');
+  }
+} catch (e) {
+  importError = e instanceof Error ? e : new Error(String(e));
+  console.error('[OAuth Client] Failed to import @atproto/oauth-client-expo:', importError);
+}
 
 /**
  * OAuth Client ID (HTTPS URL where metadata is hosted)
@@ -47,16 +63,21 @@ const clientMetadata = {
 /**
  * Singleton instance of ExpoOAuthClient
  */
-let oauthClientInstance: ExpoOAuthClient | null = null;
+let oauthClientInstance: InstanceType<typeof ExpoOAuthClient> | null = null;
 
 /**
  * Get or create the OAuth client instance
  *
  * @returns ExpoOAuthClient instance
  */
-export function getOAuthClient(): ExpoOAuthClient {
+export function getOAuthClient(): InstanceType<typeof ExpoOAuthClient> {
   if (!oauthClientInstance) {
     try {
+      // Check for import errors first
+      if (importError) {
+        throw new Error(`Failed to import OAuth client library: ${importError.message}`);
+      }
+
       // Log initialization attempt (always, not just in dev)
       console.log('[OAuth Client] Initializing OAuth client with:', {
         handleResolver: HANDLE_RESOLVER,
@@ -72,7 +93,7 @@ export function getOAuthClient(): ExpoOAuthClient {
       });
 
       // Check if ExpoOAuthClient is properly imported
-      if (typeof ExpoOAuthClient !== 'function') {
+      if (!ExpoOAuthClient || typeof ExpoOAuthClient !== 'function') {
         throw new Error(`ExpoOAuthClient is not a constructor. Type: ${typeof ExpoOAuthClient}`);
       }
 
@@ -81,11 +102,27 @@ export function getOAuthClient(): ExpoOAuthClient {
         clientMetadata,
       });
 
+      // Verify instance was created
+      if (!oauthClientInstance) {
+        throw new Error('ExpoOAuthClient constructor returned null/undefined');
+      }
+
+      // Safely get prototype methods for debugging
+      let allMethods: string[] = [];
+      try {
+        const proto = Object.getPrototypeOf(oauthClientInstance);
+        if (proto) {
+          allMethods = Object.getOwnPropertyNames(proto);
+        }
+      } catch (protoError) {
+        console.warn('[OAuth Client] Could not get prototype methods:', protoError);
+      }
+
       // Verify instance has required methods
       console.log('[OAuth Client] Instance created. Checking methods:', {
         hasSignIn: typeof oauthClientInstance.signIn === 'function',
         hasRestore: typeof oauthClientInstance.restore === 'function',
-        allMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(oauthClientInstance)),
+        allMethods,
       });
 
       if (!oauthClientInstance.signIn || typeof oauthClientInstance.signIn !== 'function') {
