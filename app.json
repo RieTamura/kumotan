@@ -38,8 +38,7 @@
     "newArchEnabled": false,
     "plugins": [
       "expo-secure-store",
-      "expo-sqlite",
-      "expo-build-properties"
+      "expo-sqlite"
     ],
     "scheme": "io.github.rietamura",
     "extra": {
