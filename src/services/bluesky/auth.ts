@@ -508,8 +508,8 @@ export async function startOAuthFlow(
     // Store session data
     if (session) {
       const { did } = session;
-      await SecureStore.setItemAsync(STORAGE_KEYS.DID, did);
-      await SecureStore.setItemAsync(STORAGE_KEYS.HANDLE, handle);
+      await SecureStore.setItemAsync(STORAGE_KEYS.USER_DID, did);
+      await SecureStore.setItemAsync(STORAGE_KEYS.USER_HANDLE, handle);
       oauthLogger.info('Session data stored');
     }
 

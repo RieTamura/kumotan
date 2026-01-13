@@ -84,17 +84,31 @@ describe('Free Dictionary API Service', () => {
     });
 
     it('should normalize word before lookup', async () => {
+      const mockNormalizeResponse = [
+        {
+          word: 'normalize',
+          phonetic: '/ˈnɔːməlaɪz/',
+          phonetics: [{ text: '/ˈnɔːməlaɪz/' }],
+          meanings: [
+            {
+              partOfSpeech: 'verb',
+              definitions: [{ definition: 'To make normal' }],
+            },
+          ],
+        },
+      ];
+
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => mockDictionaryResponse,
+        json: async () => mockNormalizeResponse,
       });
 
-      await lookupWord('  HELLO!  ');
+      await lookupWord('  NORMALIZE!  ');
 
       jest.runAllTimers();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('hello'),
+        expect.stringContaining('normalize'),
         expect.any(Object)
       );
     });
@@ -144,7 +158,7 @@ describe('Free Dictionary API Service', () => {
         status: 500,
       });
 
-      const result = await lookupWord('hello');
+      const result = await lookupWord('apierrortest');
 
       jest.runAllTimers();
 
@@ -161,7 +175,7 @@ describe('Free Dictionary API Service', () => {
         json: async () => [],
       });
 
-      const result = await lookupWord('hello');
+      const result = await lookupWord('emptyresponsetest');
 
       jest.runAllTimers();
 
@@ -176,7 +190,7 @@ describe('Free Dictionary API Service', () => {
       abortError.name = 'AbortError';
       (global.fetch as jest.Mock).mockRejectedValue(abortError);
 
-      const result = await lookupWord('hello');
+      const result = await lookupWord('timeouttest');
 
       jest.runAllTimers();
 
@@ -189,7 +203,7 @@ describe('Free Dictionary API Service', () => {
     it('should handle network error', async () => {
       (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
-      const result = await lookupWord('hello');
+      const result = await lookupWord('networkerrortest');
 
       jest.runAllTimers();
 
@@ -261,14 +275,15 @@ describe('Free Dictionary API Service', () => {
 
     it('should handle mixed success and failure', async () => {
       let callCount = 0;
-      (global.fetch as jest.Mock).mockImplementation(() => {
+      (global.fetch as jest.Mock).mockImplementation((url: string) => {
         callCount++;
-        if (callCount === 1) {
+        // Return success for 'mixedword1', failure for 'mixedword2'
+        if (url.includes('mixedword1')) {
           return Promise.resolve({
             ok: true,
             json: async () => [
               {
-                word: 'hello',
+                word: 'mixedword1',
                 meanings: [
                   {
                     partOfSpeech: 'noun',
@@ -282,17 +297,17 @@ describe('Free Dictionary API Service', () => {
         return Promise.resolve({ ok: false, status: 404 });
       });
 
-      const words = ['hello', 'xyzabc'];
+      const words = ['mixedword1', 'mixedword2'];
       const results = await lookupWords(words);
 
       jest.runAllTimers();
 
       expect(results.size).toBe(2);
 
-      const helloResult = results.get('hello');
-      expect(helloResult?.success).toBe(true);
+      const validResult = results.get('mixedword1');
+      expect(validResult?.success).toBe(true);
 
-      const invalidResult = results.get('xyzabc');
+      const invalidResult = results.get('mixedword2');
       expect(invalidResult?.success).toBe(false);
     });
 

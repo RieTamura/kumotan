@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/colors';
-import { Validators, extractEnglishWords } from '../../utils/validators';
+import { Validators } from '../../utils/validators';
 import { Button } from '../common/Button';
 import { useWordStore } from '../../store/wordStore';
 
@@ -120,16 +120,16 @@ export function WordPopupModal({
         // Japanese sentence
         await sentenceLookup.fetchJapaneseSentence(word);
         dispatch({ type: 'SET_WORDS_INFO', wordsInfo: sentenceLookup.wordsInfo });
-        if (sentenceLookup.error) {
-          dispatch({ type: 'SET_SENTENCE_ERROR', error: sentenceLookup.error });
+        if (sentenceLookup.sentenceError) {
+          dispatch({ type: 'SET_SENTENCE_ERROR', error: sentenceLookup.sentenceError });
         }
       } else {
         // English sentence
         await sentenceLookup.fetchEnglishSentence(word);
         dispatch({ type: 'SET_SENTENCE_TRANSLATION', translation: sentenceLookup.sentenceTranslation });
         dispatch({ type: 'SET_WORDS_INFO', wordsInfo: sentenceLookup.wordsInfo });
-        if (sentenceLookup.error) {
-          dispatch({ type: 'SET_SENTENCE_ERROR', error: sentenceLookup.error });
+        if (sentenceLookup.sentenceError) {
+          dispatch({ type: 'SET_SENTENCE_ERROR', error: sentenceLookup.sentenceError });
         }
       }
     } else {
@@ -139,10 +139,10 @@ export function WordPopupModal({
 
       if (isJapanese) {
         // Japanese word
-        await japaneseMorphology.fetchMorphology(word);
+        await japaneseMorphology.fetchJapaneseData(word);
         dispatch({ type: 'SET_JAPANESE_INFO', japaneseInfo: japaneseMorphology.japaneseInfo });
-        if (japaneseMorphology.error) {
-          dispatch({ type: 'SET_JAPANESE_ERROR', error: japaneseMorphology.error });
+        if (japaneseMorphology.japaneseError) {
+          dispatch({ type: 'SET_JAPANESE_ERROR', error: japaneseMorphology.japaneseError });
         }
       } else {
         // English word
@@ -388,7 +388,7 @@ export function WordPopupModal({
                       </>
                     ) : state.japaneseError ? (
                       <Text style={styles.errorText}>{state.japaneseError}</Text>
-                    ) : !japaneseMorphology.clientIdAvailable ? (
+                    ) : !japaneseMorphology.yahooClientIdAvailable ? (
                       <Text style={styles.hintText}>Yahoo! Client IDを設定すると詳細情報が表示されます</Text>
                     ) : (
                       <Text style={styles.hintText}>-</Text>
