@@ -658,32 +658,54 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 ## 変更履歴
 
-### v1.13 (2026-01-12)
+### v1.14 (2026-01-13)
 
-- TestFlight OAuth認証エラーの根本的解決（カスタムOAuth実装への移行）
-  - 症状：TestFlight環境で `undefined is not a function at construct (native)` エラーが発生
-  - 根本原因：
-    - `@atproto/oauth-client-expo` が `react-native-mmkv` v3に依存
-    - mmkv v3はNew Architecture（TurboModules）が必須
-    - Expo SDK 54のmanaged workflowではTurboModules実装が不完全
-    - v1.8-v1.12の対応（Old/New Architecture切り替え、mmkvバージョン変更）では解決不可
-  - 対応：
-    - `@atproto/oauth-client-expo`の使用を停止し、カスタムOAuth実装に切り替え
-    - 既存の`src/services/bluesky/oauth.ts`を活用（OAuth 2.0 + PKCE実装）
-    - OAuth state管理をMMKV/SecureStoreからAsyncStorageに変更
-    - Deep Linkハンドラーを手動実装（App.tsx）
-  - 変更ファイル：
-    - `src/services/bluesky/oauth.ts`: AsyncStorageベースのstate管理関数に変更
-    - `src/services/bluesky/auth.ts`: `startOAuthFlow`と`completeOAuthFlow`をカスタム実装
-    - `src/store/authStore.ts`: `completeOAuth`アクションを追加
-    - `App.tsx`: OAuth callback用のDeep Linkハンドラーを追加
-  - メリット：
-    - ✅ Expo managed workflowで動作（native module依存なし）
-    - ✅ AsyncStorageは安定・広くサポート
-    - ✅ 既存のテスト済みOAuth実装を再利用
-  - 注意事項：
-    - AT Protocol OAuth仕様完全準拠ではない（DPoP未実装）
-    - 将来的にExpo SDKのNew Architecture対応が完了すれば、公式クライアントへの移行を検討
+- **OAuth認証の延期決定 - App Password専用版としてリリース**
+  - 背景：
+    - iOS Podsインストールエラー（react-native-mmkv、react-native-reanimatedの互換性問題）
+    - `@atproto/oauth-client-expo`がreact-native-mmkvに必須依存
+    - react-native-mmkv v2/v3/v4すべてでExpo SDK 54 Old Architecture環境での動作に問題
+  - 技術的調査結果：
+    - **react-native-mmkv依存関係の問題**：
+      - mmkv v2.12.2: `@atproto/oauth-client-expo`が要求するAPIと非互換
+      - mmkv v3.3.3: New Architecture必須、Old Architectureで動作不可
+      - mmkv v4.1.1: Nitro Modules必要、Expo managed workflowで不安定
+    - **react-native-reanimatedの制約**：
+      - reanimated v4: New Architecture必須
+      - reanimated v3: Old Architecture対応（現在使用中）
+      - New Architectureを有効にするとreanimated v4が必要だが、他パッケージとの互換性未検証
+    - **Expo SDK 54の制約**：
+      - Old/New両Architectureをサポートするが、New Architectureはまだ実験的
+      - managed workflowでのTurboModules/Nitroサポートが不完全
+  - ATProtocol認証方式の比較調査：
+    - **App Password**: PDSへの読み書き可能、`@atproto/api`のBskyAgentで完全サポート
+    - **OAuth**: 同様にPDSへの読み書き可能、より安全だが複雑な実装が必要
+    - **結論**: 要件（PDS書き込み）はApp Passwordで十分に満たせる
+  - 最終決定：
+    - OAuth認証機能を延期し、**App Password専用版**でリリース
+    - react-native-mmkvとreact-native-reanimatedをOld Architecture互換版にダウングレード
+    - 変更内容：
+      - react-native-mmkv: v4.1.1 → v2.12.2
+      - react-native-reanimated: v4.1.1 → v3.17.5
+      - react-native-worklets: 削除（reanimated v4のみ必要）
+      - react-native-nitro-modules: 削除（mmkv v4のみ必要）
+      - expo-build-properties: 削除（New Architecture設定不要）
+  - 将来の展望：
+    - Expo SDK 55以降でNew Architectureサポートが成熟すれば、OAuth再検討
+    - React Native 0.82+でOld Architecture廃止後、必須移行
+    - 現時点では安定性とリリーススピードを優先
+  - 学習事項：
+    - Expo managed workflowの制約を深く理解
+    - New/Old Architectureの互換性問題を経験
+    - ネイティブモジュール依存関係の複雑さを認識
+  - 参考資料：
+    - [Expo SDK 54 Changelog](https://expo.dev/changelog/sdk-54)
+    - [React Native Reanimated Compatibility](https://docs.swmansion.com/react-native-reanimated/docs/guides/compatibility/)
+    - [ATProtocol OAuth vs App Password比較](https://atproto.com/guides/oauth)
+
+### v1.13 (2026-01-12) - 取り消し
+
+**注**: このバージョンで試みたカスタムOAuth実装は、技術的制約により実現できませんでした。v1.14でApp Password専用版に方針転換しました。
 
 ### v1.7 (2026-01-10)
 

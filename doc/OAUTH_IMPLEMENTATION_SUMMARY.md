@@ -947,3 +947,239 @@ await SecureStore.setItemAsync(STORAGE_KEYS.HANDLE, handle);
 1. mmkvの初期化エラー → Phase 4-5で解決済み
 2. Client Metadata 404 → GitHub Pagesの設定確認
 3. ブラウザが開かない → expo-web-browser の権限確認
+
+---
+
+## Phase 4-7: 最終決定 - OAuth認証の延期
+
+**作成日**: 2026-01-13
+**ステータス**: OAuth実装を延期、App Password専用版でリリース決定
+
+### 根本的な技術的課題の発見
+
+iOS TestFlightビルドで以下の連鎖的な互換性問題が発生：
+
+#### 問題1: iOS Pods Install エラー
+```
+Error: Unknown error. See logs of the Install pods build phase for more information.
+```
+
+**原因**:
+- react-native-reanimated v4.1.1がNew Architecture必須
+- `RNReanimated.podspec`が`assert_new_architecture_enabled`をチェック
+- `newArchEnabled: false`の設定と競合
+
+#### 問題2: react-native-mmkv互換性の三すくみ
+
+以下のすべてのバージョンでExpo SDK 54 Old Architecture環境での動作に問題：
+
+| バージョン | 問題 | `@atproto/oauth-client-expo`互換性 |
+|-----------|------|-----------------------------------|
+| v2.12.2 | APIが古く、`@atproto/oauth-client-expo`が要求する機能なし | ❌ 非互換 |
+| v3.3.3 | New Architecture必須、Old Architectureで動作不可 | ✅ 互換 |
+| v4.1.1 | Nitro Modules必要、Expo managed workflowで不安定 | ✅ 互換 |
+
+#### 問題3: アーキテクチャ選択のジレンマ
+
+**Old Architectureを維持する場合**:
+- ✅ react-native-reanimated v3が動作
+- ✅ 他のパッケージ（screens, gesture-handler等）が安定
+- ❌ react-native-mmkv v3/v4が動作しない
+- ❌ `@atproto/oauth-client-expo`が使用不可
+
+**New Architectureを有効にする場合**:
+- ✅ react-native-mmkv v3/v4が動作
+- ✅ `@atproto/oauth-client-expo`が使用可能
+- ❌ react-native-reanimated v4が必須（v3非対応）
+- ❌ 他パッケージの互換性が未検証（高リスク）
+- ❌ Expo SDK 54のNew Architectureサポートはまだ実験的
+
+### ATProtocol認証方式の再評価
+
+#### App Password vs OAuth比較
+
+| 項目 | App Password | OAuth |
+|------|-------------|-------|
+| **PDS書き込み** | ✅ 可能 | ✅ 可能 |
+| **実装の複雑さ** | シンプル（`@atproto/api`のBskyAgent） | 複雑（`@atproto/oauth-client-expo`） |
+| **依存関係** | なし（標準APIのみ） | react-native-mmkv必須 |
+| **Expo互換性** | ✅ 完全対応 | ⚠️ 制約あり |
+| **セキュリティ** | App Password生成が必要 | よりセキュア |
+| **ユーザー体験** | Bluesky設定で事前生成 | アプリ内でシームレス |
+| **将来性** | 段階的廃止予定 | 推奨される方式 |
+
+#### 要件の再確認
+
+**プロジェクト要件（requirements.md）**:
+> ### Phase 4: AT Protocol連携強化
+> - PDS（Personal Data Server）への学習データ保存
+
+**調査結果**:
+- ✅ App PasswordでもPDSへの読み書きが可能
+- ✅ `BskyAgent.login()`と`agent.com.atproto.repo.createRecord()`で実現
+- ✅ OAuthと同等の機能を提供（権限の細かさ以外）
+
+### 最終決定
+
+#### 決定内容
+
+**OAuth認証機能を延期し、App Password専用版でv1.0をリリースする**
+
+#### 理由
+
+1. **技術的実現可能性**
+   - Expo SDK 54 managed workflowの制約により、現時点でOAuth実装は困難
+   - react-native-mmkv、reanimated、New Architectureの三すくみ問題
+
+2. **要件の充足**
+   - App PasswordでPDS書き込み要件を満たせる
+   - 機能的にはOAuthと同等（セキュリティレベル以外）
+
+3. **リスク管理**
+   - New Architecture移行は大規模な変更
+   - 他パッケージとの互換性が未検証
+   - デバッグコストが非常に高い
+
+4. **リリーススピード優先**
+   - OAuth実装に数週間の追加工数が必要
+   - App Password版なら即座にリリース可能
+   - ユーザーフィードバックを早期に得られる
+
+### 実施した変更
+
+#### パッケージのダウングレード
+
+```bash
+# react-native-reanimated: v4.1.1 → v3.17.5
+npm install react-native-reanimated@~3.17.5
+
+# react-native-mmkv: v4.1.1 → v2.12.2
+# package.json
+{
+  "dependencies": {
+    "react-native-mmkv": "2.12.2"
+  },
+  "overrides": {
+    "react-native-mmkv": "2.12.2"
+  }
+}
+
+# 不要なパッケージを削除
+npm uninstall react-native-worklets react-native-nitro-modules expo-build-properties
+```
+
+#### 設定の変更
+
+**app.json**:
+```json
+{
+  "expo": {
+    "newArchEnabled": false,
+    "plugins": [
+      "expo-secure-store",
+      "expo-sqlite"
+      // "expo-build-properties" 削除
+    ]
+  }
+}
+```
+
+**package.json**:
+```json
+{
+  "expo": {
+    "install": {
+      "exclude": [
+        "react-native-reanimated"  // v3使用を明示
+      ]
+    }
+  }
+}
+```
+
+### 将来の展望
+
+#### Expo SDK 55以降での再検討
+
+以下の条件が揃えば、OAuth認証を再実装：
+
+1. **Expo managed workflowでのNew Architecture安定化**
+   - TurboModules/Nitroの完全サポート
+   - ビルドエラーの解消
+
+2. **主要パッケージのNew Architecture対応**
+   - react-native-reanimated v4
+   - react-native-screens v5+
+   - react-native-gesture-handler v3+
+
+3. **コミュニティのフィードバック**
+   - Expo SDK 55でのOAuth実装事例
+   - 成功パターンの確立
+
+#### React Native 0.82以降での必須移行
+
+React Native 0.82でOld Architecture廃止後：
+- New Architecture移行は必須
+- その時点でOAuth認証を実装
+
+### 学習事項
+
+#### Expo managed workflowの制約
+
+1. **ネイティブモジュール依存の危険性**
+   - managed workflowはネイティブコード変更が困難
+   - New Architecture必須パッケージは慎重に選択
+
+2. **アーキテクチャ移行のタイミング**
+   - 実験的機能には依存しない
+   - 安定版を待つことが重要
+
+3. **依存関係の連鎖的影響**
+   - 1つのパッケージ変更が複数に波及
+   - 事前調査と互換性マトリクスが必要
+
+#### ATProtocol認証の特性
+
+1. **App Password vs OAuth**
+   - 機能的にはほぼ同等
+   - OAuthは実装コストが高い
+   - App Passwordで十分なケースも多い
+
+2. **PDS連携の実現方法**
+   - OAuth以外でもPDS書き込み可能
+   - 認証方式は要件次第で選択
+
+### M2.6の完了判断
+
+#### Phase 4-7での決定
+
+M2.6「OAuth認証実装」は以下の理由で**延期**とする：
+
+1. ✅ **調査完了**: OAuth実装の技術的課題を完全に理解
+2. ✅ **代替案確立**: App Passwordで要件を満たせることを確認
+3. ✅ **リスク評価**: New Architecture移行のリスクを定量化
+4. ✅ **ドキュメント作成**: 調査結果と決定を詳細に記録
+
+#### 次のマイルストーン
+
+**M3: ベータリリース (v1.0) - App Password専用版**
+- [ ] App Password認証のUI/UX洗練
+- [ ] エラーハンドリング統一
+- [ ] バグフィックス
+- [ ] TestFlight配信
+- [ ] ユーザーフィードバック収集
+
+**M4: OAuth対応版 (v1.1) - 延期**
+- Expo SDK 55以降で再検討
+- New Architecture安定化を待つ
+
+### 結論
+
+**Expo SDK 54 managed workflowの現在の制約により、OAuth認証は技術的に実現困難**と判断しました。App Password認証で要件を満たしつつ、安定したv1.0リリースを優先します。
+
+ATProtocol OAuthの完全実装は、技術環境が整った将来のバージョンで再挑戦します。現時点では、**動作する製品を早期にリリースすること**が最優先です。
+
+---
+
+**作成者**: RieTamura
+**最終更新**: 2026-01-13
