@@ -187,6 +187,16 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - 単語にメモ・例文を追加
 - 習熟度レベル管理（覚えた/復習中/苦手など）
 - 間隔反復学習（Spaced Repetition）アルゴリズム
+- **TexTra® Web API統合（DeepLバックアップ用）**
+  - DeepL API無料枠（月50万文字）超過時のフォールバック翻訳エンジン
+  - OAuth 2.0認証が必要（Phase 3のOAuth実装後に検討）
+  - 提供元：NICT（情報通信研究機構）
+  - API仕様：https://mt-auto-minhon-mlt.ucri.jgn-x.jp/content/api/
+  - 料金体系要調査（無料プラン有無、使用量制限）
+  - 検討条件：
+    - Bluesky OAuth実装完了後
+    - 無料プランまたは低コストで利用可能な場合
+    - DeepL使用量が上限に近いユーザーが一定数発生した場合
 
 ### Phase 3: プラットフォーム拡張
 - 日本語→英語の学習モード対応
