@@ -256,11 +256,9 @@ pip install wiktextract
 wiktwords --language ja --out data.json jawiktionary-latest-pages-articles.xml.bz2
 ```
 
-2. **パース・変換**
-   ```bash
-   pip install wiktextract
-   wiktextract --language ja jawiktionary-latest-pages-articles.xml.bz2
-   ```
+2. **JSONからSQLiteへの変換**
+   - カスタムPythonスクリプトでdata.jsonを読み込み
+   - SQLiteデータベースに変換・挿入
 
 3. **SQLite変換**
    - カスタムスクリプトでJSON → SQLite変換
