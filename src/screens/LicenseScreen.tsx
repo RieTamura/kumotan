@@ -355,16 +355,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hover,
   },
   licenseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
     marginBottom: Spacing.xs,
+    gap: Spacing.xs,
   },
   licenseName: {
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.text,
-    flex: 1,
   },
   licenseType: {
     fontSize: FontSizes.sm,
@@ -375,6 +373,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
     overflow: 'hidden',
+    alignSelf: 'flex-start',
   },
   licenseDescription: {
     fontSize: FontSizes.sm,
