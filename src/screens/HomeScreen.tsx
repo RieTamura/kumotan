@@ -3,7 +3,7 @@
  * Displays Bluesky timeline feed with word selection functionality
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,12 @@ import {
   Pressable,
   Alert,
   Modal,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { RefreshCw } from 'lucide-react-native';
+import { RefreshCw, ArrowUp } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
@@ -71,6 +74,14 @@ export function HomeScreen(): React.JSX.Element {
 
   // Word popup state
   const [wordPopup, setWordPopup] = useState<WordPopupState>(initialWordPopupState);
+
+  // Scroll to top button state
+  const flatListRef = useRef<FlatList<TimelinePost>>(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const scrollToTopOpacity = useRef(new Animated.Value(0)).current;
+
+  // Threshold for showing scroll to top button (in pixels)
+  const SCROLL_THRESHOLD = 500;
 
   /**
    * Handle word selection from a post
@@ -158,6 +169,33 @@ export function HomeScreen(): React.JSX.Element {
       loadMore();
     }
   }, [isLoadingMore, hasMore, isConnected, loadMore]);
+
+  /**
+   * Handle scroll event to show/hide scroll to top button
+   */
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      const shouldShow = offsetY > SCROLL_THRESHOLD;
+
+      if (shouldShow !== showScrollToTop) {
+        setShowScrollToTop(shouldShow);
+        Animated.timing(scrollToTopOpacity, {
+          toValue: shouldShow ? 1 : 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+    [showScrollToTop, scrollToTopOpacity, SCROLL_THRESHOLD]
+  );
+
+  /**
+   * Scroll to top of the list
+   */
+  const scrollToTop = useCallback(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
 
   /**
    * Render individual post item
@@ -293,6 +331,7 @@ export function HomeScreen(): React.JSX.Element {
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={posts}
         renderItem={renderPost}
         keyExtractor={keyExtractor}
@@ -311,11 +350,31 @@ export function HomeScreen(): React.JSX.Element {
         }
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         windowSize={5}
       />
+
+      {/* Scroll to Top Button */}
+      <Animated.View
+        style={[
+          styles.scrollToTopButton,
+          { opacity: scrollToTopOpacity },
+        ]}
+        pointerEvents={showScrollToTop ? 'auto' : 'none'}
+      >
+        <Pressable
+          onPress={scrollToTop}
+          style={styles.scrollToTopPressable}
+          accessibilityLabel="TOPへ戻る"
+          accessibilityRole="button"
+        >
+          <ArrowUp size={24} color={Colors.background} />
+        </Pressable>
+      </Animated.View>
 
       <WordPopup
         visible={wordPopup.visible}
@@ -441,6 +500,20 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     marginTop: Spacing.sm,
+  },
+  scrollToTopButton: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    right: Spacing.lg,
+    ...Shadows.md,
+  },
+  scrollToTopPressable: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
