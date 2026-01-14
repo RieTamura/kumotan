@@ -35,7 +35,7 @@
 ★★☆（中）
 
 #### React Nativeライブラリ
-- `react-native-reference-library-view`（2023年更新停止）
+- `react-native-reference-library-view`（2020年更新停止）
 
 #### 結論
 **補助機能としての実装を推奨**
@@ -49,7 +49,7 @@
 #### 概要
 - Wikimedia財団が運営する多言語辞書プロジェクト
 - MediaWiki APIでアクセス
-- 日本語版には名詞84,332項目、動詞17,937項目を収録
+- 日本語版には名詞84,679項目、動詞17,937項目を収録
 
 #### メリット
 - ✅ 完全無料、APIキー不要
@@ -202,31 +202,47 @@ export default function App() {
   );
 }
 
-// 辞書検索
-export async function lookupJapaneseWord(word: string): Promise<DictionaryEntry | null> {
+// 辞書検索（コンポーネント内で使用）
+export function useLookupJapaneseWord() {
   const db = useSQLiteContext();
+  
+  const lookupWord = async (word: string): Promise<DictionaryEntry | null> => {
+    const result = await db.getFirstAsync(
+      'SELECT * FROM dictionary WHERE word = ? LIMIT 1',
+      [word]
+    );
+    return result ? parseDictionaryEntry(result) : null;
+  };
+  
+  return lookupWord;
+}
+
+// 辞書検索（DBインスタンスを渡す）
+export async function lookupJapaneseWord(
+  db: SQLiteDatabase, 
+  word: string
+): Promise<DictionaryEntry | null> {
   const result = await db.getFirstAsync(
     'SELECT * FROM dictionary WHERE word = ? LIMIT 1',
     [word]
   );
   return result ? parseDictionaryEntry(result) : null;
 }
-```
 
 #### データベーススキーマ例
 
 ```sql
 CREATE TABLE dictionary (
-  id INTEGER PRIMARY KEY,
-  word TEXT NOT NULL,
-  reading TEXT,
-  part_of_speech TEXT,
-  definition TEXT,
-  examples TEXT,
-  UNIQUE(word)
-);
-
-CREATE INDEX idx_word ON dictionary(word);
+   id INTEGER PRIMARY KEY,
+   word TEXT NOT NULL,
+   reading TEXT,
+   part_of_speech TEXT,
+   definition TEXT,
+   examples TEXT,
+ );
+ 
+ CREATE INDEX idx_word ON dictionary(word);
+ CREATE INDEX idx_reading ON dictionary(reading);
 ```
 
 #### 実装難易度
@@ -236,8 +252,9 @@ CREATE INDEX idx_word ON dictionary(word);
 
 1. **データダウンロード**
    ```bash
-   wget https://dumps.wikimedia.org/jawiktionary/latest/jawiktionary-latest-pages-articles.xml.bz2
-   ```
+pip install wiktextract
+wiktwords --language ja --out data.json jawiktionary-latest-pages-articles.xml.bz2
+```
 
 2. **パース・変換**
    ```bash
@@ -388,7 +405,7 @@ async function lookupJapaneseWord(word: string) {
 
 2. **Expoアプリへの統合**
    - `expo-sqlite`で辞書DBをバンドル
-   - 検索機能の実装（`services/dictionary/offline.ts`）
+   - 検索機能の実装（`src/services/dictionary/offline.ts`）
    - 工数: 3〜5日
 
 3. **UI統合**
