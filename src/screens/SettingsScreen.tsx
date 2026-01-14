@@ -380,6 +380,20 @@ export function SettingsScreen(): React.JSX.Element {
           />
         </SettingsSection>
 
+        {/* Support Section */}
+        <SettingsSection title="サポート">
+          <SettingsItem
+            title="開発をサポート"
+            subtitle="GitHub Sponsors で支援する"
+            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_SPONSORS)}
+          />
+          <SettingsItem
+            title="GitHub で ⭐ をつける"
+            subtitle="プロジェクトを応援する"
+            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
+          />
+        </SettingsSection>
+
         {/* Feedback Section */}
         <SettingsSection title="フィードバック">
           <SettingsItem

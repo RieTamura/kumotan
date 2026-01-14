@@ -303,6 +303,18 @@ npx expo start --devClient
 
 設定画面の「フィードバック」セクションから、GitHubやBlueskyにアクセスできます。
 
+## 💝 サポート
+
+くもたん（Kumotan）は完全無料のオープンソースアプリです。
+
+もし気に入っていただけたら、開発を支援していただけると嬉しいです：
+
+- **[GitHub Sponsors](https://github.com/sponsors/RieTamura)** で支援する
+- **[GitHub](https://github.com/RieTamura/kumotan)** でリポジトリに ⭐ をつける
+- **[Bluesky](https://bsky.app/profile/kumotan.bsky.social)** で感想をシェアする
+
+いただいたサポートは、アプリの改善や新機能の開発に使わせていただきます。
+
 ## 📄 ライセンス
 
 MIT License

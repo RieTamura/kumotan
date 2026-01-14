@@ -103,6 +103,7 @@ export const EXTERNAL_LINKS = {
   DICTIONARY_DOCS: 'https://dictionaryapi.dev/',
   GITHUB_ISSUES: 'https://github.com/RieTamura/kumotan/issues/new/choose',
   GITHUB_REPO: 'https://github.com/RieTamura/kumotan',
+  GITHUB_SPONSORS: 'https://github.com/sponsors/RieTamura',
   BLUESKY_ACCOUNT: 'https://bsky.app/profile/kumotan.bsky.social',
 } as const;
 
