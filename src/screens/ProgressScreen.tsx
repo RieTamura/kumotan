@@ -24,9 +24,11 @@ import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame }
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
-import { Button } from '../components/common/Button';
 import { getStats, getCalendarData } from '../services/database/stats';
 import { Stats } from '../types/stats';
+import { useAuthStore } from '../store/authStore';
+import { shareToBlueskyTimeline, shareTodaysSession } from '../services/learning/session';
+import { getAgent } from '../services/bluesky/auth';
 
 /**
  * Stats Card Component
@@ -91,6 +93,7 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
  */
 export function ProgressScreen(): React.JSX.Element {
   const isConnected = useNetworkStatus();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -224,6 +227,51 @@ export function ProgressScreen(): React.JSX.Element {
   }, [stats]);
 
   /**
+   * Share to Bluesky timeline with AT Protocol learning session record
+   */
+  const handleShareToBluesky = useCallback(async () => {
+    if (!stats) {
+      Alert.alert('エラー', '統計データが読み込まれていません。');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      Alert.alert('エラー', 'Blueskyにログインしてください。');
+      return;
+    }
+
+    if (!isConnected) {
+      Alert.alert('エラー', 'ネットワークに接続してください。');
+      return;
+    }
+
+    try {
+      const agent = getAgent();
+
+      // Create learning session record in PDS
+      await shareTodaysSession(
+        agent,
+        stats.todayCount,
+        0, // timeSpent - we don't track this yet
+        stats.streak > 1 ? `${stats.streak}日連続学習達成！` : undefined
+      );
+
+      // Share to Bluesky timeline
+      await shareToBlueskyTimeline(
+        agent,
+        stats.todayCount,
+        stats.streak > 1 ? `${stats.streak}日連続学習達成！` : undefined
+      );
+
+      Alert.alert('成功', 'Blueskyに投稿しました！');
+      setIsShareModalVisible(false);
+    } catch (error) {
+      console.error('Failed to share to Bluesky:', error);
+      Alert.alert('エラー', 'Blueskyへの投稿に失敗しました。');
+    }
+  }, [stats, isAuthenticated, isConnected]);
+
+  /**
    * Navigate to previous month
    */
   const goToPrevMonth = useCallback(() => {
@@ -317,10 +365,14 @@ export function ProgressScreen(): React.JSX.Element {
           onPress={handleShare}
           disabled={!isConnected}
           style={styles.shareButton}
+          accessible={true}
+          accessibilityLabel="進捗をシェア"
+          accessibilityHint="学習進捗を画像またはBlueskyに共有します"
+          accessibilityRole="button"
         >
-          <ShareIcon 
-            size={24} 
-            color={isConnected ? Colors.primary : Colors.textSecondary} 
+          <ShareIcon
+            size={24}
+            color={isConnected ? Colors.primary : Colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -513,9 +565,34 @@ export function ProgressScreen(): React.JSX.Element {
                 style={styles.modalButtonCancel}
                 onPress={() => setIsShareModalVisible(false)}
                 disabled={isCapturing}
+                accessible={true}
+                accessibilityLabel="キャンセル"
+                accessibilityRole="button"
               >
                 <Text style={styles.modalButtonCancelText}>キャンセル</Text>
               </TouchableOpacity>
+
+              {/* Bluesky Direct Post Button */}
+              {isAuthenticated && (
+                <TouchableOpacity
+                  style={[
+                    styles.modalButtonBluesky,
+                    (!isConnected || isCapturing) && styles.modalButtonDisabled,
+                  ]}
+                  onPress={handleShareToBluesky}
+                  disabled={!isConnected || isCapturing}
+                  accessible={true}
+                  accessibilityLabel="Blueskyに投稿"
+                  accessibilityHint="学習記録をBlueskyタイムラインに投稿します"
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: !isConnected || isCapturing }}
+                >
+                  <Text style={styles.modalButtonBlueskyText}>
+                    Blueskyに投稿
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
                 style={[
                   styles.modalButtonShare,
@@ -523,6 +600,11 @@ export function ProgressScreen(): React.JSX.Element {
                 ]}
                 onPress={captureAndShare}
                 disabled={isCapturing}
+                accessible={true}
+                accessibilityLabel={isCapturing ? '作成中' : '画像をシェア'}
+                accessibilityHint="進捗を画像として共有します"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isCapturing, busy: isCapturing }}
               >
                 <ShareIcon size={18} color={Colors.textInverse} />
                 <Text style={styles.modalButtonShareText}>
@@ -854,6 +936,19 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.textSecondary,
+  },
+  modalButtonBluesky: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.md,
+    backgroundColor: '#0085FF', // Bluesky brand color
+  },
+  modalButtonBlueskyText: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.textInverse,
   },
   modalButtonShare: {
     flex: 1,

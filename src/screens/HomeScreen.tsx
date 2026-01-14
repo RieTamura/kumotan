@@ -282,6 +282,10 @@ export function HomeScreen(): React.JSX.Element {
             onPress={refresh}
             style={styles.refreshButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessible={true}
+            accessibilityLabel="タイムラインを更新"
+            accessibilityHint="最新の投稿を読み込みます"
+            accessibilityRole="button"
           >
             <RefreshCw size={24} color={Colors.primary} />
           </Pressable>

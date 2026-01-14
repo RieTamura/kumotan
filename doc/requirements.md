@@ -629,12 +629,33 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - ユーザーフィードバックの改善: Alert.alertの減少、非侵襲的な通知
 - コード品質: TypeScript型安全性の確保
 
-#### Phase 3: アクセシビリティとテスト
+#### Phase 3: アクセシビリティとテスト ✅ **完了** (2026-01-14)
 
-- [ ] アクセシビリティラベル追加（全コンポーネント）
-- [ ] 主要画面のスナップショットテスト実装
+**実装済み項目**:
+
+- [x] アクセシビリティラベル追加（主要コンポーネント）
+  - ProgressScreen: シェアボタン、モーダルボタン（キャンセル、Bluesky投稿、画像シェア）
+  - HomeScreen: タイムライン更新ボタン
+  - WordListScreen: ソートボタン、フィルタータブ、削除ボタン
+  - PostCard: 投稿カード全体にaccessible属性追加
+- [x] 主要画面のスナップショットテスト実装
+  - Button コンポーネント: 5スナップショット（Primary, Outline, Text, Disabled, Loading）
+  - Loading コンポーネント: 4スナップショット（デフォルト、メッセージ、全画面、全画面+メッセージ）
+  - Toast コンポーネント: 5スナップショット（Success, Error, Warning, Info, Hidden）
+  - **合計**: 14スナップショット作成・検証済み
+- [x] テスト環境の改善
+  - jest-expo プリセット導入
+  - react-test-renderer インストール（v19.1.0）
+  - transformIgnorePatterns更新（expo-modules-core, lucide-react-native対応）
+  - モック追加（react-native-view-shot, lucide-react-native）
 - [ ] TestFlight配信準備
 - [ ] ユーザーフィードバック収集体制構築
+
+**成果**:
+
+- アクセシビリティ対応: スクリーンリーダーユーザーに配慮したUI実装完了
+- スナップショットテスト: UIの意図しない変更を検出可能に
+- テストインフラ: React Nativeコンポーネントのテストが可能に
 
 ### M4: 正式リリース（v1.2.0）（1〜2週間）
 - [ ] ベータフィードバック反映

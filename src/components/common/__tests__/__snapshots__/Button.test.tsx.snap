@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Button Component Snapshots renders disabled button correctly 1`] = `null`;
+
+exports[`Button Component Snapshots renders loading button correctly 1`] = `null`;
+
+exports[`Button Component Snapshots renders outline button correctly 1`] = `null`;
+
+exports[`Button Component Snapshots renders primary button correctly 1`] = `null`;
+
+exports[`Button Component Snapshots renders text button correctly 1`] = `null`;

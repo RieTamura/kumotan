@@ -45,6 +45,31 @@ jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(() => Promise.resolve(true)),
 }));
 
+// Mock react-native-view-shot
+jest.mock('react-native-view-shot', () => ({
+  captureRef: jest.fn(() => Promise.resolve('mock-uri')),
+  default: 'ViewShot',
+}));
+
+// Mock lucide-react-native
+jest.mock('lucide-react-native', () => ({
+  Share: 'Share',
+  RefreshCw: 'RefreshCw',
+  BookOpen: 'BookOpen',
+  CheckCircle: 'CheckCircle',
+  BarChart3: 'BarChart3',
+  Calendar: 'Calendar',
+  Flame: 'Flame',
+  MessageCircle: 'MessageCircle',
+  Repeat2: 'Repeat2',
+  Heart: 'Heart',
+  Trash2: 'Trash2',
+  Check: 'Check',
+  ChevronLeft: 'ChevronLeft',
+  ChevronRight: 'ChevronRight',
+  X: 'X',
+}));
+
 // Define __DEV__ for tests
 global.__DEV__ = process.env.NODE_ENV !== 'production';
 

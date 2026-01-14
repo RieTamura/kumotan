@@ -318,6 +318,10 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
     <Pressable
       style={styles.container}
       onPress={handlePress}
+      accessible={true}
+      accessibilityLabel={`${post.author.displayName}の投稿: ${post.text.substring(0, 100)}`}
+      accessibilityHint="長押しで単語を選択できます"
+      accessibilityRole="button"
     >
       {/* Author row */}
       <View style={styles.authorRow}>

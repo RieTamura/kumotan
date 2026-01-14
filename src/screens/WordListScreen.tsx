@@ -188,6 +188,10 @@ export function WordListScreen(): React.JSX.Element {
           style={styles.deleteButton}
           onPress={() => handleWordDelete(item)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessible={true}
+          accessibilityLabel={`${item.english}を削除`}
+          accessibilityHint="単語帳から単語を削除します"
+          accessibilityRole="button"
         >
           <Trash2 size={20} color={Colors.error} />
         </Pressable>
@@ -242,7 +246,14 @@ export function WordListScreen(): React.JSX.Element {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>単語帳</Text>
-        <Pressable onPress={handleSortChange} style={styles.sortButton}>
+        <Pressable
+          onPress={handleSortChange}
+          style={styles.sortButton}
+          accessible={true}
+          accessibilityLabel="並び順を変更"
+          accessibilityHint={`現在: ${getSortLabel()}`}
+          accessibilityRole="button"
+        >
           <Text style={styles.sortIcon}>⇅</Text>
         </Pressable>
       </View>
@@ -260,6 +271,10 @@ export function WordListScreen(): React.JSX.Element {
             filter === 'all' && styles.filterTabActive,
           ]}
           onPress={() => handleFilterChange('all')}
+          accessible={true}
+          accessibilityLabel="すべて表示"
+          accessibilityRole="button"
+          accessibilityState={{ selected: filter === 'all' }}
         >
           <Text
             style={[
@@ -276,6 +291,10 @@ export function WordListScreen(): React.JSX.Element {
             filter === 'unread' && styles.filterTabActive,
           ]}
           onPress={() => handleFilterChange('unread')}
+          accessible={true}
+          accessibilityLabel="未読のみ表示"
+          accessibilityRole="button"
+          accessibilityState={{ selected: filter === 'unread' }}
         >
           <Text
             style={[
@@ -292,6 +311,10 @@ export function WordListScreen(): React.JSX.Element {
             filter === 'read' && styles.filterTabActive,
           ]}
           onPress={() => handleFilterChange('read')}
+          accessible={true}
+          accessibilityLabel="既読のみ表示"
+          accessibilityRole="button"
+          accessibilityState={{ selected: filter === 'read' }}
         >
           <Text
             style={[

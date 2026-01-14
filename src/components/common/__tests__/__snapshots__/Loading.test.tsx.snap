@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Loading Component Snapshots renders default loading state correctly 1`] = `null`;
+
+exports[`Loading Component Snapshots renders fullscreen loading correctly 1`] = `null`;
+
+exports[`Loading Component Snapshots renders fullscreen with message correctly 1`] = `null`;
+
+exports[`Loading Component Snapshots renders with custom message correctly 1`] = `null`;

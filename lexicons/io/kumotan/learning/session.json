@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "io.kumotan.learning.session",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A learning session record for Kumotan app",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["date", "wordsLearned", "timeSpent", "createdAt"],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date of the learning session (YYYY-MM-DD)"
+          },
+          "wordsLearned": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of words learned in this session"
+          },
+          "timeSpent": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Time spent learning in seconds"
+          },
+          "achievement": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Optional achievement description"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["public", "private"],
+            "default": "public",
+            "description": "Visibility of this session record"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when this record was created"
+          }
+        }
+      }
+    }
+  }
+}

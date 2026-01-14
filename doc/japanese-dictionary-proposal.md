@@ -438,12 +438,49 @@ async function lookupJapaneseWord(word: string) {
 ### Phase 4: ソーシャル機能（ATProtocol活用）
 **優先度: 低**
 
-1. **学習記録の共有**
-   - カスタムLexicon定義
-   - 学習セッション記録機能
-   - 工数: 1〜2週間
+#### Phase 4-1: 学習記録の共有 ✅ **完了** (2026-01-14)
 
-2. **単語リスト共有**
+**実装内容:**
+
+1. **カスタムLexicon定義** ✅
+   - ファイル: [lexicons/io/kumotan/learning/session.json](../lexicons/io/kumotan/learning/session.json)
+   - コレクション: `io.kumotan.learning.session`
+   - スキーマ: date, wordsLearned, timeSpent, achievement, visibility, createdAt
+
+2. **学習セッション記録機能** ✅
+   - ファイル: [src/services/learning/session.ts](../src/services/learning/session.ts)
+   - 関数:
+     - `createLearningSession()`: PDSへの学習記録保存
+     - `shareTodaysSession()`: 今日の学習セッション作成
+     - `shareToBlueskyTimeline()`: Blueskyタイムラインへの投稿
+     - `generateSessionPostText()`: ハッシュタグ付き投稿文生成
+
+3. **ProgressScreenへの統合** ✅
+   - ファイル: [src/screens/ProgressScreen.tsx](../src/screens/ProgressScreen.tsx:632-658)
+   - 実装:
+     - 「Blueskyに投稿」ボタン追加
+     - `handleShareToBluesky()` 関数実装
+     - PDS記録 → タイムライン投稿の完全フロー
+     - エラーハンドリングとアクセシビリティ対応
+
+**技術スタック:**
+
+- `@atproto/api` BskyAgent
+- ATProtocol Custom Lexicons
+- Personal Data Server (PDS) Storage
+- Bluesky Timeline Integration
+
+**ユーザーメリット:**
+
+- 学習記録をBlueskyに投稿して共有可能
+- PDSに自動保存（将来的な統計分析に活用可能）
+- ハッシュタグで学習コミュニティに参加
+
+#### Phase 4-2: 単語リスト共有（未実装）
+
+**優先度: 低**
+
+1. **公開単語リスト機能**
    - 公開単語リスト機能
    - インポート機能
    - 工数: 1〜2週間

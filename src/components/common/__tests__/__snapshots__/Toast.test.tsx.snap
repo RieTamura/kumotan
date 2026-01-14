@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Toast Component Snapshots renders error toast correctly 1`] = `null`;
+
+exports[`Toast Component Snapshots renders hidden toast correctly 1`] = `null`;
+
+exports[`Toast Component Snapshots renders info toast correctly 1`] = `null`;
+
+exports[`Toast Component Snapshots renders success toast correctly 1`] = `null`;
+
+exports[`Toast Component Snapshots renders warning toast correctly 1`] = `null`;

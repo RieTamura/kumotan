@@ -89,3 +89,26 @@ export interface WordInfo {
   isRegistered: boolean;
   isSelected: boolean;
 }
+
+/**
+ * 学習セッション記録
+ */
+export interface LearningSession {
+  date: string; // YYYY-MM-DD形式
+  wordsLearned: number;
+  timeSpent: number; // 秒数
+  achievement?: string;
+  visibility: 'public' | 'private';
+  createdAt: string; // ISO 8601形式
+}
+
+/**
+ * 学習セッション作成用の入力データ
+ */
+export interface CreateLearningSessionInput {
+  date: string;
+  wordsLearned: number;
+  timeSpent: number;
+  achievement?: string;
+  visibility?: 'public' | 'private';
+}
