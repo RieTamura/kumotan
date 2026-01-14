@@ -478,6 +478,8 @@ async function lookupJapaneseWord(word: string) {
    - SQLite FTS5（Full-Text Search）の活用
    - 前方一致・部分一致検索
 
+   **注意:** FTS5拡張はネイティブSQLiteに組み込まれた機能であり、カスタムビルド（`expo prebuild`、EAS Build、またはベアワークフロー）が必須です。Expo Goのプリビルト環境では動作しません。Expo Goをサポートする必要がある場合、JavaScriptベースのフィルタリングを代替案として検討してください。
+
 2. **遅延ロード**
    - 用例は初回表示時に取得
    - 画像・音声は別テーブル
