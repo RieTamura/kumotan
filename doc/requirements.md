@@ -697,11 +697,48 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年1月12日
-**バージョン**: 1.13
+**最終更新日**: 2026年1月14日
+**バージョン**: 1.15
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.15 (2026-01-14)
+
+- **日本語辞書機能の実装計画を確定**
+  - 背景：
+    - `doc/japanese-dictionary-proposal.md`で詳細な技術調査を完了
+    - 複数の実装方式を比較検討（iOS辞書、Wiktionary API、TexTra、SQLite DB、ATProtocol）
+    - ユーザー決定：アプリサイズ +10-15 MB増加を許容、v1.0.0リリース後すぐに実装開始
+  - 採用アプローチ：**ハイブリッド方式（Tier 1-2）**
+    - **Tier 1**: オフライン辞書DB（SQLite）- 頻出5万語、10-15MB
+      - 完全オフライン動作、超高速検索（数ミリ秒）
+      - 90%以上のユースケースをカバー
+      - データソース：日本語Wiktionary ダンプ（CC BY-SA 3.0）
+    - **Tier 2**: Wiktionary APIフォールバック
+      - オフラインDBに見つからない場合にオンライン検索
+      - 残り10%の単語をカバー
+    - **Tier 3**: iOS辞書ボタン（補助機能、オプション）
+  - 実装スケジュール：
+    - Week 1-2: v1.0.0リリース準備（App Password専用版）
+    - Week 3-6: v1.1.0日本語辞書実装（Phase 1: オフラインDB、3-4週間）
+    - Week 7-8: v1.1.1 Wiktionary APIフォールバック（Phase 2、1.5週間）
+  - 技術的詳細：
+    - データベース構築ツール作成（Wiktionaryダンプ → SQLite変換）
+    - 頻出5万語の抽出ロジック（BCCWJ/JLPT基準）
+    - expo-sqliteでの辞書DB統合
+    - WordPopupコンポーネントへの日本語辞書検索機能統合
+  - 期待される成果：
+    - 英語単語：Free Dictionary API + DeepL翻訳（既存機能）
+    - 日本語単語：オフライン辞書DB（90%）→ Wiktionary API（10%）
+    - 完全オフライン対応、超高速検索、プライバシー保護
+  - ライセンス遵守：
+    - CC BY-SA 3.0準拠
+    - About画面に帰属表記（日本語版Wiktionary）
+  - 参考資料：
+    - [doc/japanese-dictionary-proposal.md](japanese-dictionary-proposal.md) - 詳細な技術調査と実装提案
+    - [日本語Wiktionary ダンプ](https://dumps.wikimedia.org/jawiktionary/)
+    - [Kaikki.org - 処理済みWiktionaryデータ](https://kaikki.org/dictionary/rawdata.html)
 
 ### v1.14 (2026-01-13)
 
