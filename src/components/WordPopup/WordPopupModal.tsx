@@ -643,6 +643,7 @@ const styles = StyleSheet.create({
     bottom: Spacing.xl,
     left: 0,
     right: 0,
+    backgroundColor: Colors.background,
   },
   addButton: {
     flex: 2,
