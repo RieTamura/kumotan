@@ -14,6 +14,8 @@ import {
   Linking,
   Image,
   ActivityIndicator,
+  Share,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -24,6 +26,9 @@ import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/common/Button';
 import { hasApiKey } from '../services/dictionary/deepl';
 import { hasClientId } from '../services/dictionary/yahooJapan';
+import { exportWords, deleteAllWords } from '../services/database/words';
+import { Toast } from '../components/common/Toast';
+import { useToast } from '../hooks/useToast';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 /**
@@ -100,6 +105,9 @@ export function SettingsScreen(): React.JSX.Element {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
   const [yahooClientIdSet, setYahooClientIdSet] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { toastState, showSuccess, showError, hideToast } = useToast();
 
   /**
    * Check API key status on mount and when screen gains focus
@@ -160,14 +168,49 @@ export function SettingsScreen(): React.JSX.Element {
   /**
    * Handle data export
    */
-  const handleExportData = useCallback(() => {
-    // TODO: Implement data export
-    Alert.alert(
-      'データエクスポート',
-      'この機能は開発中です。単語データをJSON形式でエクスポートできるようになります。',
-      [{ text: 'OK' }]
-    );
-  }, []);
+  const handleExportData = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const result = await exportWords();
+
+      if (!result.success) {
+        showError(result.error.message);
+        return;
+      }
+
+      const words = result.data;
+
+      if (words.length === 0) {
+        Alert.alert(
+          '単語帳が空です',
+          'エクスポートする単語がありません。',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const jsonData = JSON.stringify(words, null, 2);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      const fileName = `kumotan-words-${timestamp}.json`;
+
+      // Share the JSON data
+      const shareResult = await Share.share({
+        message: jsonData,
+        title: fileName,
+      }, {
+        dialogTitle: '単語データをエクスポート',
+      });
+
+      if (shareResult.action === Share.sharedAction) {
+        showSuccess(`${words.length}個の単語をエクスポートしました`);
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      showError('エクスポートに失敗しました');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [showSuccess, showError]);
 
   /**
    * Handle delete all data
@@ -181,14 +224,28 @@ export function SettingsScreen(): React.JSX.Element {
         {
           text: '削除',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement data deletion
-            Alert.alert('完了', 'すべてのデータを削除しました。');
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              const result = await deleteAllWords();
+
+              if (!result.success) {
+                showError(result.error.message);
+                return;
+              }
+
+              showSuccess('すべてのデータを削除しました');
+            } catch (error) {
+              console.error('Delete error:', error);
+              showError('削除に失敗しました');
+            } finally {
+              setIsDeleting(false);
+            }
           },
         },
       ]
     );
-  }, []);
+  }, [showSuccess, showError]);
 
   /**
    * Handle license screen navigation
@@ -312,12 +369,14 @@ export function SettingsScreen(): React.JSX.Element {
             title="データをエクスポート"
             subtitle="JSON形式で出力"
             onPress={handleExportData}
+            disabled={isExporting}
           />
           <SettingsItem
             title="すべてのデータを削除"
             onPress={handleDeleteAllData}
             danger
             showArrow={false}
+            disabled={isDeleting}
           />
         </SettingsSection>
 
@@ -365,6 +424,15 @@ export function SettingsScreen(): React.JSX.Element {
           <Text style={styles.appTagline}>{APP_INFO.DESCRIPTION}</Text>
         </View>
       </ScrollView>
+
+      {/* Toast Notification */}
+      <Toast
+        visible={toastState.visible}
+        message={toastState.message}
+        type={toastState.type}
+        duration={toastState.duration}
+        onDismiss={hideToast}
+      />
     </SafeAreaView>
   );
 }

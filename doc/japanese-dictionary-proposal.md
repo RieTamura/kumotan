@@ -35,7 +35,8 @@
 ★★☆（中）
 
 #### React Nativeライブラリ
-- `react-native-reference-library-view`（2020年更新停止）
+
+- `react-native-reference-library-view`（2023年1月以降更新停止、実質メンテナンス終了）
 
 #### 結論
 **補助機能としての実装を推奨**
@@ -252,9 +253,11 @@ CREATE TABLE dictionary (
 
 1. **データダウンロード**
    ```bash
-pip install wiktextract
-wiktwords --language ja --out data.json jawiktionary-latest-pages-articles.xml.bz2
-```
+   pip install wiktextract
+   wiktwords --language ja \
+     --out data.json \
+     jawiktionary-latest-pages-articles.xml.bz2
+   ```
 
 2. **JSONからSQLiteへの変換**
    - カスタムPythonスクリプトでdata.jsonを読み込み

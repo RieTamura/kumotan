@@ -19,6 +19,8 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { Word, WordFilter } from '../types/word';
 import { Loading } from '../components/common/Loading';
 import { Button } from '../components/common/Button';
+import { Toast } from '../components/common/Toast';
+import { useToast } from '../hooks/useToast';
 import { WordListItem } from '../components/WordListItem';
 import { useWordStore } from '../store/wordStore';
 
@@ -37,19 +39,22 @@ type SortOption = 'created_at' | 'english';
  */
 export function WordListScreen(): React.JSX.Element {
   // Use word store
-  const { 
-    words, 
-    isLoading, 
-    loadWords, 
+  const {
+    words,
+    isLoading,
+    loadWords,
     toggleReadStatus: toggleReadStatusStore,
     deleteWord: deleteWordStore,
-    setFilter: setStoreFilter 
+    setFilter: setStoreFilter
   } = useWordStore();
 
   // Filter and sort state (local UI state)
   const [filter, setFilter] = useState<FilterOption>('all');
   const [sortBy, setSortBy] = useState<SortOption>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Toast notifications
+  const { toastState, showSuccess, showError, hideToast } = useToast();
 
   /**
    * Load words from database using store
@@ -138,9 +143,9 @@ export function WordListScreen(): React.JSX.Element {
   const handleToggleRead = useCallback(async (word: Word) => {
     const result = await toggleReadStatusStore(word.id);
     if (!result.success) {
-      Alert.alert('エラー', result.error.message);
+      showError(result.error.message);
     }
-  }, [toggleReadStatusStore]);
+  }, [toggleReadStatusStore, showError]);
 
   /**
    * Handle word delete
@@ -157,15 +162,15 @@ export function WordListScreen(): React.JSX.Element {
           onPress: async () => {
             const result = await deleteWordStore(word.id);
             if (result.success) {
-              Alert.alert('成功', '単語を削除しました');
+              showSuccess('単語を削除しました');
             } else {
-              Alert.alert('エラー', result.error.message);
+              showError(result.error.message);
             }
           },
         },
       ]
     );
-  }, [deleteWordStore]);
+  }, [deleteWordStore, showSuccess, showError]);
 
   /**
    * Render word item
@@ -307,6 +312,15 @@ export function WordListScreen(): React.JSX.Element {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmpty}
         showsVerticalScrollIndicator={false}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        visible={toastState.visible}
+        message={toastState.message}
+        type={toastState.type}
+        duration={toastState.duration}
+        onDismiss={hideToast}
       />
     </SafeAreaView>
   );

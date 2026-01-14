@@ -23,6 +23,8 @@ import {
 } from '../constants/colors';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
+import { Toast } from '../components/common/Toast';
+import { useToast } from '../hooks/useToast';
 import {
   validateApiKey,
   saveApiKey,
@@ -72,6 +74,9 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
   const [isYahooValidating, setIsYahooValidating] = useState(false);
   const [isYahooDeleting, setIsYahooDeleting] = useState(false);
   const [yahooError, setYahooError] = useState<string | null>(null);
+
+  // Toast notifications
+  const { toastState, showSuccess, showError, showWarning, hideToast } = useToast();
 
   /**
    * Check if API key is already set on mount
@@ -157,15 +162,11 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
       setIsKeySet(true);
       setApiKey('');
 
-      Alert.alert(
-        '保存完了',
-        'DeepL API Keyが正常に保存されました。',
-        [{ text: 'OK' }]
-      );
+      showSuccess('DeepL API Keyが正常に保存されました');
     } finally {
       setIsValidating(false);
     }
-  }, [apiKey]);
+  }, [apiKey, showSuccess]);
 
   /**
    * Handle API key deletion
@@ -187,15 +188,15 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
             if (result.success) {
               setIsKeySet(false);
               setUsage(null);
-              Alert.alert('削除完了', 'API Keyが削除されました。');
+              showSuccess('API Keyが削除されました');
             } else {
-              Alert.alert('エラー', result.error.message);
+              showError(result.error.message);
             }
           },
         },
       ]
     );
-  }, []);
+  }, [showSuccess, showError]);
 
   /**
    * Handle Yahoo! Client ID validation and save
@@ -232,15 +233,11 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
       setIsYahooIdSet(true);
       setYahooClientId('');
 
-      Alert.alert(
-        '保存完了',
-        'Yahoo! Client IDが正常に保存されました。',
-        [{ text: 'OK' }]
-      );
+      showSuccess('Yahoo! Client IDが正常に保存されました');
     } finally {
       setIsYahooValidating(false);
     }
-  }, [yahooClientId]);
+  }, [yahooClientId, showSuccess]);
 
   /**
    * Handle Yahoo! Client ID deletion
@@ -261,15 +258,15 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
 
             if (result.success) {
               setIsYahooIdSet(false);
-              Alert.alert('削除完了', 'Client IDが削除されました。');
+              showSuccess('Client IDが削除されました');
             } else {
-              Alert.alert('エラー', result.error.message);
+              showError(result.error.message);
             }
           },
         },
       ]
     );
-  }, []);
+  }, [showSuccess, showError]);
 
   /**
    * Open DeepL signup page
@@ -523,6 +520,15 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
           </Text>
         </View>
       </ScrollView>
+
+      {/* Toast Notification */}
+      <Toast
+        visible={toastState.visible}
+        message={toastState.message}
+        type={toastState.type}
+        duration={toastState.duration}
+        onDismiss={hideToast}
+      />
     </SafeAreaView>
   );
 }
