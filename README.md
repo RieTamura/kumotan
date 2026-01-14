@@ -283,6 +283,26 @@ npx expo start --devClient
 
 プルリクエストや Issue の報告を歓迎します！
 
+### フィードバックをお寄せください
+
+アプリを改善するために、皆さまのフィードバックをお待ちしています。
+
+#### バグ報告・機能要望
+
+[GitHub Issues](https://github.com/RieTamura/kumotan/issues/new/choose) から報告してください。以下のテンプレートをご用意しています：
+
+- **🐛 バグ報告**: 不具合を発見した場合
+- **💡 機能要望**: 新しい機能や改善のアイデア
+- **❓ 質問**: 使い方や設定についての質問
+
+#### Blueskyで連絡
+
+[@kumotan.bsky.social](https://bsky.app/profile/kumotan.bsky.social) で直接フィードバックを送ることもできます。
+
+#### アプリ内からのフィードバック
+
+設定画面の「フィードバック」セクションから、GitHubやBlueskyにアクセスできます。
+
 ## 📄 ライセンス
 
 MIT License

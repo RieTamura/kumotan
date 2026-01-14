@@ -1,0 +1,54 @@
+name: 質問 / Question
+description: 使い方や設定について質問する / Ask a question about usage or settings
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        質問をありがとうございます！
+        できるだけ具体的に教えていただけると、より的確に回答できます。
+
+        Thank you for your question!
+        Please provide as much detail as possible for a better answer.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 質問内容 / Question
+      description: 何について知りたいですか？
+      placeholder: |
+        例: DeepL API Keyはどこで取得できますか？
+        Example: Where can I get a DeepL API Key?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: カテゴリ / Category
+      description: 質問のカテゴリを選択してください
+      options:
+        - 初期設定 / Initial Setup
+        - API Key設定 / API Key Configuration
+        - 単語登録・学習 / Word Registration & Learning
+        - データ管理 / Data Management
+        - トラブルシューティング / Troubleshooting
+        - その他 / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 状況説明 / Context
+      description: 現在の状況や試したことがあれば教えてください
+      placeholder: |
+        例: DeepL API Keyを設定しようとしたが、どのプランを選べばいいか分からない
+        Example: I tried to set up DeepL API Key but don't know which plan to choose
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 追加情報 / Additional Information
+      description: スクリーンショットなど、参考になる情報があれば追加してください

@@ -648,8 +648,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - react-test-renderer インストール（v19.1.0）
   - transformIgnorePatterns更新（expo-modules-core, lucide-react-native対応）
   - モック追加（react-native-view-shot, lucide-react-native）
-- [ ] TestFlight配信準備
-- [ ] ユーザーフィードバック収集体制構築
+- [x] TestFlight配信準備
+  - App Password専用版（v1.0.0）をビルド
+  - TestFlightに配信完了（実機テスト済み）
+- [x] ユーザーフィードバック収集体制構築
+  - GitHub Issuesテンプレート作成（バグ報告、機能要望、質問）
+  - フィードバック導線の追加（設定画面にリンク）
+  - Blueskyアカウントでのフィードバック受付準備
 
 **成果**:
 

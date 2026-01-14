@@ -380,6 +380,25 @@ export function SettingsScreen(): React.JSX.Element {
           />
         </SettingsSection>
 
+        {/* Feedback Section */}
+        <SettingsSection title="フィードバック">
+          <SettingsItem
+            title="バグを報告"
+            subtitle="不具合を報告する"
+            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_ISSUES)}
+          />
+          <SettingsItem
+            title="機能を提案"
+            subtitle="新機能やアイデアを共有する"
+            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_ISSUES)}
+          />
+          <SettingsItem
+            title="Bluesky で連絡"
+            subtitle={EXTERNAL_LINKS.BLUESKY_ACCOUNT}
+            onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_ACCOUNT)}
+          />
+        </SettingsSection>
+
         {/* About Section */}
         <SettingsSection title="その他">
           <SettingsItem
@@ -390,6 +409,11 @@ export function SettingsScreen(): React.JSX.Element {
           <SettingsItem
             title="ライセンス"
             onPress={handleLicensePress}
+          />
+          <SettingsItem
+            title="GitHub リポジトリ"
+            subtitle={EXTERNAL_LINKS.GITHUB_REPO}
+            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
           />
           <SettingsItem
             title="Bluesky API ドキュメント"

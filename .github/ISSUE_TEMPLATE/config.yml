@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Bluesky でフィードバック / Feedback on Bluesky
+    url: https://bsky.app/profile/kumotan.bsky.social
+    about: Blueskyアカウントで直接フィードバックを送る / Send feedback directly via Bluesky
+  - name: ドキュメント / Documentation
+    url: https://github.com/RieTamura/kumotan/blob/main/README.md
+    about: アプリの使い方とFAQ / App usage and FAQ

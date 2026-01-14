@@ -1,0 +1,101 @@
+name: バグ報告 / Bug Report
+description: アプリの不具合を報告する / Report a bug in the app
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        バグを報告していただきありがとうございます！
+        問題を解決するため、以下の情報をできるだけ詳しく教えてください。
+
+        Thank you for reporting a bug!
+        Please provide as much detail as possible to help us fix the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 問題の説明 / Description
+      description: どのような問題が発生していますか？
+      placeholder: |
+        例: 単語を単語帳に追加しようとすると、アプリがクラッシュする
+        Example: The app crashes when I try to add a word to my word list
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順 / Steps to Reproduce
+      description: 問題を再現するための手順を教えてください
+      placeholder: |
+        1. ホーム画面でタイムラインを開く
+        2. 投稿内の単語をロングタップ
+        3. 「単語帳に追加」ボタンをタップ
+        4. アプリがクラッシュする
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待される動作 / Expected Behavior
+      description: 本来どのように動作すべきですか？
+      placeholder: 単語が単語帳に追加され、成功のトーストが表示される
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作 / Actual Behavior
+      description: 実際にどのような動作をしていますか？
+      placeholder: アプリがクラッシュして、ホーム画面に戻される
+    validations:
+      required: true
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: アプリバージョン / App Version
+      description: 設定画面で確認できます / Check in Settings screen
+      options:
+        - v1.0.0
+        - v1.1.0
+        - v1.2.0
+        - その他 / Other (specify in description)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: デバイス / Device
+      options:
+        - iPhone
+        - iPad
+        - その他 / Other (specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: ios-version
+    attributes:
+      label: iOS バージョン / iOS Version
+      placeholder: 例 / e.g. 17.2
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 追加情報 / Additional Context
+      description: スクリーンショットやログなど、問題の理解に役立つ情報があれば追加してください
+      placeholder: |
+        - スクリーンショット
+        - デバッグログ（設定 → デバッグログから取得）
+        - その他の関連情報

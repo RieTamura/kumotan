@@ -1,0 +1,66 @@
+name: 機能要望 / Feature Request
+description: 新しい機能や改善を提案する / Suggest a new feature or improvement
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        機能要望をありがとうございます！
+        あなたのアイデアを実現するため、詳しく教えてください。
+
+        Thank you for your feature request!
+        Please provide details about your idea.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 解決したい問題 / Problem to Solve
+      description: どのような問題を解決したいですか？
+      placeholder: |
+        例: 単語を復習する機能がないため、覚えたかどうか確認できない
+        Example: There's no way to review words, so I can't check if I've memorized them
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 提案する解決策 / Proposed Solution
+      description: どのような機能があれば問題を解決できますか？
+      placeholder: |
+        例: フラッシュカード機能を追加して、英単語と日本語訳をランダムに表示する
+        Example: Add a flashcard feature that randomly displays English words and Japanese translations
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 代替案 / Alternatives Considered
+      description: 他に検討した解決策はありますか？
+      placeholder: |
+        例: クイズモードで4択問題を表示する
+        Example: A quiz mode with multiple choice questions
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度 / Priority
+      description: この機能はあなたにとってどれくらい重要ですか？
+      options:
+        - 高 - この機能がないと困る / High - Can't use the app without it
+        - 中 - あると便利 / Medium - Would be nice to have
+        - 低 - あったら嬉しい / Low - Just a suggestion
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 追加情報 / Additional Context
+      description: 参考になる情報（スクリーンショット、他のアプリの例など）があれば追加してください
+      placeholder: |
+        - スクリーンショット
+        - 類似機能を持つ他のアプリ
+        - その他の関連情報

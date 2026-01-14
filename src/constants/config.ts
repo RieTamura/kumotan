@@ -101,6 +101,9 @@ export const EXTERNAL_LINKS = {
   BLUESKY_DOCS: 'https://docs.bsky.app/',
   DEEPL_DOCS: 'https://www.deepl.com/docs-api',
   DICTIONARY_DOCS: 'https://dictionaryapi.dev/',
+  GITHUB_ISSUES: 'https://github.com/RieTamura/kumotan/issues/new/choose',
+  GITHUB_REPO: 'https://github.com/RieTamura/kumotan',
+  BLUESKY_ACCOUNT: 'https://bsky.app/profile/kumotan.bsky.social',
 } as const;
 
 /**
