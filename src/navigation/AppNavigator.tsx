@@ -10,12 +10,12 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Home, BookOpen, BarChart3, Settings } from 'lucide-react-native';
 import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, FontSizes } from '../constants/colors';
+import { Colors } from '../constants/colors';
 import { useAuthStore } from '../store/authStore';
 
 // Screens
@@ -99,7 +99,6 @@ function CustomTabBar({ currentIndex, onTabPress }: CustomTabBarProps): React.JS
             accessibilityLabel={tab.label}
           >
             <tab.Icon size={24} color={color} />
-            <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -289,11 +288,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
-  },
-  tabLabel: {
-    fontSize: FontSizes.xs,
-    fontWeight: '500',
-    marginTop: 2,
   },
 });
 
