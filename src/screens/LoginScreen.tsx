@@ -26,7 +26,6 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 import { StaticOfflineBanner } from '../components/OfflineBanner';
-import { OAuthButton } from '../components/OAuthButton';
 
 /**
  * LoginScreen Component
@@ -44,7 +43,6 @@ export function LoginScreen(): React.JSX.Element {
   // Form state
   const [identifier, setIdentifier] = useState('');
   const [appPassword, setAppPassword] = useState('');
-  const [showAppPasswordForm, setShowAppPasswordForm] = useState(false);
 
   // Validation errors
   const [identifierError, setIdentifierError] = useState<string | undefined>();
@@ -205,106 +203,71 @@ export function LoginScreen(): React.JSX.Element {
               </View>
             )}
 
-            {/* OAuth Login (Primary) */}
-            <View style={styles.oauthSection}>
-              <OAuthButton disabled={!isConnected} />
-            </View>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('oauth.or')}</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* App Password Login (Advanced Option) */}
+            {/* App Password Login Form */}
             <View style={styles.appPasswordSection}>
-              {!showAppPasswordForm ? (
-                <Pressable
-                  onPress={() => setShowAppPasswordForm(true)}
-                  style={styles.advancedOptionButton}
-                >
-                  <Text style={styles.advancedOptionText}>
-                    {t('oauth.useAppPassword')}
-                  </Text>
-                </Pressable>
-              ) : (
-                <>
-                  {/* Identifier Input */}
-                  <Input
-                    label={t('handle.label')}
-                    placeholder={t('handle.placeholder')}
-                    value={identifier}
-                    onChangeText={handleIdentifierChange}
-                    error={identifierError}
-                    hint={t('handle.hint')}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    textContentType="username"
-                    returnKeyType="next"
-                    onSubmitEditing={handleIdentifierSubmit}
-                    editable={!isLoading}
-                  />
+              {/* Identifier Input */}
+              <Input
+                label={t('handle.label')}
+                placeholder={t('handle.placeholder')}
+                value={identifier}
+                onChangeText={handleIdentifierChange}
+                error={identifierError}
+                hint={t('handle.hint')}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="username"
+                returnKeyType="next"
+                onSubmitEditing={handleIdentifierSubmit}
+                editable={!isLoading}
+              />
 
-                  {/* App Password Input */}
-                  <Input
-                    ref={passwordInputRef}
-                    label={t('appPassword.label')}
-                    placeholder={t('appPassword.placeholder')}
-                    value={appPassword}
-                    onChangeText={handleAppPasswordChange}
-                    error={appPasswordError}
-                    secureTextEntry
-                    showPasswordToggle
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    textContentType="password"
-                    returnKeyType="done"
-                    onSubmitEditing={handleLogin}
-                    editable={!isLoading}
-                  />
+              {/* App Password Input */}
+              <Input
+                ref={passwordInputRef}
+                label={t('appPassword.label')}
+                placeholder={t('appPassword.placeholder')}
+                value={appPassword}
+                onChangeText={handleAppPasswordChange}
+                error={appPasswordError}
+                secureTextEntry
+                showPasswordToggle
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+                editable={!isLoading}
+              />
 
-                  {/* App Password Help Link */}
-                  <Pressable
-                    onPress={handleAppPasswordHelp}
-                    style={styles.helpLink}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Text style={styles.helpLinkText}>
-                      {t('appPassword.help')}
-                    </Text>
-                  </Pressable>
+              {/* App Password Help Link */}
+              <Pressable
+                onPress={handleAppPasswordHelp}
+                style={styles.helpLink}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.helpLinkText}>
+                  {t('appPassword.help')}
+                </Text>
+              </Pressable>
 
-                  {/* Login Button */}
-                  <Button
-                    title={isLoading ? t('button.loggingIn') : t('button.login')}
-                    onPress={handleLogin}
-                    loading={isLoading}
-                    disabled={!isConnected || isLoading}
-                    fullWidth
-                    size="large"
-                    style={styles.loginButton}
-                  />
+              {/* Login Button */}
+              <Button
+                title={isLoading ? t('button.loggingIn') : t('button.login')}
+                onPress={handleLogin}
+                loading={isLoading}
+                disabled={!isConnected || isLoading}
+                fullWidth
+                size="large"
+                style={styles.loginButton}
+              />
 
-                  {/* Security Note */}
-                  <View style={styles.securityNote}>
-                    <Text style={styles.securityNoteText}>
-                      {t('security.note')}
-                    </Text>
-                  </View>
-
-                  {/* Hide Form Button */}
-                  <Pressable
-                    onPress={() => setShowAppPasswordForm(false)}
-                    style={styles.hideFormButton}
-                  >
-                    <Text style={styles.hideFormText}>
-                      {t('form.hide')}
-                    </Text>
-                  </Pressable>
-                </>
-              )}
+              {/* Security Note */}
+              <View style={styles.securityNote}>
+                <Text style={styles.securityNoteText}>
+                  {t('security.note')}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -410,47 +373,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textTertiary,
   },
-  // OAuth Section
-  oauthSection: {
-    marginBottom: Spacing.lg,
-  },
-  // Divider
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.xl,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginHorizontal: Spacing.md,
-  },
   // App Password Section
   appPasswordSection: {
     marginBottom: Spacing.lg,
-  },
-  advancedOptionButton: {
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-  },
-  advancedOptionText: {
-    fontSize: FontSizes.md,
-    color: Colors.primary,
-    fontWeight: '500',
-  },
-  hideFormButton: {
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  hideFormText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
   },
 });
 
