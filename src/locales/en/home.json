@@ -1,0 +1,19 @@
+{
+  "header": "Home",
+  "loading": "Loading...",
+  "loadingTimeline": "Loading timeline...",
+  "loadingMore": "Loading...",
+  "error": "An error occurred",
+  "offline": "You are offline",
+  "offlineMessage": "Please check your internet connection",
+  "empty": "No posts",
+  "emptyMessage": "No posts in your timeline or\nyou're not following anyone",
+  "retry": "Retry",
+  "refresh": "Refresh",
+  "pullToRefresh": "Pull to refresh",
+  "refreshTimeline": "Refresh timeline",
+  "refreshHint": "Load the latest posts",
+  "scrollToTop": "Back to top",
+  "wordAdded": "Word added!",
+  "wordAddError": "Failed to add word"
+}

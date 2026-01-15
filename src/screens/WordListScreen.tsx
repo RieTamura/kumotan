@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { BookOpen, Check, Trash2 } from 'lucide-react-native';
+import { BookOpen, Trash2 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { Word, WordFilter } from '../types/word';
 import { Loading } from '../components/common/Loading';
@@ -38,6 +39,9 @@ type SortOption = 'created_at' | 'english';
  * WordListScreen Component
  */
 export function WordListScreen(): React.JSX.Element {
+  const { t } = useTranslation('wordList');
+  const { t: tc } = useTranslation('common');
+
   // Use word store
   const {
     words,
@@ -101,41 +105,41 @@ export function WordListScreen(): React.JSX.Element {
    */
   const handleSortChange = useCallback(() => {
     Alert.alert(
-      'ソート順',
-      '並び順を選択してください',
+      t('sort.title'),
+      undefined,
       [
         {
-          text: '登録日時（新しい順）',
+          text: t('sort.dateDesc'),
           onPress: () => {
             setSortBy('created_at');
             setSortOrder('desc');
           },
         },
         {
-          text: '登録日時（古い順）',
+          text: t('sort.dateAsc'),
           onPress: () => {
             setSortBy('created_at');
             setSortOrder('asc');
           },
         },
         {
-          text: 'アルファベット順（A-Z）',
+          text: t('sort.alphabetAsc'),
           onPress: () => {
             setSortBy('english');
             setSortOrder('asc');
           },
         },
         {
-          text: 'アルファベット順（Z-A）',
+          text: t('sort.alphabetDesc'),
           onPress: () => {
             setSortBy('english');
             setSortOrder('desc');
           },
         },
-        { text: 'キャンセル', style: 'cancel' },
+        { text: tc('buttons.cancel'), style: 'cancel' },
       ]
     );
-  }, []);
+  }, [t, tc]);
 
   /**
    * Handle checkbox toggle (read status)
@@ -152,17 +156,17 @@ export function WordListScreen(): React.JSX.Element {
    */
   const handleWordDelete = useCallback(async (word: Word) => {
     Alert.alert(
-      '単語を削除',
-      `"${word.english}" を削除しますか？`,
+      t('delete.title'),
+      t('delete.message', { word: word.english }),
       [
-        { text: 'キャンセル', style: 'cancel' },
+        { text: tc('buttons.cancel'), style: 'cancel' },
         {
-          text: '削除',
+          text: tc('buttons.delete'),
           style: 'destructive',
           onPress: async () => {
             const result = await deleteWordStore(word.id);
             if (result.success) {
-              showSuccess('単語を削除しました');
+              showSuccess(t('delete.success'));
             } else {
               showError(result.error.message);
             }
@@ -170,7 +174,7 @@ export function WordListScreen(): React.JSX.Element {
         },
       ]
     );
-  }, [deleteWordStore, showSuccess, showError]);
+  }, [deleteWordStore, showSuccess, showError, t, tc]);
 
   /**
    * Render word item
@@ -211,32 +215,31 @@ export function WordListScreen(): React.JSX.Element {
         <View style={styles.emptyIconContainer}>
           <BookOpen size={64} color={Colors.textSecondary} />
         </View>
-        <Text style={styles.emptyTitle}>単語がまだ登録されていません</Text>
+        <Text style={styles.emptyTitle}>{t('empty')}</Text>
         <Text style={styles.emptyMessage}>
-          HOMEからBlueskyの投稿で{'\n'}
-          気になる単語を登録しましょう
+          {t('emptyMessage')}
         </Text>
       </View>
     );
-  }, [isLoading]);
+  }, [isLoading, t]);
 
   /**
    * Get sort label for display
    */
   const getSortLabel = (): string => {
     if (sortBy === 'created_at') {
-      return sortOrder === 'desc' ? '登録日時（新しい順）' : '登録日時（古い順）';
+      return sortOrder === 'desc' ? t('sort.dateDesc') : t('sort.dateAsc');
     }
-    return sortOrder === 'asc' ? 'アルファベット順（A-Z）' : 'アルファベット順（Z-A）';
+    return sortOrder === 'asc' ? t('sort.alphabetAsc') : t('sort.alphabetDesc');
   };
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>単語帳</Text>
+          <Text style={styles.headerTitle}>{t('header')}</Text>
         </View>
-        <Loading fullScreen message="単語を読み込み中..." />
+        <Loading fullScreen message={tc('status.loading')} />
       </SafeAreaView>
     );
   }
@@ -245,13 +248,13 @@ export function WordListScreen(): React.JSX.Element {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>単語帳</Text>
+        <Text style={styles.headerTitle}>{t('header')}</Text>
         <Pressable
           onPress={handleSortChange}
           style={styles.sortButton}
           accessible={true}
-          accessibilityLabel="並び順を変更"
-          accessibilityHint={`現在: ${getSortLabel()}`}
+          accessibilityLabel={t('sort.title')}
+          accessibilityHint={getSortLabel()}
           accessibilityRole="button"
         >
           <Text style={styles.sortIcon}>⇅</Text>
@@ -272,7 +275,7 @@ export function WordListScreen(): React.JSX.Element {
           ]}
           onPress={() => handleFilterChange('all')}
           accessible={true}
-          accessibilityLabel="すべて表示"
+          accessibilityLabel={t('filters.all')}
           accessibilityRole="button"
           accessibilityState={{ selected: filter === 'all' }}
         >
@@ -282,7 +285,7 @@ export function WordListScreen(): React.JSX.Element {
               filter === 'all' && styles.filterTabTextActive,
             ]}
           >
-            すべて
+            {t('filters.all')}
           </Text>
         </Pressable>
         <Pressable
@@ -292,7 +295,7 @@ export function WordListScreen(): React.JSX.Element {
           ]}
           onPress={() => handleFilterChange('unread')}
           accessible={true}
-          accessibilityLabel="未読のみ表示"
+          accessibilityLabel={t('filters.unread')}
           accessibilityRole="button"
           accessibilityState={{ selected: filter === 'unread' }}
         >
@@ -302,7 +305,7 @@ export function WordListScreen(): React.JSX.Element {
               filter === 'unread' && styles.filterTabTextActive,
             ]}
           >
-            未読
+            {t('filters.unread')}
           </Text>
         </Pressable>
         <Pressable
@@ -312,7 +315,7 @@ export function WordListScreen(): React.JSX.Element {
           ]}
           onPress={() => handleFilterChange('read')}
           accessible={true}
-          accessibilityLabel="既読のみ表示"
+          accessibilityLabel={t('filters.read')}
           accessibilityRole="button"
           accessibilityState={{ selected: filter === 'read' }}
         >
@@ -322,7 +325,7 @@ export function WordListScreen(): React.JSX.Element {
               filter === 'read' && styles.filterTabTextActive,
             ]}
           >
-            既読
+            {t('filters.read')}
           </Text>
         </Pressable>
       </View>

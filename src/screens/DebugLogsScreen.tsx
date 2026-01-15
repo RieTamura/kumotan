@@ -14,11 +14,14 @@ import {
   Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
-import { getLogs, getLogsAsString, clearLogs } from '../utils/logger';
+import { getLogsAsString, clearLogs } from '../utils/logger';
 import { Colors, FontSizes, Spacing } from '../constants/colors';
 
 export function DebugLogsScreen(): React.JSX.Element {
+  const { t } = useTranslation('debugLogs');
+  const { t: tc } = useTranslation('common');
   const [logs, setLogs] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -30,9 +33,9 @@ export function DebugLogsScreen(): React.JSX.Element {
     setIsLoading(true);
     try {
       const logsString = await getLogsAsString();
-      setLogs(logsString || 'ログがありません');
+      setLogs(logsString || t('empty'));
     } catch (error) {
-      setLogs('ログの読み込みに失敗しました');
+      setLogs(t('loadError'));
       console.error('Failed to load logs:', error);
     } finally {
       setIsLoading(false);
@@ -42,9 +45,9 @@ export function DebugLogsScreen(): React.JSX.Element {
   const handleCopyToClipboard = async () => {
     try {
       await Clipboard.setStringAsync(logs);
-      Alert.alert('成功', 'ログをクリップボードにコピーしました');
+      Alert.alert(tc('status.success'), t('alerts.copySuccess'));
     } catch (error) {
-      Alert.alert('エラー', 'コピーに失敗しました');
+      Alert.alert(tc('status.error'), t('alerts.copyError'));
     }
   };
 
@@ -52,32 +55,32 @@ export function DebugLogsScreen(): React.JSX.Element {
     try {
       await Share.share({
         message: logs,
-        title: 'くもたん デバッグログ',
+        title: t('share.title'),
       });
     } catch (error) {
-      Alert.alert('エラー', '共有に失敗しました');
+      Alert.alert(tc('status.error'), t('alerts.shareError'));
     }
   };
 
   const handleClearLogs = () => {
     Alert.alert(
-      'ログを削除',
-      '全てのログを削除しますか？',
+      t('alerts.deleteTitle'),
+      t('alerts.deleteMessage'),
       [
         {
-          text: 'キャンセル',
+          text: tc('buttons.cancel'),
           style: 'cancel',
         },
         {
-          text: '削除',
+          text: tc('buttons.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await clearLogs();
-              setLogs('ログがありません');
-              Alert.alert('成功', 'ログを削除しました');
+              setLogs(t('empty'));
+              Alert.alert(tc('status.success'), t('alerts.deleteSuccess'));
             } catch (error) {
-              Alert.alert('エラー', 'ログの削除に失敗しました');
+              Alert.alert(tc('status.error'), t('alerts.deleteError'));
             }
           },
         },
@@ -88,8 +91,8 @@ export function DebugLogsScreen(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.header}>
-        <Text style={styles.title}>デバッグログ</Text>
-        <Text style={styles.subtitle}>TestFlight デバッグ用</Text>
+        <Text style={styles.title}>{t('header')}</Text>
+        <Text style={styles.subtitle}>{t('subtitle')}</Text>
       </View>
 
       <View style={styles.buttonContainer}>
@@ -97,34 +100,34 @@ export function DebugLogsScreen(): React.JSX.Element {
           style={[styles.button, styles.buttonPrimary]}
           onPress={handleCopyToClipboard}
         >
-          <Text style={styles.buttonText}>コピー</Text>
+          <Text style={styles.buttonText}>{t('actions.copy')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.buttonPrimary]}
           onPress={handleShare}
         >
-          <Text style={styles.buttonText}>共有</Text>
+          <Text style={styles.buttonText}>{t('actions.share')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.buttonSecondary]}
           onPress={loadLogs}
         >
-          <Text style={styles.buttonText}>再読み込み</Text>
+          <Text style={styles.buttonText}>{t('actions.reload')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.buttonDanger]}
           onPress={handleClearLogs}
         >
-          <Text style={styles.buttonText}>削除</Text>
+          <Text style={styles.buttonText}>{t('actions.delete')}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.logsContainer}>
         {isLoading ? (
-          <Text style={styles.logsText}>読み込み中...</Text>
+          <Text style={styles.logsText}>{t('loading')}</Text>
         ) : (
           <Text style={styles.logsText}>{logs}</Text>
         )}
@@ -132,7 +135,7 @@ export function DebugLogsScreen(): React.JSX.Element {
 
       <View style={styles.infoContainer}>
         <Text style={styles.infoText}>
-          ℹ️ このログを共有またはコピーして、開発者に送信してください
+          {t('info')}
         </Text>
       </View>
     </SafeAreaView>

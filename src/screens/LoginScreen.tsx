@@ -17,6 +17,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
 import { APP_INFO, EXTERNAL_LINKS } from '../constants/config';
 import { useAuthStore } from '../store/authStore';
@@ -31,6 +32,9 @@ import { OAuthButton } from '../components/OAuthButton';
  * LoginScreen Component
  */
 export function LoginScreen(): React.JSX.Element {
+  const { t } = useTranslation('login');
+  const { t: tc } = useTranslation('common');
+
   // Auth store
   const { login, isLoading, error, clearError } = useAuthStore();
 
@@ -102,9 +106,9 @@ export function LoginScreen(): React.JSX.Element {
     // Check network connectivity
     if (!isConnected) {
       Alert.alert(
-        'オフライン',
-        'ネットワーク接続を確認してください。',
-        [{ text: 'OK' }]
+        t('errors.offline'),
+        t('errors.offlineMessage'),
+        [{ text: tc('buttons.ok') }]
       );
       return;
     }
@@ -129,13 +133,13 @@ export function LoginScreen(): React.JSX.Element {
       // Show alert for network errors
       if (result.error.code === 'NETWORK_ERROR') {
         Alert.alert(
-          'ネットワークエラー',
+          t('errors.networkError'),
           result.error.message,
-          [{ text: 'OK' }]
+          [{ text: tc('buttons.ok') }]
         );
       }
     }
-  }, [identifier, appPassword, isConnected, validateIdentifier, validateAppPassword, login]);
+  }, [identifier, appPassword, isConnected, validateIdentifier, validateAppPassword, login, t, tc]);
 
   /**
    * Handle App Password help link press
@@ -147,15 +151,15 @@ export function LoginScreen(): React.JSX.Element {
         await Linking.openURL(EXTERNAL_LINKS.BLUESKY_APP_PASSWORDS);
       } else {
         Alert.alert(
-          'リンクを開けません',
-          'ブラウザでBlueskyの設定ページを開いてください。',
-          [{ text: 'OK' }]
+          t('errors.linkOpenError'),
+          t('errors.linkOpenErrorMessage'),
+          [{ text: tc('buttons.ok') }]
         );
       }
     } catch (err) {
       console.error('Failed to open URL:', err);
     }
-  }, []);
+  }, [t, tc]);
 
   /**
    * Handle identifier submit (move to password field)
@@ -186,9 +190,7 @@ export function LoginScreen(): React.JSX.Element {
           {/* Description */}
           <View style={styles.descriptionContainer}>
             <Text style={styles.description}>
-              Blueskyで英語学習！{'\n'}
-              タイムラインから単語を保存して、{'\n'}
-              あなただけの単語帳を作ろう
+              {t('description')}
             </Text>
           </View>
 
@@ -211,7 +213,7 @@ export function LoginScreen(): React.JSX.Element {
             {/* Divider */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>または</Text>
+              <Text style={styles.dividerText}>{t('oauth.or')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -223,19 +225,19 @@ export function LoginScreen(): React.JSX.Element {
                   style={styles.advancedOptionButton}
                 >
                   <Text style={styles.advancedOptionText}>
-                    App Passwordでログイン
+                    {t('oauth.useAppPassword')}
                   </Text>
                 </Pressable>
               ) : (
                 <>
                   {/* Identifier Input */}
                   <Input
-                    label="ユーザー名"
-                    placeholder="user.bsky.social"
+                    label={t('handle.label')}
+                    placeholder={t('handle.placeholder')}
                     value={identifier}
                     onChangeText={handleIdentifierChange}
                     error={identifierError}
-                    hint="Blueskyのハンドル名またはメールアドレス"
+                    hint={t('handle.hint')}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="email-address"
@@ -248,8 +250,8 @@ export function LoginScreen(): React.JSX.Element {
                   {/* App Password Input */}
                   <Input
                     ref={passwordInputRef}
-                    label="App Password"
-                    placeholder="xxxx-xxxx-xxxx-xxxx"
+                    label={t('appPassword.label')}
+                    placeholder={t('appPassword.placeholder')}
                     value={appPassword}
                     onChangeText={handleAppPasswordChange}
                     error={appPasswordError}
@@ -270,13 +272,13 @@ export function LoginScreen(): React.JSX.Element {
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <Text style={styles.helpLinkText}>
-                      App Passwordの取得方法 →
+                      {t('appPassword.help')}
                     </Text>
                   </Pressable>
 
                   {/* Login Button */}
                   <Button
-                    title={isLoading ? 'ログイン中...' : 'ログイン'}
+                    title={isLoading ? t('button.loggingIn') : t('button.login')}
                     onPress={handleLogin}
                     loading={isLoading}
                     disabled={!isConnected || isLoading}
@@ -288,7 +290,7 @@ export function LoginScreen(): React.JSX.Element {
                   {/* Security Note */}
                   <View style={styles.securityNote}>
                     <Text style={styles.securityNoteText}>
-                      🔒 App Passwordは認証にのみ使用され、保存されません。
+                      {t('security.note')}
                     </Text>
                   </View>
 
@@ -298,7 +300,7 @@ export function LoginScreen(): React.JSX.Element {
                     style={styles.hideFormButton}
                   >
                     <Text style={styles.hideFormText}>
-                      フォームを閉じる
+                      {t('form.hide')}
                     </Text>
                   </Pressable>
                 </>
@@ -309,7 +311,7 @@ export function LoginScreen(): React.JSX.Element {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              バージョン {APP_INFO.VERSION}
+              {t('version', { version: APP_INFO.VERSION })}
             </Text>
           </View>
         </ScrollView>

@@ -1,0 +1,59 @@
+{
+  "header": "進捗",
+  "loading": "統計を読み込み中...",
+  "today": {
+    "title": "今日の進捗",
+    "wordsLearned": "{{count}}個の単語を学習"
+  },
+  "calendar": {
+    "title": "【カレンダー】",
+    "legend": "学習した日",
+    "weekdays": ["日", "月", "火", "水", "木", "金", "土"]
+  },
+  "statistics": {
+    "title": "【統計】",
+    "totalWords": "総単語",
+    "readWords": "既読",
+    "readRate": "既読率",
+    "studyDaysThisWeek": "今週の学習日",
+    "streak": "連続学習日数",
+    "days": "{{count}}日"
+  },
+  "share": {
+    "title": "進捗をシェア",
+    "accessibilityLabel": "進捗をシェア",
+    "accessibilityHint": "学習進捗を画像またはBlueskyに共有します",
+    "text": "今日は{{count}}個の単語を学習しました！\n\n#くもたん #言語学習 #langsky",
+    "textWithStreak": "{{streak}}日連続学習達成！",
+    "tapToCopy": "タップでコピー",
+    "copied": "コピーしました",
+    "copiedMessage": "投稿文をクリップボードにコピーしました",
+    "messageCopied": "メッセージをコピーしました",
+    "messageCopiedHint": "テキストがクリップボードにコピーされました。共有先で貼り付けてください。",
+    "bluesky": "Blueskyに投稿",
+    "blueskyHint": "学習記録をBlueskyタイムラインに投稿します",
+    "blueskySuccess": "Blueskyに投稿しました！",
+    "blueskyError": "Blueskyへの投稿に失敗しました。",
+    "image": "画像をシェア",
+    "imageHint": "進捗を画像として共有します",
+    "creating": "作成中...",
+    "dialogTitle": "今日の学習進捗",
+    "cancel": "キャンセル"
+  },
+  "shareCard": {
+    "appName": "☁️ くもたん",
+    "wordsLearned": "個の単語を学習",
+    "consecutiveDays": "連続学習",
+    "totalWords": "総単語数",
+    "readRate": "既読率"
+  },
+  "errors": {
+    "statsLoad": "統計の取得に失敗しました。",
+    "dataLoad": "データの読み込み中にエラーが発生しました。",
+    "noStats": "統計データが読み込まれていません。",
+    "notLoggedIn": "Blueskyにログインしてください。",
+    "noNetwork": "ネットワークに接続してください。",
+    "imageCapture": "画像の作成または共有に失敗しました。",
+    "shareNotAvailable": "このデバイスでは共有機能が利用できません。"
+  }
+}

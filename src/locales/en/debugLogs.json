@@ -1,0 +1,26 @@
+{
+  "header": "Debug Logs",
+  "subtitle": "For TestFlight debugging",
+  "empty": "No logs",
+  "loading": "Loading...",
+  "loadError": "Failed to load logs",
+  "actions": {
+    "copy": "Copy",
+    "share": "Share",
+    "reload": "Reload",
+    "delete": "Delete"
+  },
+  "share": {
+    "title": "Kumotan Debug Logs"
+  },
+  "alerts": {
+    "copySuccess": "Logs copied to clipboard",
+    "copyError": "Failed to copy",
+    "shareError": "Failed to share",
+    "deleteTitle": "Delete Logs",
+    "deleteMessage": "Delete all logs?",
+    "deleteSuccess": "Logs deleted",
+    "deleteError": "Failed to delete logs"
+  },
+  "info": "ℹ️ Share or copy these logs and send them to the developer"
+}

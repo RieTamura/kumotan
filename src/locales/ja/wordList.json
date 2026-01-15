@@ -1,0 +1,28 @@
+{
+  "header": "単語帳",
+  "empty": "単語が登録されていません",
+  "emptyMessage": "ホーム画面で単語をロングタップして追加しましょう",
+  "filters": {
+    "all": "すべて",
+    "unread": "未読",
+    "read": "既読"
+  },
+  "sort": {
+    "title": "並び替え",
+    "dateDesc": "登録日（新しい順）",
+    "dateAsc": "登録日（古い順）",
+    "alphabetAsc": "アルファベット順（A-Z）",
+    "alphabetDesc": "アルファベット順（Z-A）"
+  },
+  "delete": {
+    "title": "単語を削除",
+    "message": "「{{word}}」を削除しますか？",
+    "success": "単語を削除しました",
+    "error": "削除に失敗しました"
+  },
+  "markRead": "既読にする",
+  "markUnread": "未読にする",
+  "wordCount": "{{count}}語",
+  "noDefinition": "定義なし",
+  "noTranslation": "-"
+}

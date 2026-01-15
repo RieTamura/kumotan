@@ -1,0 +1,74 @@
+{
+  "header": "設定",
+  "sections": {
+    "account": "アカウント",
+    "apiSettings": "API設定",
+    "dataManagement": "データ管理",
+    "support": "サポート",
+    "feedback": "フィードバック",
+    "other": "その他",
+    "language": "言語"
+  },
+  "account": {
+    "loading": "読み込み中...",
+    "posts": "投稿",
+    "followers": "フォロワー",
+    "following": "フォロー中"
+  },
+  "api": {
+    "deepLKey": "DeepL API Key",
+    "yahooClientId": "Yahoo JAPAN Client ID",
+    "configured": "設定済み ✓",
+    "notConfigured": "未設定"
+  },
+  "data": {
+    "export": "データをエクスポート",
+    "exportSubtitle": "JSON形式で出力",
+    "exportDialogTitle": "単語データをエクスポート",
+    "exportSuccess": "{{count}}個の単語をエクスポートしました",
+    "exportEmpty": "単語帳が空です",
+    "exportEmptyMessage": "エクスポートする単語がありません。",
+    "exportError": "エクスポートに失敗しました",
+    "deleteAll": "すべてのデータを削除",
+    "deleteConfirmTitle": "すべてのデータを削除",
+    "deleteConfirmMessage": "この操作は取り消せません。本当にすべての単語データを削除しますか？",
+    "deleteSuccess": "すべてのデータを削除しました",
+    "deleteError": "削除に失敗しました"
+  },
+  "support": {
+    "donate": "開発をサポート",
+    "donateSubtitle": "GitHub Sponsors で支援する",
+    "star": "GitHub で ⭐ をつける",
+    "starSubtitle": "プロジェクトを応援する"
+  },
+  "feedbackItems": {
+    "reportBug": "バグを報告",
+    "reportBugSubtitle": "不具合を報告する",
+    "suggest": "機能を提案",
+    "suggestSubtitle": "新機能やアイデアを共有する",
+    "blueskyContact": "Bluesky で連絡"
+  },
+  "other": {
+    "debugLogs": "デバッグログ",
+    "debugLogsSubtitle": "TestFlight デバッグ用",
+    "license": "ライセンス",
+    "githubRepo": "GitHub リポジトリ",
+    "blueskyDocs": "Bluesky API ドキュメント",
+    "deeplDocs": "DeepL API ドキュメント"
+  },
+  "logout": {
+    "button": "ログアウト",
+    "loggingOut": "ログアウト中...",
+    "confirmTitle": "ログアウトしますか？",
+    "confirmMessage": "単語帳データは保持されます"
+  },
+  "language": {
+    "title": "言語",
+    "subtitle": "アプリの表示言語",
+    "selectTitle": "言語を選択",
+    "japanese": "日本語",
+    "english": "English"
+  },
+  "version": "バージョン {{version}}",
+  "linkError": "リンクを開けませんでした。"
+}

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import {
   Colors,
   Spacing,
@@ -56,6 +57,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ApiKeySetup'>;
  * API Key Setup Screen Component
  */
 export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Element {
+  const { t } = useTranslation('apiSetup');
+  const { t: tc } = useTranslation('common');
+
   // Refs
   const scrollViewRef = useRef<ScrollView>(null);
   const yahooSectionRef = useRef<View>(null);
@@ -131,7 +135,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
    */
   const handleValidateAndSave = useCallback(async () => {
     if (!apiKey.trim()) {
-      setError('API Keyを入力してください。');
+      setError(t('deepl.inputRequired'));
       return;
     }
 
@@ -162,23 +166,23 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
       setIsKeySet(true);
       setApiKey('');
 
-      showSuccess('DeepL API Keyが正常に保存されました');
+      showSuccess(t('deepl.saveSuccess'));
     } finally {
       setIsValidating(false);
     }
-  }, [apiKey, showSuccess]);
+  }, [apiKey, showSuccess, t]);
 
   /**
    * Handle API key deletion
    */
   const handleDeleteKey = useCallback(async () => {
     Alert.alert(
-      'API Keyを削除',
-      '本当にDeepL API Keyを削除しますか？日本語翻訳機能が使えなくなります。',
+      t('deepl.deleteTitle'),
+      t('deepl.deleteMessage'),
       [
-        { text: 'キャンセル', style: 'cancel' },
+        { text: tc('buttons.cancel'), style: 'cancel' },
         {
-          text: '削除',
+          text: tc('buttons.delete'),
           style: 'destructive',
           onPress: async () => {
             setIsDeleting(true);
@@ -188,7 +192,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
             if (result.success) {
               setIsKeySet(false);
               setUsage(null);
-              showSuccess('API Keyが削除されました');
+              showSuccess(t('deepl.deleteSuccess'));
             } else {
               showError(result.error.message);
             }
@@ -196,14 +200,14 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
         },
       ]
     );
-  }, [showSuccess, showError]);
+  }, [showSuccess, showError, t, tc]);
 
   /**
    * Handle Yahoo! Client ID validation and save
    */
   const handleValidateAndSaveYahoo = useCallback(async () => {
     if (!yahooClientId.trim()) {
-      setYahooError('Client IDを入力してください。');
+      setYahooError(t('yahoo.inputRequired'));
       return;
     }
 
@@ -233,23 +237,23 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
       setIsYahooIdSet(true);
       setYahooClientId('');
 
-      showSuccess('Yahoo! Client IDが正常に保存されました');
+      showSuccess(t('yahoo.saveSuccess'));
     } finally {
       setIsYahooValidating(false);
     }
-  }, [yahooClientId, showSuccess]);
+  }, [yahooClientId, showSuccess, t]);
 
   /**
    * Handle Yahoo! Client ID deletion
    */
   const handleDeleteYahooId = useCallback(async () => {
     Alert.alert(
-      'Client IDを削除',
-      '本当にYahoo! Client IDを削除しますか？日本語単語の解析機能が使えなくなります。',
+      t('yahoo.deleteTitle'),
+      t('yahoo.deleteMessage'),
       [
-        { text: 'キャンセル', style: 'cancel' },
+        { text: tc('buttons.cancel'), style: 'cancel' },
         {
-          text: '削除',
+          text: tc('buttons.delete'),
           style: 'destructive',
           onPress: async () => {
             setIsYahooDeleting(true);
@@ -258,7 +262,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
 
             if (result.success) {
               setIsYahooIdSet(false);
-              showSuccess('Client IDが削除されました');
+              showSuccess(t('yahoo.deleteSuccess'));
             } else {
               showError(result.error.message);
             }
@@ -266,7 +270,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
         },
       ]
     );
-  }, [showSuccess, showError]);
+  }, [showSuccess, showError, t, tc]);
 
   /**
    * Open DeepL signup page
@@ -292,19 +296,19 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
     const isCritical = isUsageCritical(usage);
 
     let statusColor: string = Colors.success;
-    let statusText = '正常';
+    let statusText = t('usage.normal');
 
     if (isCritical) {
       statusColor = Colors.error;
-      statusText = '上限に近づいています';
+      statusText = t('usage.critical');
     } else if (isWarning) {
       statusColor = Colors.warning;
-      statusText = '注意：使用量が増えています';
+      statusText = t('usage.warning');
     }
 
     return (
       <View style={styles.usageContainer}>
-        <Text style={styles.usageTitle}>今月の使用状況</Text>
+        <Text style={styles.usageTitle}>{t('usage.title')}</Text>
         <Text style={styles.usageText}>{formatUsage(usage)}</Text>
         <View style={styles.usageBarContainer}>
           <View
@@ -333,19 +337,19 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>API設定</Text>
+          <Text style={styles.title}>{t('header')}</Text>
           <Text style={styles.description}>
-            英語・日本語の翻訳や解析機能を使用するには、各種APIキーが必要です。
+            {t('description')}
           </Text>
         </View>
 
         {/* ========== DeepL Section ========== */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>DeepL API（英語翻訳）</Text>
-          
+          <Text style={styles.sectionTitle}>{t('deepl.title')}</Text>
+
           {/* DeepL Status */}
           <View style={styles.statusCard}>
-            <Text style={styles.statusLabel}>ステータス</Text>
+            <Text style={styles.statusLabel}>{t('status.label')}</Text>
             <View style={styles.statusRow}>
               <View
                 style={[
@@ -354,7 +358,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
                 ]}
               />
               <Text style={styles.statusText}>
-                {isKeySet ? 'API Key設定済み' : 'API Key未設定'}
+                {isKeySet ? t('deepl.statusConfigured') : t('deepl.statusNotConfigured')}
               </Text>
             </View>
             {isKeySet && renderUsageStatus()}
@@ -364,8 +368,8 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
           {!isKeySet && (
             <View style={styles.inputSection}>
               <Input
-                label="DeepL API Key"
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"
+                label={t('deepl.inputLabel')}
+                placeholder={t('deepl.inputPlaceholder')}
                 value={apiKey}
                 onChangeText={(text: string) => {
                   setApiKey(text);
@@ -378,7 +382,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
                 autoCorrect={false}
               />
               <Button
-                title="Keyを検証して保存"
+                title={t('deepl.validateAndSave')}
                 onPress={handleValidateAndSave}
                 loading={isValidating}
                 disabled={!apiKey.trim()}
@@ -390,7 +394,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
           {/* Delete DeepL Key Button (only show when set) */}
           {isKeySet && (
             <Button
-              title="DeepL API Keyを削除"
+              title={t('deepl.delete')}
               onPress={handleDeleteKey}
               variant="danger"
               loading={isDeleting}
@@ -400,23 +404,16 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
 
           {/* DeepL Info Section */}
           <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>DeepL API Keyの取得方法</Text>
+            <Text style={styles.infoTitle}>{t('deepl.howToGetTitle')}</Text>
             <View style={styles.infoSteps}>
-              <Text style={styles.infoStep}>
-                1. DeepLの公式サイトでアカウントを作成
-              </Text>
-              <Text style={styles.infoStep}>
-                2. API Free プランに登録（クレジットカード不要）
-              </Text>
-              <Text style={styles.infoStep}>
-                3. アカウント設定からAPI Keyをコピー
-              </Text>
-              <Text style={styles.infoStep}>
-                4. 上記にAPI Keyを貼り付けて保存
-              </Text>
+              {(t('deepl.howToGetSteps', { returnObjects: true }) as string[]).map((step, index) => (
+                <Text key={index} style={styles.infoStep}>
+                  {step}
+                </Text>
+              ))}
             </View>
             <Button
-              title="DeepL APIサイトを開く"
+              title={t('deepl.openSite')}
               onPress={handleOpenDeepLSite}
               variant="outline"
               style={styles.linkButton}
@@ -429,11 +426,11 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
 
         {/* ========== Yahoo! JAPAN Section ========== */}
         <View ref={yahooSectionRef} style={styles.section}>
-          <Text style={styles.sectionTitle}>Yahoo! JAPAN API（日本語解析）</Text>
-          
+          <Text style={styles.sectionTitle}>{t('yahoo.title')}</Text>
+
           {/* Yahoo! Status */}
           <View style={styles.statusCard}>
-            <Text style={styles.statusLabel}>ステータス</Text>
+            <Text style={styles.statusLabel}>{t('status.label')}</Text>
             <View style={styles.statusRow}>
               <View
                 style={[
@@ -442,7 +439,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
                 ]}
               />
               <Text style={styles.statusText}>
-                {isYahooIdSet ? 'Client ID設定済み' : 'Client ID未設定'}
+                {isYahooIdSet ? t('yahoo.statusConfigured') : t('yahoo.statusNotConfigured')}
               </Text>
             </View>
           </View>
@@ -451,8 +448,8 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
           {!isYahooIdSet && (
             <View style={styles.inputSection}>
               <Input
-                label="Yahoo! Client ID"
-                placeholder="dj00aiZpPXXXXXXXXXXXXXXX"
+                label={t('yahoo.inputLabel')}
+                placeholder={t('yahoo.inputPlaceholder')}
                 value={yahooClientId}
                 onChangeText={(text: string) => {
                   setYahooClientId(text);
@@ -463,7 +460,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
                 autoCorrect={false}
               />
               <Button
-                title="IDを検証して保存"
+                title={t('yahoo.validateAndSave')}
                 onPress={handleValidateAndSaveYahoo}
                 loading={isYahooValidating}
                 disabled={!yahooClientId.trim()}
@@ -475,7 +472,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
           {/* Delete Yahoo! ID Button (only show when set) */}
           {isYahooIdSet && (
             <Button
-              title="Yahoo! Client IDを削除"
+              title={t('yahoo.delete')}
               onPress={handleDeleteYahooId}
               variant="danger"
               loading={isYahooDeleting}
@@ -485,23 +482,16 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
 
           {/* Yahoo! Info Section */}
           <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>Yahoo! Client IDの取得方法</Text>
+            <Text style={styles.infoTitle}>{t('yahoo.howToGetTitle')}</Text>
             <View style={styles.infoSteps}>
-              <Text style={styles.infoStep}>
-                1. Yahoo! JAPANでアカウントを作成・ログイン
-              </Text>
-              <Text style={styles.infoStep}>
-                2. Yahoo!デベロッパーネットワークで新規アプリケーションを作成
-              </Text>
-              <Text style={styles.infoStep}>
-                3. Client ID（アプリケーションID）をコピー
-              </Text>
-              <Text style={styles.infoStep}>
-                4. 上記にClient IDを貼り付けて保存
-              </Text>
+              {(t('yahoo.howToGetSteps', { returnObjects: true }) as string[]).map((step, index) => (
+                <Text key={index} style={styles.infoStep}>
+                  {step}
+                </Text>
+              ))}
             </View>
             <Button
-              title="Yahoo!デベロッパーネットワークを開く"
+              title={t('yahoo.openSite')}
               onPress={handleOpenYahooSite}
               variant="outline"
               style={styles.linkButton}
@@ -511,12 +501,9 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
 
         {/* Note */}
         <View style={styles.noteSection}>
-          <Text style={styles.noteTitle}>📝 注意事項</Text>
+          <Text style={styles.noteTitle}>{t('note.title')}</Text>
           <Text style={styles.noteText}>
-            • 両方のAPIキーは端末に安全に保存されます{'\n'}
-            • DeepL無料プランは月50万文字まで翻訳可能{'\n'}
-            • Yahoo! APIは1分間に300回まで利用可能{'\n'}
-            • どちらか片方のみ設定しても利用できます
+            {t('note.content')}
           </Text>
         </View>
       </ScrollView>

@@ -14,6 +14,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Home, BookOpen, BarChart3, Settings } from 'lucide-react-native';
 import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Colors } from '../constants/colors';
 import { useAuthStore } from '../store/authStore';
@@ -58,16 +59,16 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  */
 interface TabConfig {
   key: keyof MainTabParamList;
-  label: string;
+  labelKey: 'home' | 'wordList' | 'progress' | 'settings';
   Icon: React.ComponentType<{ size?: number; color?: string }>;
   component: React.ComponentType<any>;
 }
 
 const TAB_CONFIG: TabConfig[] = [
-  { key: 'Home', label: 'ホーム', Icon: Home, component: HomeScreen },
-  { key: 'WordList', label: '単語帳', Icon: BookOpen, component: WordListScreen },
-  { key: 'Progress', label: '進捗', Icon: BarChart3, component: ProgressScreen },
-  { key: 'Settings', label: '設定', Icon: Settings, component: SettingsScreen },
+  { key: 'Home', labelKey: 'home', Icon: Home, component: HomeScreen },
+  { key: 'WordList', labelKey: 'wordList', Icon: BookOpen, component: WordListScreen },
+  { key: 'Progress', labelKey: 'progress', Icon: BarChart3, component: ProgressScreen },
+  { key: 'Settings', labelKey: 'settings', Icon: Settings, component: SettingsScreen },
 ];
 
 /**
@@ -81,13 +82,15 @@ interface CustomTabBarProps {
 
 function CustomTabBar({ currentIndex, onTabPress }: CustomTabBarProps): React.JSX.Element {
   const insets = useSafeAreaInsets();
-  
+  const { t } = useTranslation('navigation');
+
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {TAB_CONFIG.map((tab, index) => {
         const isActive = currentIndex === index;
         const color = isActive ? Colors.tabActive : Colors.tabInactive;
-        
+        const label = t(`tabs.${tab.labelKey}`);
+
         return (
           <TouchableOpacity
             key={tab.key}
@@ -96,7 +99,7 @@ function CustomTabBar({ currentIndex, onTabPress }: CustomTabBarProps): React.JS
             activeOpacity={0.7}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
-            accessibilityLabel={tab.label}
+            accessibilityLabel={label}
           >
             <tab.Icon size={24} color={color} />
           </TouchableOpacity>
@@ -163,6 +166,7 @@ const defaultStackOptions: NativeStackNavigationOptions = {
  */
 function RootNavigator(): React.JSX.Element {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const { t } = useTranslation('navigation');
 
   // While checking auth status, show nothing (splash would be shown by expo-splash-screen)
   if (isLoading) {
@@ -192,8 +196,8 @@ function RootNavigator(): React.JSX.Element {
             component={ApiKeySetupScreen}
             options={{
               headerShown: true,
-              headerTitle: 'API Key設定',
-              headerBackTitle: '戻る',
+              headerTitle: t('headers.apiKeySetup'),
+              headerBackTitle: t('common:buttons.back'),
               headerTintColor: Colors.primary,
               headerStyle: {
                 backgroundColor: Colors.background,
@@ -205,8 +209,8 @@ function RootNavigator(): React.JSX.Element {
             component={LicenseScreen}
             options={{
               headerShown: true,
-              headerTitle: 'ライセンス',
-              headerBackTitle: '戻る',
+              headerTitle: t('headers.license'),
+              headerBackTitle: t('common:buttons.back'),
               headerTintColor: Colors.primary,
               headerStyle: {
                 backgroundColor: Colors.background,
@@ -218,8 +222,8 @@ function RootNavigator(): React.JSX.Element {
             component={DebugLogsScreen}
             options={{
               headerShown: true,
-              headerTitle: 'デバッグログ',
-              headerBackTitle: '戻る',
+              headerTitle: t('headers.debugLogs'),
+              headerBackTitle: t('common:buttons.back'),
               headerTintColor: Colors.primary,
               headerStyle: {
                 backgroundColor: Colors.background,

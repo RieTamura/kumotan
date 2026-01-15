@@ -15,11 +15,11 @@ import {
   Image,
   ActivityIndicator,
   Share,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { APP_INFO, EXTERNAL_LINKS } from '../constants/config';
 import { useAuthStore } from '../store/authStore';
@@ -29,6 +29,7 @@ import { hasClientId } from '../services/dictionary/yahooJapan';
 import { exportWords, deleteAllWords } from '../services/database/words';
 import { Toast } from '../components/common/Toast';
 import { useToast } from '../hooks/useToast';
+import { changeLanguage, getCurrentLanguage, type Language } from '../locales';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 /**
@@ -101,12 +102,15 @@ function SettingsSection({
  */
 export function SettingsScreen(): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
   const { user, logout, isLoading, profile, isProfileLoading } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
   const [yahooClientIdSet, setYahooClientIdSet] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentLang, setCurrentLang] = useState<Language>(getCurrentLanguage());
   const { toastState, showSuccess, showError, hideToast } = useToast();
 
   /**
@@ -116,7 +120,7 @@ export function SettingsScreen(): React.JSX.Element {
     const checkApiKeys = async () => {
       const hasKey = await hasApiKey();
       setApiKeySet(hasKey);
-      
+
       const hasYahooId = await hasClientId();
       setYahooClientIdSet(hasYahooId);
     };
@@ -130,16 +134,43 @@ export function SettingsScreen(): React.JSX.Element {
   }, [navigation]);
 
   /**
+   * Handle language change
+   */
+  const handleLanguageChange = useCallback(() => {
+    Alert.alert(
+      t('language.selectTitle'),
+      undefined,
+      [
+        {
+          text: t('language.japanese'),
+          onPress: async () => {
+            await changeLanguage('ja');
+            setCurrentLang('ja');
+          },
+        },
+        {
+          text: t('language.english'),
+          onPress: async () => {
+            await changeLanguage('en');
+            setCurrentLang('en');
+          },
+        },
+        { text: tc('buttons.cancel'), style: 'cancel' },
+      ]
+    );
+  }, [t, tc]);
+
+  /**
    * Handle logout button press
    */
   const handleLogout = useCallback(async () => {
     Alert.alert(
-      'ログアウトしますか？',
-      '単語帳データは保持されます',
+      t('logout.confirmTitle'),
+      t('logout.confirmMessage'),
       [
-        { text: 'キャンセル', style: 'cancel' },
+        { text: tc('buttons.cancel'), style: 'cancel' },
         {
-          text: 'ログアウト',
+          text: t('logout.button'),
           style: 'destructive',
           onPress: async () => {
             setIsLoggingOut(true);
@@ -149,7 +180,7 @@ export function SettingsScreen(): React.JSX.Element {
         },
       ]
     );
-  }, [logout]);
+  }, [logout, t, tc]);
 
   /**
    * Handle DeepL API Key settings
@@ -182,9 +213,9 @@ export function SettingsScreen(): React.JSX.Element {
 
       if (words.length === 0) {
         Alert.alert(
-          '単語帳が空です',
-          'エクスポートする単語がありません。',
-          [{ text: 'OK' }]
+          t('data.exportEmpty'),
+          t('data.exportEmptyMessage'),
+          [{ text: tc('buttons.ok') }]
         );
         return;
       }
@@ -198,31 +229,31 @@ export function SettingsScreen(): React.JSX.Element {
         message: jsonData,
         title: fileName,
       }, {
-        dialogTitle: '単語データをエクスポート',
+        dialogTitle: t('data.exportDialogTitle'),
       });
 
       if (shareResult.action === Share.sharedAction) {
-        showSuccess(`${words.length}個の単語をエクスポートしました`);
+        showSuccess(t('data.exportSuccess', { count: words.length }));
       }
     } catch (error) {
       console.error('Export error:', error);
-      showError('エクスポートに失敗しました');
+      showError(t('data.exportError'));
     } finally {
       setIsExporting(false);
     }
-  }, [showSuccess, showError]);
+  }, [showSuccess, showError, t, tc]);
 
   /**
    * Handle delete all data
    */
   const handleDeleteAllData = useCallback(() => {
     Alert.alert(
-      'すべてのデータを削除',
-      'この操作は取り消せません。本当にすべての単語データを削除しますか？',
+      t('data.deleteConfirmTitle'),
+      t('data.deleteConfirmMessage'),
       [
-        { text: 'キャンセル', style: 'cancel' },
+        { text: tc('buttons.cancel'), style: 'cancel' },
         {
-          text: '削除',
+          text: tc('buttons.delete'),
           style: 'destructive',
           onPress: async () => {
             setIsDeleting(true);
@@ -234,10 +265,10 @@ export function SettingsScreen(): React.JSX.Element {
                 return;
               }
 
-              showSuccess('すべてのデータを削除しました');
+              showSuccess(t('data.deleteSuccess'));
             } catch (error) {
               console.error('Delete error:', error);
-              showError('削除に失敗しました');
+              showError(t('data.deleteError'));
             } finally {
               setIsDeleting(false);
             }
@@ -245,7 +276,7 @@ export function SettingsScreen(): React.JSX.Element {
         },
       ]
     );
-  }, [showSuccess, showError]);
+  }, [showSuccess, showError, t, tc]);
 
   /**
    * Handle license screen navigation
@@ -263,18 +294,18 @@ export function SettingsScreen(): React.JSX.Element {
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('エラー', 'リンクを開けませんでした。');
+        Alert.alert(tc('status.error'), t('linkError'));
       }
     } catch (error) {
       console.error('Failed to open URL:', error);
     }
-  }, []);
+  }, [t, tc]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>設定</Text>
+        <Text style={styles.headerTitle}>{t('header')}</Text>
       </View>
 
       <ScrollView
@@ -282,12 +313,12 @@ export function SettingsScreen(): React.JSX.Element {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Account Section */}
-        <SettingsSection title="アカウント">
+        <SettingsSection title={t('sections.account')}>
           <View style={styles.accountInfo}>
             {isProfileLoading ? (
               <View style={styles.accountLoading}>
                 <ActivityIndicator size="small" color={Colors.primary} />
-                <Text style={styles.accountLoadingText}>読み込み中...</Text>
+                <Text style={styles.accountLoadingText}>{t('account.loading')}</Text>
               </View>
             ) : (
               <>
@@ -326,19 +357,19 @@ export function SettingsScreen(): React.JSX.Element {
                       {profile.postsCount !== undefined && (
                         <Text style={styles.accountStat}>
                           <Text style={styles.accountStatValue}>{profile.postsCount}</Text>
-                          {' 投稿'}
+                          {` ${t('account.posts')}`}
                         </Text>
                       )}
                       {profile.followersCount !== undefined && (
                         <Text style={styles.accountStat}>
                           <Text style={styles.accountStatValue}>{profile.followersCount}</Text>
-                          {' フォロワー'}
+                          {` ${t('account.followers')}`}
                         </Text>
                       )}
                       {profile.followsCount !== undefined && (
                         <Text style={styles.accountStat}>
                           <Text style={styles.accountStatValue}>{profile.followsCount}</Text>
-                          {' フォロー中'}
+                          {` ${t('account.following')}`}
                         </Text>
                       )}
                     </View>
@@ -349,30 +380,39 @@ export function SettingsScreen(): React.JSX.Element {
           </View>
         </SettingsSection>
 
-        {/* API Settings Section */}
-        <SettingsSection title="API設定">
+        {/* Language Section */}
+        <SettingsSection title={t('sections.language')}>
           <SettingsItem
-            title="DeepL API Key"
-            subtitle={apiKeySet ? '設定済み ✓' : '未設定'}
+            title={t('language.title')}
+            subtitle={currentLang === 'ja' ? t('language.japanese') : t('language.english')}
+            onPress={handleLanguageChange}
+          />
+        </SettingsSection>
+
+        {/* API Settings Section */}
+        <SettingsSection title={t('sections.apiSettings')}>
+          <SettingsItem
+            title={t('api.deepLKey')}
+            subtitle={apiKeySet ? t('api.configured') : t('api.notConfigured')}
             onPress={handleDeepLApiKeySettings}
           />
           <SettingsItem
-            title="Yahoo JAPAN Client ID"
-            subtitle={yahooClientIdSet ? '設定済み ✓' : '未設定'}
+            title={t('api.yahooClientId')}
+            subtitle={yahooClientIdSet ? t('api.configured') : t('api.notConfigured')}
             onPress={handleYahooApiKeySettings}
           />
         </SettingsSection>
 
         {/* Data Management Section */}
-        <SettingsSection title="データ管理">
+        <SettingsSection title={t('sections.dataManagement')}>
           <SettingsItem
-            title="データをエクスポート"
-            subtitle="JSON形式で出力"
+            title={t('data.export')}
+            subtitle={t('data.exportSubtitle')}
             onPress={handleExportData}
             disabled={isExporting}
           />
           <SettingsItem
-            title="すべてのデータを削除"
+            title={t('data.deleteAll')}
             onPress={handleDeleteAllData}
             danger
             showArrow={false}
@@ -381,61 +421,61 @@ export function SettingsScreen(): React.JSX.Element {
         </SettingsSection>
 
         {/* Support Section */}
-        <SettingsSection title="サポート">
+        <SettingsSection title={t('sections.support')}>
           <SettingsItem
-            title="開発をサポート"
-            subtitle="GitHub Sponsors で支援する"
+            title={t('support.donate')}
+            subtitle={t('support.donateSubtitle')}
             onPress={() => openLink(EXTERNAL_LINKS.GITHUB_SPONSORS)}
           />
           <SettingsItem
-            title="GitHub で ⭐ をつける"
-            subtitle="プロジェクトを応援する"
+            title={t('support.star')}
+            subtitle={t('support.starSubtitle')}
             onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
           />
         </SettingsSection>
 
         {/* Feedback Section */}
-        <SettingsSection title="フィードバック">
+        <SettingsSection title={t('sections.feedback')}>
           <SettingsItem
-            title="バグを報告"
-            subtitle="不具合を報告する"
+            title={t('feedbackItems.reportBug')}
+            subtitle={t('feedbackItems.reportBugSubtitle')}
             onPress={() => openLink(EXTERNAL_LINKS.GITHUB_ISSUES)}
           />
           <SettingsItem
-            title="機能を提案"
-            subtitle="新機能やアイデアを共有する"
+            title={t('feedbackItems.suggest')}
+            subtitle={t('feedbackItems.suggestSubtitle')}
             onPress={() => openLink(EXTERNAL_LINKS.GITHUB_ISSUES)}
           />
           <SettingsItem
-            title="Bluesky で連絡"
+            title={t('feedbackItems.blueskyContact')}
             subtitle={EXTERNAL_LINKS.BLUESKY_ACCOUNT}
             onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_ACCOUNT)}
           />
         </SettingsSection>
 
         {/* About Section */}
-        <SettingsSection title="その他">
+        <SettingsSection title={t('sections.other')}>
           <SettingsItem
-            title="デバッグログ"
-            subtitle="TestFlight デバッグ用"
+            title={t('other.debugLogs')}
+            subtitle={t('other.debugLogsSubtitle')}
             onPress={() => navigation.navigate('DebugLogs')}
           />
           <SettingsItem
-            title="ライセンス"
+            title={t('other.license')}
             onPress={handleLicensePress}
           />
           <SettingsItem
-            title="GitHub リポジトリ"
+            title={t('other.githubRepo')}
             subtitle={EXTERNAL_LINKS.GITHUB_REPO}
             onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
           />
           <SettingsItem
-            title="Bluesky API ドキュメント"
+            title={t('other.blueskyDocs')}
             subtitle={EXTERNAL_LINKS.BLUESKY_DOCS}
             onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_DOCS)}
           />
           <SettingsItem
-            title="DeepL API ドキュメント"
+            title={t('other.deeplDocs')}
             subtitle={EXTERNAL_LINKS.DEEPL_DOCS}
             onPress={() => openLink(EXTERNAL_LINKS.DEEPL_DOCS)}
           />
@@ -444,7 +484,7 @@ export function SettingsScreen(): React.JSX.Element {
         {/* Logout Button */}
         <View style={styles.logoutButtonContainer}>
           <Button
-            title={isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
+            title={isLoggingOut ? t('logout.loggingOut') : t('logout.button')}
             onPress={handleLogout}
             variant="outline"
             fullWidth
@@ -457,7 +497,7 @@ export function SettingsScreen(): React.JSX.Element {
         <View style={styles.appInfo}>
           <Text style={styles.appName}>{APP_INFO.NAME}</Text>
           <Text style={styles.appVersion}>
-            バージョン {APP_INFO.VERSION}
+            {t('version', { version: APP_INFO.VERSION })}
           </Text>
           <Text style={styles.appTagline}>{APP_INFO.DESCRIPTION}</Text>
         </View>

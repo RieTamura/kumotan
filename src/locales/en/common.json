@@ -1,0 +1,39 @@
+{
+  "buttons": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save",
+    "retry": "Retry",
+    "ok": "OK",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "add": "Add",
+    "edit": "Edit",
+    "share": "Share",
+    "copy": "Copy",
+    "reload": "Reload"
+  },
+  "status": {
+    "loading": "Loading...",
+    "offline": "You are offline",
+    "online": "Online",
+    "error": "Error",
+    "success": "Success",
+    "empty": "No data available"
+  },
+  "errors": {
+    "networkError": "Network Error",
+    "unknownError": "An unknown error occurred",
+    "timeout": "Request timed out",
+    "invalidInput": "Invalid input",
+    "notFound": "Not found"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "all": "All"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "header": "デバッグログ",
+  "subtitle": "TestFlight デバッグ用",
+  "empty": "ログがありません",
+  "loading": "読み込み中...",
+  "loadError": "ログの読み込みに失敗しました",
+  "actions": {
+    "copy": "コピー",
+    "share": "共有",
+    "reload": "再読み込み",
+    "delete": "削除"
+  },
+  "share": {
+    "title": "くもたん デバッグログ"
+  },
+  "alerts": {
+    "copySuccess": "ログをクリップボードにコピーしました",
+    "copyError": "コピーに失敗しました",
+    "shareError": "共有に失敗しました",
+    "deleteTitle": "ログを削除",
+    "deleteMessage": "全てのログを削除しますか？",
+    "deleteSuccess": "ログを削除しました",
+    "deleteError": "ログの削除に失敗しました"
+  },
+  "info": "ℹ️ このログを共有またはコピーして、開発者に送信してください"
+}

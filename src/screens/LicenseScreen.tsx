@@ -13,6 +13,7 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 
 /**
@@ -27,34 +28,14 @@ interface LicenseInfo {
 }
 
 /**
- * API services used in this app
+ * API services URLs (descriptions come from translations)
  */
-const API_LICENSES: LicenseInfo[] = [
-  {
-    name: 'DeepL API',
-    license: '商用利用可（API利用規約に従う）',
-    url: 'https://www.deepl.com/pro-api',
-    description: '高精度なニューラル機械翻訳API。英語から日本語への翻訳に使用。',
-  },
-  {
-    name: 'Yahoo! JAPAN テキスト解析API',
-    license: '非商用利用（Yahoo! JAPAN Webサービス利用規約に従う）',
-    url: 'https://developer.yahoo.co.jp/webapi/jlp/',
-    description: '日本語の形態素解析・ルビ振り機能を提供。日本語テキストの解析に使用。',
-  },
-  {
-    name: 'Free Dictionary API',
-    license: 'CC BY-SA 3.0',
-    url: 'https://dictionaryapi.dev/',
-    description: '無料の英語辞書API。英単語の定義・発音・例文の取得に使用。',
-  },
-  {
-    name: 'Bluesky AT Protocol API',
-    license: 'MIT / Apache-2.0',
-    url: 'https://atproto.com/',
-    description: '分散型ソーシャルネットワークプロトコル。フィード取得・投稿に使用。',
-  },
-];
+const API_URLS: Record<string, string> = {
+  deepl: 'https://www.deepl.com/pro-api',
+  yahoo: 'https://developer.yahoo.co.jp/webapi/jlp/',
+  dictionary: 'https://dictionaryapi.dev/',
+  bluesky: 'https://atproto.com/',
+};
 
 /**
  * List of open source libraries used in this app
@@ -255,6 +236,36 @@ function LicenseItem({ license }: { license: LicenseInfo }): React.JSX.Element {
  * LicenseScreen Component
  */
 export function LicenseScreen(): React.JSX.Element {
+  const { t } = useTranslation('license');
+
+  // Build API licenses from translations
+  const apiLicenses: LicenseInfo[] = [
+    {
+      name: t('apis.deepl.name'),
+      license: t('apis.deepl.license'),
+      url: API_URLS.deepl,
+      description: t('apis.deepl.description'),
+    },
+    {
+      name: t('apis.yahoo.name'),
+      license: t('apis.yahoo.license'),
+      url: API_URLS.yahoo,
+      description: t('apis.yahoo.description'),
+    },
+    {
+      name: t('apis.dictionary.name'),
+      license: t('apis.dictionary.license'),
+      url: API_URLS.dictionary,
+      description: t('apis.dictionary.description'),
+    },
+    {
+      name: t('apis.bluesky.name'),
+      license: t('apis.bluesky.license'),
+      url: API_URLS.bluesky,
+      description: t('apis.bluesky.description'),
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <ScrollView
@@ -263,23 +274,22 @@ export function LicenseScreen(): React.JSX.Element {
       >
         {/* Header Info */}
         <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle}>ライセンス情報</Text>
+          <Text style={styles.headerTitle}>{t('header')}</Text>
           <Text style={styles.headerDescription}>
-            このアプリは以下のAPIサービスとオープンソースライブラリを使用しています。
-            各サービス・ライブラリの提供者に感謝いたします。
+            {t('description')}
           </Text>
         </View>
 
         {/* API Services Section */}
-        <SectionHeader title="使用API・サービス" />
+        <SectionHeader title={t('sections.apis')} />
         <View style={styles.licenseList}>
-          {API_LICENSES.map((license, index) => (
+          {apiLicenses.map((license, index) => (
             <LicenseItem key={`api-${license.name}-${index}`} license={license} />
           ))}
         </View>
 
         {/* Open Source Libraries Section */}
-        <SectionHeader title="オープンソースライブラリ" />
+        <SectionHeader title={t('sections.libraries')} />
         {/* License List */}
         <View style={styles.licenseList}>
           {LICENSES.map((license, index) => (
@@ -290,7 +300,7 @@ export function LicenseScreen(): React.JSX.Element {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            ライブラリをタップするとGitHubリポジトリが開きます
+            {t('footer')}
           </Text>
         </View>
       </ScrollView>

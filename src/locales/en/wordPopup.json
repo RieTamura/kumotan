@@ -1,0 +1,58 @@
+{
+  "title": "Word Details",
+  "addToWordList": "Add to Words",
+  "adding": "Adding...",
+  "added": "Added",
+  "alreadyAdded": "Already added",
+  "addError": "Failed to add",
+  "translation": "Japanese Translation",
+  "definition": "English Definition",
+  "noTranslation": "No translation",
+  "noDefinition": "No definition",
+  "translationUnavailable": "DeepL API Key not set",
+  "lookingUp": "Looking up...",
+  "lookupError": "Lookup failed",
+  "swipeHint": "Swipe for next word",
+  "sentence": {
+    "title": "Sentence Translation",
+    "translate": "Translate",
+    "translating": "Translating...",
+    "noTranslation": "Could not get translation",
+    "mode": "Sentence Mode",
+    "japaneseTranslation": "Japanese Translation",
+    "containedWords": "Words in Sentence",
+    "swipeInstruction": "Swipe left to exclude words you don't want to register",
+    "noWordsFound": "No words found"
+  },
+  "morphology": {
+    "title": "Morphological Analysis",
+    "analyzing": "Analyzing...",
+    "error": "Analysis failed",
+    "unavailable": "Yahoo JAPAN Client ID not set",
+    "resultTitle": "Morphological Analysis Result",
+    "partOfSpeech": "Part of Speech",
+    "baseForm": "Base Form",
+    "yahooHint": "Set Yahoo! Client ID to view detailed information"
+  },
+  "englishWord": {
+    "translationHint": "Set DeepL API Key to view Japanese translation",
+    "definitionNotFound": "Definition not found",
+    "example": "Example"
+  },
+  "alerts": {
+    "info": "Info",
+    "success": "Success",
+    "error": "Error",
+    "noWordsToRegister": "No words to register",
+    "wordsAdded": "Added {{count}} words",
+    "wordsFailed": "({{count}} failed)",
+    "wordAdded": "Word added!",
+    "allWordsFailed": "Failed to add all words",
+    "addFailed": "Failed to add word"
+  },
+  "buttons": {
+    "registerWords": "Register Words ({{count}})",
+    "cancel": "Cancel"
+  },
+  "placeholder": "-"
+}

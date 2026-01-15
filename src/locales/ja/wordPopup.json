@@ -1,0 +1,58 @@
+{
+  "title": "単語詳細",
+  "addToWordList": "単語帳に追加",
+  "adding": "追加中...",
+  "added": "追加しました",
+  "alreadyAdded": "すでに追加済み",
+  "addError": "追加に失敗しました",
+  "translation": "日本語訳",
+  "definition": "英語の定義",
+  "noTranslation": "翻訳なし",
+  "noDefinition": "定義なし",
+  "translationUnavailable": "DeepL API Key未設定",
+  "lookingUp": "検索中...",
+  "lookupError": "検索に失敗しました",
+  "swipeHint": "スワイプで次の単語へ",
+  "sentence": {
+    "title": "文の翻訳",
+    "translate": "翻訳する",
+    "translating": "翻訳中...",
+    "noTranslation": "翻訳を取得できませんでした",
+    "mode": "文章モード",
+    "japaneseTranslation": "文章の日本語訳",
+    "containedWords": "含まれる単語",
+    "swipeInstruction": "登録しない単語は左にスワイプして除外",
+    "noWordsFound": "単語が見つかりませんでした"
+  },
+  "morphology": {
+    "title": "形態素解析",
+    "analyzing": "解析中...",
+    "error": "解析に失敗しました",
+    "unavailable": "Yahoo JAPAN Client ID未設定",
+    "resultTitle": "形態素解析結果",
+    "partOfSpeech": "品詞",
+    "baseForm": "基本形",
+    "yahooHint": "Yahoo! Client IDを設定すると詳細情報が表示されます"
+  },
+  "englishWord": {
+    "translationHint": "DeepL API Keyを設定すると日本語訳が表示されます",
+    "definitionNotFound": "定義が見つかりませんでした",
+    "example": "例"
+  },
+  "alerts": {
+    "info": "情報",
+    "success": "成功",
+    "error": "エラー",
+    "noWordsToRegister": "登録する単語がありません",
+    "wordsAdded": "{{count}}個の単語を追加しました",
+    "wordsFailed": "({{count}}個は失敗)",
+    "wordAdded": "単語を追加しました！",
+    "allWordsFailed": "すべての単語の追加に失敗しました",
+    "addFailed": "単語の追加に失敗しました"
+  },
+  "buttons": {
+    "registerWords": "単語を登録 ({{count}}件)",
+    "cancel": "キャンセル"
+  },
+  "placeholder": "-"
+}

@@ -1,0 +1,31 @@
+{
+  "header": "ライセンス情報",
+  "description": "このアプリは以下のAPIサービスとオープンソースライブラリを使用しています。各サービス・ライブラリの提供者に感謝いたします。",
+  "sections": {
+    "apis": "使用API・サービス",
+    "libraries": "オープンソースライブラリ"
+  },
+  "footer": "ライブラリをタップするとGitHubリポジトリが開きます",
+  "apis": {
+    "deepl": {
+      "name": "DeepL API",
+      "license": "商用利用可（API利用規約に従う）",
+      "description": "高精度なニューラル機械翻訳API。英語から日本語への翻訳に使用。"
+    },
+    "yahoo": {
+      "name": "Yahoo! JAPAN テキスト解析API",
+      "license": "非商用利用（Yahoo! JAPAN Webサービス利用規約に従う）",
+      "description": "日本語の形態素解析・ルビ振り機能を提供。日本語テキストの解析に使用。"
+    },
+    "dictionary": {
+      "name": "Free Dictionary API",
+      "license": "CC BY-SA 3.0",
+      "description": "無料の英語辞書API。英単語の定義・発音・例文の取得に使用。"
+    },
+    "bluesky": {
+      "name": "Bluesky AT Protocol API",
+      "license": "MIT / Apache-2.0",
+      "description": "分散型ソーシャルネットワークプロトコル。フィード取得・投稿に使用。"
+    }
+  }
+}

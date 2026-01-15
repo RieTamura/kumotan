@@ -11,6 +11,7 @@ import {
   Animated,
   Pressable,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes } from '../constants/colors';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
@@ -19,8 +20,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
  */
 interface OfflineBannerProps {
   /**
-   * Custom message to display
-   * @default 'オフラインです'
+   * Custom message to display (uses translation if not provided)
    */
   message?: string;
 
@@ -47,13 +47,15 @@ interface OfflineBannerProps {
  * Automatically shows/hides based on network connectivity
  */
 export function OfflineBanner({
-  message = 'オフラインです',
+  message,
   showRetry = false,
   onRetry,
   animated = true,
 }: OfflineBannerProps): React.ReactElement | null {
+  const { t } = useTranslation('common');
   const isConnected = useNetworkStatus();
   const [slideAnim] = React.useState(new Animated.Value(-50));
+  const displayMessage = message ?? t('status.offline');
 
   React.useEffect(() => {
     if (animated) {
@@ -81,7 +83,7 @@ export function OfflineBanner({
       >
         <View style={styles.content}>
           <OfflineIcon />
-          <Text style={styles.message}>{message}</Text>
+          <Text style={styles.message}>{displayMessage}</Text>
         </View>
       </Animated.View>
     );
@@ -96,14 +98,14 @@ export function OfflineBanner({
     >
       <View style={styles.content}>
         <OfflineIcon />
-        <Text style={styles.message}>{message}</Text>
+        <Text style={styles.message}>{displayMessage}</Text>
         {showRetry && onRetry && (
           <Pressable
             onPress={onRetry}
             style={styles.retryButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.retryText}>再試行</Text>
+            <Text style={styles.retryText}>{t('buttons.retry')}</Text>
           </Pressable>
         )}
       </View>
@@ -116,7 +118,7 @@ export function OfflineBanner({
  */
 export function StaticOfflineBanner({
   visible,
-  message = 'オフラインです',
+  message,
   showRetry = false,
   onRetry,
 }: {
@@ -125,6 +127,9 @@ export function StaticOfflineBanner({
   showRetry?: boolean;
   onRetry?: () => void;
 }): React.ReactElement | null {
+  const { t } = useTranslation('common');
+  const displayMessage = message ?? t('status.offline');
+
   if (!visible) {
     return null;
   }
@@ -133,14 +138,14 @@ export function StaticOfflineBanner({
     <View style={styles.container}>
       <View style={styles.content}>
         <OfflineIcon />
-        <Text style={styles.message}>{message}</Text>
+        <Text style={styles.message}>{displayMessage}</Text>
         {showRetry && onRetry && (
           <Pressable
             onPress={onRetry}
             style={styles.retryButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.retryText}>再試行</Text>
+            <Text style={styles.retryText}>{t('buttons.retry')}</Text>
           </Pressable>
         )}
       </View>

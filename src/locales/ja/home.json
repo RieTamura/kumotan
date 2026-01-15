@@ -1,0 +1,19 @@
+{
+  "header": "ホーム",
+  "loading": "読み込み中...",
+  "loadingTimeline": "タイムラインを読み込み中...",
+  "loadingMore": "読み込み中...",
+  "error": "エラーが発生しました",
+  "offline": "オフラインです",
+  "offlineMessage": "ネットワーク接続を確認してください",
+  "empty": "投稿がありません",
+  "emptyMessage": "タイムラインに投稿がないか、\nフォローしているユーザーがいません",
+  "retry": "再試行",
+  "refresh": "更新",
+  "pullToRefresh": "引っ張って更新",
+  "refreshTimeline": "タイムラインを更新",
+  "refreshHint": "最新の投稿を読み込みます",
+  "scrollToTop": "TOPへ戻る",
+  "wordAdded": "単語を追加しました！",
+  "wordAddError": "単語の追加に失敗しました"
+}

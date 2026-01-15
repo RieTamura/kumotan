@@ -1,0 +1,31 @@
+{
+  "header": "License Information",
+  "description": "This app uses the following API services and open source libraries. We thank the providers of each service and library.",
+  "sections": {
+    "apis": "APIs & Services",
+    "libraries": "Open Source Libraries"
+  },
+  "footer": "Tap a library to open its GitHub repository",
+  "apis": {
+    "deepl": {
+      "name": "DeepL API",
+      "license": "Commercial use allowed (subject to API terms)",
+      "description": "High-precision neural machine translation API. Used for English to Japanese translation."
+    },
+    "yahoo": {
+      "name": "Yahoo! JAPAN Text Analysis API",
+      "license": "Non-commercial (subject to Yahoo! JAPAN Web Services terms)",
+      "description": "Provides Japanese morphological analysis and furigana. Used for Japanese text analysis."
+    },
+    "dictionary": {
+      "name": "Free Dictionary API",
+      "license": "CC BY-SA 3.0",
+      "description": "Free English dictionary API. Used to get word definitions, pronunciations, and examples."
+    },
+    "bluesky": {
+      "name": "Bluesky AT Protocol API",
+      "license": "MIT / Apache-2.0",
+      "description": "Decentralized social network protocol. Used for feed retrieval and posting."
+    }
+  }
+}

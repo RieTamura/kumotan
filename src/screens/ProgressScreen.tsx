@@ -21,7 +21,9 @@ import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
+import { getCurrentLanguage } from '../locales';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
 import { getStats, getCalendarData } from '../services/database/stats';
@@ -92,6 +94,8 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
  * ProgressScreen Component
  */
 export function ProgressScreen(): React.JSX.Element {
+  const { t } = useTranslation('progress');
+  const { t: tc } = useTranslation('common');
   const isConnected = useNetworkStatus();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [isLoading, setIsLoading] = useState(true);
@@ -116,7 +120,7 @@ export function ProgressScreen(): React.JSX.Element {
       if (statsResult.success) {
         setStats(statsResult.data);
       } else {
-        Alert.alert('エラー', '統計の取得に失敗しました。');
+        Alert.alert(tc('status.error'), t('errors.statsLoad'));
       }
 
       // Load calendar data
@@ -135,7 +139,7 @@ export function ProgressScreen(): React.JSX.Element {
       }
     } catch (error) {
       console.error('Failed to load data:', error);
-      Alert.alert('エラー', 'データの読み込み中にエラーが発生しました。');
+      Alert.alert(tc('status.error'), t('errors.dataLoad'));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -183,7 +187,7 @@ export function ProgressScreen(): React.JSX.Element {
       // Check if sharing is available
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
-        Alert.alert('エラー', 'このデバイスでは共有機能が利用できません。');
+        Alert.alert(tc('status.error'), t('errors.shareNotAvailable'));
         return;
       }
 
@@ -193,20 +197,20 @@ export function ProgressScreen(): React.JSX.Element {
       });
 
       // Create share message and copy to clipboard
-      const shareMessage = `今日は${stats.todayCount}個の単語を学習しました！\n\n#くもたん #言語学習 #langsky`;
+      const shareMessage = t('share.text', { count: stats.todayCount });
       await Clipboard.setStringAsync(shareMessage);
 
       // Share the image (message is copied to clipboard)
       await Sharing.shareAsync(uri, {
         mimeType: 'image/png',
-        dialogTitle: '今日の学習進捗',
+        dialogTitle: t('share.dialogTitle'),
       });
 
       // Notify user that message was copied
-      Alert.alert('メッセージをコピーしました', 'テキストがクリップボードにコピーされました。共有先で貼り付けてください。');
+      Alert.alert(t('share.messageCopied'), t('share.messageCopiedHint'));
     } catch (error: unknown) {
       console.error('Failed to capture and share:', error);
-      Alert.alert('エラー', '画像の作成または共有に失敗しました。');
+      Alert.alert(tc('status.error'), t('errors.imageCapture'));
     } finally {
       setIsCapturing(false);
       setIsShareModalVisible(false);
@@ -218,30 +222,30 @@ export function ProgressScreen(): React.JSX.Element {
    */
   const handleShare = useCallback(() => {
     if (!stats) {
-      Alert.alert('エラー', '統計データが読み込まれていません。');
+      Alert.alert(tc('status.error'), t('errors.noStats'));
       return;
     }
 
     // Show share modal with preview
     setIsShareModalVisible(true);
-  }, [stats]);
+  }, [stats, t, tc]);
 
   /**
    * Share to Bluesky timeline with AT Protocol learning session record
    */
   const handleShareToBluesky = useCallback(async () => {
     if (!stats) {
-      Alert.alert('エラー', '統計データが読み込まれていません。');
+      Alert.alert(tc('status.error'), t('errors.noStats'));
       return;
     }
 
     if (!isAuthenticated) {
-      Alert.alert('エラー', 'Blueskyにログインしてください。');
+      Alert.alert(tc('status.error'), t('errors.notLoggedIn'));
       return;
     }
 
     if (!isConnected) {
-      Alert.alert('エラー', 'ネットワークに接続してください。');
+      Alert.alert(tc('status.error'), t('errors.noNetwork'));
       return;
     }
 
@@ -249,27 +253,28 @@ export function ProgressScreen(): React.JSX.Element {
       const agent = getAgent();
 
       // Create learning session record in PDS
+      const streakMessage = stats.streak > 1 ? t('share.textWithStreak', { streak: stats.streak }) : undefined;
       await shareTodaysSession(
         agent,
         stats.todayCount,
         0, // timeSpent - we don't track this yet
-        stats.streak > 1 ? `${stats.streak}日連続学習達成！` : undefined
+        streakMessage
       );
 
       // Share to Bluesky timeline
       await shareToBlueskyTimeline(
         agent,
         stats.todayCount,
-        stats.streak > 1 ? `${stats.streak}日連続学習達成！` : undefined
+        streakMessage
       );
 
-      Alert.alert('成功', 'Blueskyに投稿しました！');
+      Alert.alert(tc('status.success'), t('share.blueskySuccess'));
       setIsShareModalVisible(false);
     } catch (error) {
       console.error('Failed to share to Bluesky:', error);
-      Alert.alert('エラー', 'Blueskyへの投稿に失敗しました。');
+      Alert.alert(tc('status.error'), t('share.blueskyError'));
     }
-  }, [stats, isAuthenticated, isConnected]);
+  }, [stats, isAuthenticated, isConnected, t, tc]);
 
   /**
    * Navigate to previous month
@@ -339,7 +344,8 @@ export function ProgressScreen(): React.JSX.Element {
    * Format month and year for display
    */
   const formatMonthYear = useCallback(() => {
-    return currentMonth.toLocaleDateString('ja-JP', {
+    const locale = getCurrentLanguage() === 'ja' ? 'ja-JP' : 'en-US';
+    return currentMonth.toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
     });
@@ -349,9 +355,9 @@ export function ProgressScreen(): React.JSX.Element {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>進捗</Text>
+          <Text style={styles.headerTitle}>{t('header')}</Text>
         </View>
-        <Loading fullScreen message="統計を読み込み中..." />
+        <Loading fullScreen message={t('loading')} />
       </SafeAreaView>
     );
   }
@@ -360,14 +366,14 @@ export function ProgressScreen(): React.JSX.Element {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>進捗</Text>
+        <Text style={styles.headerTitle}>{t('header')}</Text>
         <TouchableOpacity
           onPress={handleShare}
           disabled={!isConnected}
           style={styles.shareButton}
           accessible={true}
-          accessibilityLabel="進捗をシェア"
-          accessibilityHint="学習進捗を画像またはBlueskyに共有します"
+          accessibilityLabel={t('share.accessibilityLabel')}
+          accessibilityHint={t('share.accessibilityHint')}
           accessibilityRole="button"
         >
           <ShareIcon
@@ -393,16 +399,16 @@ export function ProgressScreen(): React.JSX.Element {
         {/* Today's Progress */}
         <View style={styles.section}>
           <View style={styles.todayProgress}>
-            <Text style={styles.todayProgressTitle}>今日の進捗</Text>
+            <Text style={styles.todayProgressTitle}>{t('today.title')}</Text>
             <Text style={styles.todayProgressValue}>
-              {stats.todayCount}個の単語を学習
+              {t('today.wordsLearned', { count: stats.todayCount })}
             </Text>
           </View>
         </View>
 
         {/* Calendar Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>【カレンダー】</Text>
+          <Text style={styles.sectionTitle}>{t('calendar.title')}</Text>
 
           {/* Month Navigation */}
           <View style={styles.monthNav}>
@@ -419,8 +425,8 @@ export function ProgressScreen(): React.JSX.Element {
           <View style={styles.calendarContainer}>
             {/* Weekday headers */}
             <View style={styles.calendarWeekdays}>
-              {['日', '月', '火', '水', '木', '金', '土'].map((day) => (
-                <Text key={day} style={styles.calendarWeekday}>
+              {(t('calendar.weekdays', { returnObjects: true }) as string[]).map((day, index) => (
+                <Text key={index} style={styles.calendarWeekday}>
                   {day}
                 </Text>
               ))}
@@ -436,41 +442,41 @@ export function ProgressScreen(): React.JSX.Element {
           <View style={styles.legend}>
             <View style={styles.legendItem}>
               <View style={styles.legendDot} />
-              <Text style={styles.legendText}>学習した日</Text>
+              <Text style={styles.legendText}>{t('calendar.legend')}</Text>
             </View>
           </View>
         </View>
 
         {/* Stats Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>【統計】</Text>
+          <Text style={styles.sectionTitle}>{t('statistics.title')}</Text>
           <View style={styles.statsGrid}>
             <StatsCard
-              title="総単語"
+              title={t('statistics.totalWords')}
               value={stats.totalWords}
               Icon={BookOpen}
             />
             <StatsCard
-              title="既読"
+              title={t('statistics.readWords')}
               value={stats.readWords}
               Icon={CheckCircle}
             />
             <StatsCard
-              title="既読率"
+              title={t('statistics.readRate')}
               value={`${stats.readPercentage}%`}
               Icon={BarChart3}
             />
             <StatsCard
-              title="今週の学習日"
-              value={`${stats.thisWeekDays}日`}
+              title={t('statistics.studyDaysThisWeek')}
+              value={t('statistics.days', { count: stats.thisWeekDays })}
               Icon={Calendar}
             />
           </View>
 
           <View style={styles.streakContainer}>
             <StatsCard
-              title="連続学習日数"
-              value={`${stats.streak}日`}
+              title={t('statistics.streak')}
+              value={t('statistics.days', { count: stats.streak })}
               Icon={Flame}
             />
           </View>
@@ -486,22 +492,22 @@ export function ProgressScreen(): React.JSX.Element {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>進捗をシェア</Text>
-            
+            <Text style={styles.modalTitle}>{t('share.title')}</Text>
+
             {/* Share Text Area */}
             <TouchableOpacity
               style={styles.shareTextContainer}
               onPress={async () => {
-                const text = `今日は${stats.todayCount}個の単語を学習しました！\n\n#くもたん #言語学習 #langsky`;
+                const text = t('share.text', { count: stats.todayCount });
                 await Clipboard.setStringAsync(text);
-                Alert.alert('コピーしました', '投稿文をクリップボードにコピーしました');
+                Alert.alert(t('share.copied'), t('share.copiedMessage'));
               }}
               activeOpacity={0.7}
             >
               <Text style={styles.shareText}>
-                今日は{stats.todayCount}個の単語を学習しました！{"\n\n"}#くもたん #言語学習 #langsky
+                {t('share.text', { count: stats.todayCount })}
               </Text>
-              <Text style={styles.shareTextHint}>タップでコピー</Text>
+              <Text style={styles.shareTextHint}>{t('share.tapToCopy')}</Text>
             </TouchableOpacity>
             
             {/* Share Card Preview */}
@@ -512,48 +518,48 @@ export function ProgressScreen(): React.JSX.Element {
             >
               <View style={styles.shareCardInner}>
                 {/* App Logo/Title */}
-                <Text style={styles.shareCardAppName}>☁️ くもたん</Text>
-                
+                <Text style={styles.shareCardAppName}>{t('shareCard.appName')}</Text>
+
                 {/* Date */}
                 <Text style={styles.shareCardDate}>
-                  {new Date().toLocaleDateString('ja-JP', {
+                  {new Date().toLocaleDateString(getCurrentLanguage() === 'ja' ? 'ja-JP' : 'en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                   })}
                 </Text>
-                
+
                 {/* Main Progress */}
                 <View style={styles.shareCardProgress}>
                   <Text style={styles.shareCardProgressValue}>
                     {stats.todayCount}
                   </Text>
                   <Text style={styles.shareCardProgressLabel}>
-                    個の単語を学習
+                    {t('shareCard.wordsLearned')}
                   </Text>
                 </View>
-                
+
                 {/* Stats Row */}
                 <View style={styles.shareCardStatsRow}>
                   <View style={styles.shareCardStatItem}>
                     <Text style={styles.shareCardStatValue}>
-                      {stats.streak}日
+                      {t('statistics.days', { count: stats.streak })}
                     </Text>
-                    <Text style={styles.shareCardStatLabel}>連続学習</Text>
+                    <Text style={styles.shareCardStatLabel}>{t('shareCard.consecutiveDays')}</Text>
                   </View>
                   <View style={styles.shareCardStatDivider} />
                   <View style={styles.shareCardStatItem}>
                     <Text style={styles.shareCardStatValue}>
-                      {stats.totalWords}語
+                      {stats.totalWords}
                     </Text>
-                    <Text style={styles.shareCardStatLabel}>総単語数</Text>
+                    <Text style={styles.shareCardStatLabel}>{t('shareCard.totalWords')}</Text>
                   </View>
                   <View style={styles.shareCardStatDivider} />
                   <View style={styles.shareCardStatItem}>
                     <Text style={styles.shareCardStatValue}>
                       {stats.readPercentage}%
                     </Text>
-                    <Text style={styles.shareCardStatLabel}>既読率</Text>
+                    <Text style={styles.shareCardStatLabel}>{t('shareCard.readRate')}</Text>
                   </View>
                 </View>
               </View>
@@ -566,10 +572,10 @@ export function ProgressScreen(): React.JSX.Element {
                 onPress={() => setIsShareModalVisible(false)}
                 disabled={isCapturing}
                 accessible={true}
-                accessibilityLabel="キャンセル"
+                accessibilityLabel={t('share.cancel')}
                 accessibilityRole="button"
               >
-                <Text style={styles.modalButtonCancelText}>キャンセル</Text>
+                <Text style={styles.modalButtonCancelText}>{t('share.cancel')}</Text>
               </TouchableOpacity>
 
               {/* Bluesky Direct Post Button */}
@@ -582,13 +588,13 @@ export function ProgressScreen(): React.JSX.Element {
                   onPress={handleShareToBluesky}
                   disabled={!isConnected || isCapturing}
                   accessible={true}
-                  accessibilityLabel="Blueskyに投稿"
-                  accessibilityHint="学習記録をBlueskyタイムラインに投稿します"
+                  accessibilityLabel={t('share.bluesky')}
+                  accessibilityHint={t('share.blueskyHint')}
                   accessibilityRole="button"
                   accessibilityState={{ disabled: !isConnected || isCapturing }}
                 >
                   <Text style={styles.modalButtonBlueskyText}>
-                    Blueskyに投稿
+                    {t('share.bluesky')}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -601,14 +607,14 @@ export function ProgressScreen(): React.JSX.Element {
                 onPress={captureAndShare}
                 disabled={isCapturing}
                 accessible={true}
-                accessibilityLabel={isCapturing ? '作成中' : '画像をシェア'}
-                accessibilityHint="進捗を画像として共有します"
+                accessibilityLabel={isCapturing ? t('share.creating') : t('share.image')}
+                accessibilityHint={t('share.imageHint')}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: isCapturing, busy: isCapturing }}
               >
                 <ShareIcon size={18} color={Colors.textInverse} />
                 <Text style={styles.modalButtonShareText}>
-                  {isCapturing ? '作成中...' : '画像をシェア'}
+                  {isCapturing ? t('share.creating') : t('share.image')}
                 </Text>
               </TouchableOpacity>
             </View>

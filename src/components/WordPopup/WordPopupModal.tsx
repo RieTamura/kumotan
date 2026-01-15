@@ -17,6 +17,7 @@ import {
   Alert,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/colors';
 import { Validators } from '../../utils/validators';
 import { Button } from '../common/Button';
@@ -44,6 +45,7 @@ export function WordPopupModal({
   onClose,
   onAddToWordList,
 }: WordPopupProps): React.JSX.Element {
+  const { t } = useTranslation('wordPopup');
   const [state, dispatch] = useReducer(wordPopupReducer, initialState);
   const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
   const [backdropOpacity] = useState(new Animated.Value(0));
@@ -174,7 +176,7 @@ export function WordPopupModal({
         const wordsToAdd = state.wordsInfo.filter(w => !w.isRegistered);
 
         if (wordsToAdd.length === 0) {
-          Alert.alert('情報', '登録する単語がありません');
+          Alert.alert(t('alerts.info'), t('alerts.noWordsToRegister'));
           dispatch({ type: 'SET_IS_ADDING', isAdding: false });
           return;
         }
@@ -195,13 +197,13 @@ export function WordPopupModal({
         const failCount = results.length - successCount;
 
         if (successCount > 0) {
-          Alert.alert(
-            '成功',
-            `${successCount}個の単語を追加しました${failCount > 0 ? `\n(${failCount}個は失敗)` : '！'}`
-          );
+          const message = failCount > 0
+            ? `${t('alerts.wordsAdded', { count: successCount })}\n${t('alerts.wordsFailed', { count: failCount })}`
+            : t('alerts.wordsAdded', { count: successCount }) + '!';
+          Alert.alert(t('alerts.success'), message);
           setTimeout(() => onClose(), 500);
         } else {
-          Alert.alert('エラー', 'すべての単語の追加に失敗しました');
+          Alert.alert(t('alerts.error'), t('alerts.allWordsFailed'));
         }
       } else if (state.isJapanese) {
         // Japanese word
@@ -215,7 +217,7 @@ export function WordPopupModal({
         const reading = mainToken?.reading ?? null;
         const morphologyResult = state.japaneseInfo.length > 0
           ? state.japaneseInfo
-              .map(token => `${token.word} (${token.reading})\n品詞: ${token.partOfSpeech}\n基本形: ${token.baseForm}`)
+              .map(token => `${token.word} (${token.reading})\n${t('morphology.partOfSpeech')}: ${token.partOfSpeech}\n${t('morphology.baseForm')}: ${token.baseForm}`)
               .join('\n\n')
           : null;
 
@@ -228,10 +230,10 @@ export function WordPopupModal({
         });
 
         if (result.success) {
-          Alert.alert('成功', '単語を追加しました！');
+          Alert.alert(t('alerts.success'), t('alerts.wordAdded'));
           setTimeout(() => onClose(), 500);
         } else {
-          Alert.alert('エラー', result.error.message);
+          Alert.alert(t('alerts.error'), result.error.message);
         }
       } else {
         // English word
@@ -244,15 +246,15 @@ export function WordPopupModal({
         });
 
         if (result.success) {
-          Alert.alert('成功', '単語を追加しました！');
+          Alert.alert(t('alerts.success'), t('alerts.wordAdded'));
           setTimeout(() => onClose(), 500);
         } else {
-          Alert.alert('エラー', result.error.message);
+          Alert.alert(t('alerts.error'), result.error.message);
         }
       }
     } catch (error) {
       console.error('Failed to add word:', error);
-      Alert.alert('エラー', '単語の追加に失敗しました');
+      Alert.alert(t('alerts.error'), t('alerts.addFailed'));
     } finally {
       dispatch({ type: 'SET_IS_ADDING', isAdding: false });
     }
@@ -313,7 +315,7 @@ export function WordPopupModal({
             )}
             {isSentenceMode && (
               <View style={styles.modeTag}>
-                <Text style={styles.modeText}>文章モード</Text>
+                <Text style={styles.modeText}>{t('sentence.mode')}</Text>
               </View>
             )}
           </View>
@@ -325,7 +327,7 @@ export function WordPopupModal({
               <>
                 {/* Sentence Translation */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>文章の日本語訳</Text>
+                  <Text style={styles.sectionTitle}>{t('sentence.japaneseTranslation')}</Text>
                   {sentenceLookup.loading.sentenceTranslation ? (
                     <ActivityIndicator size="small" color={Colors.primary} />
                   ) : state.sentenceTranslation ? (
@@ -333,16 +335,16 @@ export function WordPopupModal({
                   ) : state.sentenceError ? (
                     <Text style={styles.errorText}>{state.sentenceError}</Text>
                   ) : !sentenceLookup.apiKeyAvailable ? (
-                    <Text style={styles.hintText}>DeepL API Keyを設定すると日本語訳が表示されます</Text>
+                    <Text style={styles.hintText}>{t('englishWord.translationHint')}</Text>
                   ) : (
-                    <Text style={styles.hintText}>-</Text>
+                    <Text style={styles.hintText}>{t('placeholder')}</Text>
                   )}
                 </View>
 
                 {/* Words List */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>含まれる単語</Text>
-                  <Text style={styles.swipeInstruction}>登録しない単語は左にスワイプして除外</Text>
+                  <Text style={styles.sectionTitle}>{t('sentence.containedWords')}</Text>
+                  <Text style={styles.swipeInstruction}>{t('sentence.swipeInstruction')}</Text>
                   {sentenceLookup.loading.wordsInfo ? (
                     <ActivityIndicator size="small" color={Colors.primary} />
                   ) : state.wordsInfo.length > 0 ? (
@@ -356,7 +358,7 @@ export function WordPopupModal({
                       ))}
                     </View>
                   ) : (
-                    <Text style={styles.hintText}>単語が見つかりませんでした</Text>
+                    <Text style={styles.hintText}>{t('sentence.noWordsFound')}</Text>
                   )}
                 </View>
               </>
@@ -368,7 +370,7 @@ export function WordPopupModal({
                 {/* Japanese Word Info */}
                 {state.isJapanese && (
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>形態素解析結果</Text>
+                    <Text style={styles.sectionTitle}>{t('morphology.resultTitle')}</Text>
                     {japaneseMorphology.loading ? (
                       <ActivityIndicator size="small" color={Colors.primary} />
                     ) : state.japaneseInfo.length > 0 ? (
@@ -380,8 +382,8 @@ export function WordPopupModal({
                               <Text style={styles.tokenReading}>({token.reading})</Text>
                             </View>
                             <View style={styles.tokenDetails}>
-                              <Text style={styles.tokenDetailText}>品詞: {token.partOfSpeech}</Text>
-                              <Text style={styles.tokenDetailText}>基本形: {token.baseForm}</Text>
+                              <Text style={styles.tokenDetailText}>{t('morphology.partOfSpeech')}: {token.partOfSpeech}</Text>
+                              <Text style={styles.tokenDetailText}>{t('morphology.baseForm')}: {token.baseForm}</Text>
                             </View>
                           </View>
                         ))}
@@ -389,9 +391,9 @@ export function WordPopupModal({
                     ) : state.japaneseError ? (
                       <Text style={styles.errorText}>{state.japaneseError}</Text>
                     ) : !japaneseMorphology.yahooClientIdAvailable ? (
-                      <Text style={styles.hintText}>Yahoo! Client IDを設定すると詳細情報が表示されます</Text>
+                      <Text style={styles.hintText}>{t('morphology.yahooHint')}</Text>
                     ) : (
-                      <Text style={styles.hintText}>-</Text>
+                      <Text style={styles.hintText}>{t('placeholder')}</Text>
                     )}
                   </View>
                 )}
@@ -399,7 +401,7 @@ export function WordPopupModal({
                 {/* Translation (English words) */}
                 {!state.isJapanese && (
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>日本語訳</Text>
+                    <Text style={styles.sectionTitle}>{t('translation')}</Text>
                     {wordLookup.loading.translation ? (
                       <ActivityIndicator size="small" color={Colors.primary} />
                     ) : state.translation ? (
@@ -407,9 +409,9 @@ export function WordPopupModal({
                     ) : state.translationError ? (
                       <Text style={styles.errorText}>{state.translationError}</Text>
                     ) : !wordLookup.apiKeyAvailable ? (
-                      <Text style={styles.hintText}>DeepL API Keyを設定すると日本語訳が表示されます</Text>
+                      <Text style={styles.hintText}>{t('englishWord.translationHint')}</Text>
                     ) : (
-                      <Text style={styles.hintText}>-</Text>
+                      <Text style={styles.hintText}>{t('placeholder')}</Text>
                     )}
                   </View>
                 )}
@@ -417,22 +419,22 @@ export function WordPopupModal({
                 {/* Definition (English words) */}
                 {!state.isJapanese && (
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>英語の定義</Text>
+                    <Text style={styles.sectionTitle}>{t('definition')}</Text>
                     {wordLookup.loading.definition ? (
                       <ActivityIndicator size="small" color={Colors.primary} />
                     ) : state.definition ? (
                       <>
                         <Text style={styles.definitionText}>{state.definition.definition}</Text>
                         {state.definition.example && (
-                          <Text style={styles.exampleText}>例: "{state.definition.example}"</Text>
+                          <Text style={styles.exampleText}>{t('englishWord.example')}: "{state.definition.example}"</Text>
                         )}
                       </>
                     ) : state.definitionNotFound ? (
-                      <Text style={styles.notFoundText}>定義が見つかりませんでした</Text>
+                      <Text style={styles.notFoundText}>{t('englishWord.definitionNotFound')}</Text>
                     ) : state.definitionError ? (
                       <Text style={styles.errorText}>{state.definitionError}</Text>
                     ) : (
-                      <Text style={styles.hintText}>-</Text>
+                      <Text style={styles.hintText}>{t('placeholder')}</Text>
                     )}
                   </View>
                 )}
@@ -445,8 +447,8 @@ export function WordPopupModal({
             <Button
               title={
                 isSentenceMode
-                  ? `単語を登録 (${state.wordsInfo.filter(w => !w.isRegistered).length}件)`
-                  : '単語帳に追加'
+                  ? t('buttons.registerWords', { count: state.wordsInfo.filter(w => !w.isRegistered).length })
+                  : t('addToWordList')
               }
               onPress={handleAddToWordList}
               variant="primary"
@@ -458,7 +460,7 @@ export function WordPopupModal({
               style={styles.addButton}
             />
             <Button
-              title="キャンセル"
+              title={t('buttons.cancel')}
               onPress={handleBackdropPress}
               variant="outline"
               disabled={state.isAdding}

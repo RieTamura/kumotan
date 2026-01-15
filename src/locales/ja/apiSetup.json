@@ -1,0 +1,63 @@
+{
+  "header": "API設定",
+  "description": "英語・日本語の翻訳や解析機能を使用するには、各種APIキーが必要です。",
+  "status": {
+    "label": "ステータス",
+    "configured": "設定済み",
+    "notConfigured": "未設定"
+  },
+  "deepl": {
+    "title": "DeepL API（英語翻訳）",
+    "inputLabel": "DeepL API Key",
+    "inputPlaceholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx",
+    "statusConfigured": "API Key設定済み",
+    "statusNotConfigured": "API Key未設定",
+    "validateAndSave": "Keyを検証して保存",
+    "delete": "DeepL API Keyを削除",
+    "deleteTitle": "API Keyを削除",
+    "deleteMessage": "本当にDeepL API Keyを削除しますか？日本語翻訳機能が使えなくなります。",
+    "saveSuccess": "DeepL API Keyが正常に保存されました",
+    "deleteSuccess": "API Keyが削除されました",
+    "inputRequired": "API Keyを入力してください。",
+    "howToGetTitle": "DeepL API Keyの取得方法",
+    "howToGetSteps": [
+      "1. DeepLの公式サイトでアカウントを作成",
+      "2. API Free プランに登録（クレジットカード不要）",
+      "3. アカウント設定からAPI Keyをコピー",
+      "4. 上記にAPI Keyを貼り付けて保存"
+    ],
+    "openSite": "DeepL APIサイトを開く"
+  },
+  "yahoo": {
+    "title": "Yahoo! JAPAN API（日本語解析）",
+    "inputLabel": "Yahoo! Client ID",
+    "inputPlaceholder": "dj00aiZpPXXXXXXXXXXXXXXX",
+    "statusConfigured": "Client ID設定済み",
+    "statusNotConfigured": "Client ID未設定",
+    "validateAndSave": "IDを検証して保存",
+    "delete": "Yahoo! Client IDを削除",
+    "deleteTitle": "Client IDを削除",
+    "deleteMessage": "本当にYahoo! Client IDを削除しますか？日本語単語の解析機能が使えなくなります。",
+    "saveSuccess": "Yahoo! Client IDが正常に保存されました",
+    "deleteSuccess": "Client IDが削除されました",
+    "inputRequired": "Client IDを入力してください。",
+    "howToGetTitle": "Yahoo! Client IDの取得方法",
+    "howToGetSteps": [
+      "1. Yahoo! JAPANでアカウントを作成・ログイン",
+      "2. Yahoo!デベロッパーネットワークで新規アプリケーションを作成",
+      "3. Client ID（アプリケーションID）をコピー",
+      "4. 上記にClient IDを貼り付けて保存"
+    ],
+    "openSite": "Yahoo!デベロッパーネットワークを開く"
+  },
+  "usage": {
+    "title": "今月の使用状況",
+    "normal": "正常",
+    "warning": "注意：使用量が増えています",
+    "critical": "上限に近づいています"
+  },
+  "note": {
+    "title": "📝 注意事項",
+    "content": "• 両方のAPIキーは端末に安全に保存されます\n• DeepL無料プランは月50万文字まで翻訳可能\n• Yahoo! APIは1分間に300回まで利用可能\n• どちらか片方のみ設定しても利用できます"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "title": "Learn English with Bluesky",
+  "subtitle": "Save words from your timeline and build your personal vocabulary",
+  "description": "Learn English with Bluesky!\nSave words from your timeline\nand build your personal vocabulary",
+  "handle": {
+    "label": "Username",
+    "placeholder": "user.bsky.social",
+    "hint": "Your Bluesky handle or email address"
+  },
+  "appPassword": {
+    "label": "App Password",
+    "placeholder": "xxxx-xxxx-xxxx-xxxx",
+    "help": "How to get an App Password →"
+  },
+  "button": {
+    "login": "Log In",
+    "loggingIn": "Logging in..."
+  },
+  "oauth": {
+    "button": "Log in with Bluesky",
+    "or": "or",
+    "advancedOptions": "Advanced Options",
+    "useAppPassword": "Log in with App Password"
+  },
+  "security": {
+    "note": "🔒 App Password is used for authentication only and is not stored."
+  },
+  "form": {
+    "hide": "Hide form"
+  },
+  "version": "Version {{version}}",
+  "errors": {
+    "offline": "Offline",
+    "offlineMessage": "Please check your network connection.",
+    "networkError": "Network Error",
+    "linkOpenError": "Cannot open link",
+    "linkOpenErrorMessage": "Please open the Bluesky settings page in your browser.",
+    "handleRequired": "Please enter your handle",
+    "passwordRequired": "Please enter your App Password",
+    "invalidHandle": "Please enter a valid handle",
+    "invalidPassword": "Invalid App Password format",
+    "authFailed": "Authentication failed"
+  }
+}

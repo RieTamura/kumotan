@@ -7,6 +7,9 @@ import 'core-js/proposals/explicit-resource-management';
 import 'event-target-polyfill';
 import 'react-native-url-polyfill/auto';
 
+// Initialize i18n
+import './src/locales';
+
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';

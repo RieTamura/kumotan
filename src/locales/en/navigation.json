@@ -1,0 +1,13 @@
+{
+  "tabs": {
+    "home": "Home",
+    "wordList": "Words",
+    "progress": "Progress",
+    "settings": "Settings"
+  },
+  "headers": {
+    "apiKeySetup": "API Key Setup",
+    "license": "License",
+    "debugLogs": "Debug Logs"
+  }
+}

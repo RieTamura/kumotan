@@ -1,0 +1,13 @@
+{
+  "tabs": {
+    "home": "ホーム",
+    "wordList": "単語帳",
+    "progress": "進捗",
+    "settings": "設定"
+  },
+  "headers": {
+    "apiKeySetup": "API Key設定",
+    "license": "ライセンス",
+    "debugLogs": "デバッグログ"
+  }
+}

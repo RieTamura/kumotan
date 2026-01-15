@@ -1,0 +1,59 @@
+{
+  "header": "Progress",
+  "loading": "Loading statistics...",
+  "today": {
+    "title": "Today's Progress",
+    "wordsLearned": "{{count}} words learned"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "legend": "Study day",
+    "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  },
+  "statistics": {
+    "title": "Statistics",
+    "totalWords": "Total",
+    "readWords": "Read",
+    "readRate": "Read %",
+    "studyDaysThisWeek": "This Week",
+    "streak": "Day Streak",
+    "days": "{{count}} days"
+  },
+  "share": {
+    "title": "Share Progress",
+    "accessibilityLabel": "Share progress",
+    "accessibilityHint": "Share your learning progress as an image or to Bluesky",
+    "text": "I learned {{count}} words today!\n\n#Kumotan #LanguageLearning #langsky",
+    "textWithStreak": "{{streak}} day streak achieved!",
+    "tapToCopy": "Tap to copy",
+    "copied": "Copied",
+    "copiedMessage": "Post text copied to clipboard",
+    "messageCopied": "Message copied",
+    "messageCopiedHint": "Text has been copied to clipboard. Paste it at the share destination.",
+    "bluesky": "Post to Bluesky",
+    "blueskyHint": "Post your learning record to Bluesky timeline",
+    "blueskySuccess": "Posted to Bluesky!",
+    "blueskyError": "Failed to post to Bluesky.",
+    "image": "Share as Image",
+    "imageHint": "Share your progress as an image",
+    "creating": "Creating...",
+    "dialogTitle": "Today's Learning Progress",
+    "cancel": "Cancel"
+  },
+  "shareCard": {
+    "appName": "☁️ Kumotan",
+    "wordsLearned": "words learned",
+    "consecutiveDays": "Day streak",
+    "totalWords": "Total words",
+    "readRate": "Read rate"
+  },
+  "errors": {
+    "statsLoad": "Failed to load statistics.",
+    "dataLoad": "An error occurred while loading data.",
+    "noStats": "Statistics data not loaded.",
+    "notLoggedIn": "Please log in to Bluesky.",
+    "noNetwork": "Please connect to a network.",
+    "imageCapture": "Failed to create or share image.",
+    "shareNotAvailable": "Sharing is not available on this device."
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "header": "Settings",
+  "sections": {
+    "account": "Account",
+    "apiSettings": "API Settings",
+    "dataManagement": "Data Management",
+    "support": "Support",
+    "feedback": "Feedback",
+    "other": "Other",
+    "language": "Language"
+  },
+  "account": {
+    "loading": "Loading...",
+    "posts": "posts",
+    "followers": "followers",
+    "following": "following"
+  },
+  "api": {
+    "deepLKey": "DeepL API Key",
+    "yahooClientId": "Yahoo JAPAN Client ID",
+    "configured": "Configured ✓",
+    "notConfigured": "Not configured"
+  },
+  "data": {
+    "export": "Export Data",
+    "exportSubtitle": "Export as JSON",
+    "exportDialogTitle": "Export Word Data",
+    "exportSuccess": "Exported {{count}} words",
+    "exportEmpty": "Word list is empty",
+    "exportEmptyMessage": "No words to export.",
+    "exportError": "Export failed",
+    "deleteAll": "Delete All Data",
+    "deleteConfirmTitle": "Delete All Data",
+    "deleteConfirmMessage": "This action cannot be undone. Are you sure you want to delete all word data?",
+    "deleteSuccess": "All data has been deleted",
+    "deleteError": "Delete failed"
+  },
+  "support": {
+    "donate": "Support Development",
+    "donateSubtitle": "Sponsor on GitHub",
+    "star": "Star on GitHub",
+    "starSubtitle": "Support the project"
+  },
+  "feedbackItems": {
+    "reportBug": "Report a Bug",
+    "reportBugSubtitle": "Report issues",
+    "suggest": "Suggest a Feature",
+    "suggestSubtitle": "Share ideas and suggestions",
+    "blueskyContact": "Contact on Bluesky"
+  },
+  "other": {
+    "debugLogs": "Debug Logs",
+    "debugLogsSubtitle": "For TestFlight debugging",
+    "license": "License",
+    "githubRepo": "GitHub Repository",
+    "blueskyDocs": "Bluesky API Documentation",
+    "deeplDocs": "DeepL API Documentation"
+  },
+  "logout": {
+    "button": "Log Out",
+    "loggingOut": "Logging out...",
+    "confirmTitle": "Log out?",
+    "confirmMessage": "Your word data will be preserved"
+  },
+  "language": {
+    "title": "Language",
+    "subtitle": "App display language",
+    "selectTitle": "Select Language",
+    "japanese": "日本語",
+    "english": "English"
+  },
+  "version": "Version {{version}}",
+  "linkError": "Could not open link."
+}

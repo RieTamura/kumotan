@@ -1,0 +1,28 @@
+{
+  "header": "Words",
+  "empty": "No words registered",
+  "emptyMessage": "Long-tap words on the Home screen to add them",
+  "filters": {
+    "all": "All",
+    "unread": "Unread",
+    "read": "Read"
+  },
+  "sort": {
+    "title": "Sort",
+    "dateDesc": "Date (Newest)",
+    "dateAsc": "Date (Oldest)",
+    "alphabetAsc": "Alphabetical (A-Z)",
+    "alphabetDesc": "Alphabetical (Z-A)"
+  },
+  "delete": {
+    "title": "Delete Word",
+    "message": "Delete \"{{word}}\"?",
+    "success": "Word deleted",
+    "error": "Failed to delete"
+  },
+  "markRead": "Mark as read",
+  "markUnread": "Mark as unread",
+  "wordCount": "{{count}} words",
+  "noDefinition": "No definition",
+  "noTranslation": "-"
+}

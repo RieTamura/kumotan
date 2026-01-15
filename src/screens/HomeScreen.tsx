@@ -12,13 +12,13 @@ import {
   RefreshControl,
   Pressable,
   Alert,
-  Modal,
   NativeSyntheticEvent,
   NativeScrollEvent,
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RefreshCw, ArrowUp } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
@@ -56,6 +56,9 @@ const initialWordPopupState: WordPopupState = {
  * HomeScreen Component
  */
 export function HomeScreen(): React.JSX.Element {
+  const { t } = useTranslation('home');
+  const { t: tc } = useTranslation('common');
+
   // Feed state and actions
   const {
     posts,
@@ -149,12 +152,12 @@ export function HomeScreen(): React.JSX.Element {
         );
 
         if (result.success) {
-          Alert.alert('成功', '単語を追加しました！');
+          Alert.alert(tc('status.success'), t('wordAdded'));
         } else {
-          Alert.alert('エラー', result.error.message);
+          Alert.alert(tc('status.error'), result.error.message);
         }
       } catch (error) {
-        Alert.alert('エラー', '単語の追加に失敗しました');
+        Alert.alert(tc('status.error'), t('wordAddError'));
         console.error('Failed to add word:', error);
       }
     },
@@ -240,10 +243,10 @@ export function HomeScreen(): React.JSX.Element {
 
     return (
       <View style={styles.footerLoader}>
-        <Loading size="small" message="読み込み中..." />
+        <Loading size="small" message={t('loadingMore')} />
       </View>
     );
-  }, [isLoadingMore]);
+  }, [isLoadingMore, t]);
 
   /**
    * Render empty state
@@ -255,10 +258,10 @@ export function HomeScreen(): React.JSX.Element {
       return (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>⚠️</Text>
-          <Text style={styles.emptyTitle}>エラーが発生しました</Text>
+          <Text style={styles.emptyTitle}>{t('error')}</Text>
           <Text style={styles.emptyMessage}>{error.getUserMessage()}</Text>
           <Button
-            title="再試行"
+            title={t('retry')}
             onPress={refresh}
             variant="outline"
             style={styles.retryButton}
@@ -271,9 +274,9 @@ export function HomeScreen(): React.JSX.Element {
       return (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>☁️</Text>
-          <Text style={styles.emptyTitle}>オフラインです</Text>
+          <Text style={styles.emptyTitle}>{t('offline')}</Text>
           <Text style={styles.emptyMessage}>
-            ネットワーク接続を確認してください
+            {t('offlineMessage')}
           </Text>
         </View>
       );
@@ -282,29 +285,28 @@ export function HomeScreen(): React.JSX.Element {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyIcon}>📭</Text>
-        <Text style={styles.emptyTitle}>投稿がありません</Text>
+        <Text style={styles.emptyTitle}>{t('empty')}</Text>
         <Text style={styles.emptyMessage}>
-          タイムラインに投稿がないか、{'\n'}
-          フォローしているユーザーがいません
+          {t('emptyMessage')}
         </Text>
         <Button
-          title="更新"
+          title={t('refresh')}
           onPress={refresh}
           variant="outline"
           style={styles.retryButton}
         />
       </View>
     );
-  }, [isLoading, error, isConnected, refresh]);
+  }, [isLoading, error, isConnected, refresh, t]);
 
   // Show loading state on initial load
   if (isLoading && posts.length === 0) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>ホーム</Text>
+          <Text style={styles.headerTitle}>{t('header')}</Text>
         </View>
-        <Loading fullScreen message="タイムラインを読み込み中..." />
+        <Loading fullScreen message={t('loadingTimeline')} />
       </SafeAreaView>
     );
   }
@@ -314,15 +316,15 @@ export function HomeScreen(): React.JSX.Element {
       <OfflineBanner />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>ホーム</Text>
+        <Text style={styles.headerTitle}>{t('header')}</Text>
         {isConnected && (
           <Pressable
             onPress={refresh}
             style={styles.refreshButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessible={true}
-            accessibilityLabel="タイムラインを更新"
-            accessibilityHint="最新の投稿を読み込みます"
+            accessibilityLabel={t('refreshTimeline')}
+            accessibilityHint={t('refreshHint')}
             accessibilityRole="button"
           >
             <RefreshCw size={24} color={Colors.primary} />
@@ -369,7 +371,7 @@ export function HomeScreen(): React.JSX.Element {
         <Pressable
           onPress={scrollToTop}
           style={styles.scrollToTopPressable}
-          accessibilityLabel="TOPへ戻る"
+          accessibilityLabel={t('scrollToTop')}
           accessibilityRole="button"
         >
           <ArrowUp size={24} color={Colors.background} />

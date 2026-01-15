@@ -1,0 +1,44 @@
+{
+  "title": "Blueskyで英語学習",
+  "subtitle": "タイムラインから単語を保存して、あなただけの単語帳を作ろう",
+  "description": "Blueskyで英語学習！\nタイムラインから単語を保存して、\nあなただけの単語帳を作ろう",
+  "handle": {
+    "label": "ユーザー名",
+    "placeholder": "user.bsky.social",
+    "hint": "Blueskyのハンドル名またはメールアドレス"
+  },
+  "appPassword": {
+    "label": "App Password",
+    "placeholder": "xxxx-xxxx-xxxx-xxxx",
+    "help": "App Passwordの取得方法 →"
+  },
+  "button": {
+    "login": "ログイン",
+    "loggingIn": "ログイン中..."
+  },
+  "oauth": {
+    "button": "Blueskyでログイン",
+    "or": "または",
+    "advancedOptions": "詳細オプション",
+    "useAppPassword": "App Passwordでログイン"
+  },
+  "security": {
+    "note": "🔒 App Passwordは認証にのみ使用され、保存されません。"
+  },
+  "form": {
+    "hide": "フォームを閉じる"
+  },
+  "version": "バージョン {{version}}",
+  "errors": {
+    "offline": "オフライン",
+    "offlineMessage": "ネットワーク接続を確認してください。",
+    "networkError": "ネットワークエラー",
+    "linkOpenError": "リンクを開けません",
+    "linkOpenErrorMessage": "ブラウザでBlueskyの設定ページを開いてください。",
+    "handleRequired": "ハンドル名を入力してください",
+    "passwordRequired": "App Passwordを入力してください",
+    "invalidHandle": "有効なハンドル名を入力してください",
+    "invalidPassword": "App Passwordの形式が正しくありません",
+    "authFailed": "認証に失敗しました"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "header": "API Setup",
+  "description": "API keys are required to use English-Japanese translation and analysis features.",
+  "status": {
+    "label": "Status",
+    "configured": "Configured",
+    "notConfigured": "Not configured"
+  },
+  "deepl": {
+    "title": "DeepL API (English Translation)",
+    "inputLabel": "DeepL API Key",
+    "inputPlaceholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx",
+    "statusConfigured": "API Key configured",
+    "statusNotConfigured": "API Key not configured",
+    "validateAndSave": "Validate & Save Key",
+    "delete": "Delete DeepL API Key",
+    "deleteTitle": "Delete API Key",
+    "deleteMessage": "Are you sure you want to delete the DeepL API Key? Japanese translation will no longer be available.",
+    "saveSuccess": "DeepL API Key saved successfully",
+    "deleteSuccess": "API Key deleted",
+    "inputRequired": "Please enter an API Key.",
+    "howToGetTitle": "How to get a DeepL API Key",
+    "howToGetSteps": [
+      "1. Create an account on the DeepL website",
+      "2. Sign up for the API Free plan (no credit card required)",
+      "3. Copy the API Key from your account settings",
+      "4. Paste the API Key above and save"
+    ],
+    "openSite": "Open DeepL API Site"
+  },
+  "yahoo": {
+    "title": "Yahoo! JAPAN API (Japanese Analysis)",
+    "inputLabel": "Yahoo! Client ID",
+    "inputPlaceholder": "dj00aiZpPXXXXXXXXXXXXXXX",
+    "statusConfigured": "Client ID configured",
+    "statusNotConfigured": "Client ID not configured",
+    "validateAndSave": "Validate & Save ID",
+    "delete": "Delete Yahoo! Client ID",
+    "deleteTitle": "Delete Client ID",
+    "deleteMessage": "Are you sure you want to delete the Yahoo! Client ID? Japanese word analysis will no longer be available.",
+    "saveSuccess": "Yahoo! Client ID saved successfully",
+    "deleteSuccess": "Client ID deleted",
+    "inputRequired": "Please enter a Client ID.",
+    "howToGetTitle": "How to get a Yahoo! Client ID",
+    "howToGetSteps": [
+      "1. Create or log in to your Yahoo! JAPAN account",
+      "2. Create a new application on Yahoo! Developer Network",
+      "3. Copy the Client ID (Application ID)",
+      "4. Paste the Client ID above and save"
+    ],
+    "openSite": "Open Yahoo! Developer Network"
+  },
+  "usage": {
+    "title": "This Month's Usage",
+    "normal": "Normal",
+    "warning": "Caution: Usage is increasing",
+    "critical": "Approaching limit"
+  },
+  "note": {
+    "title": "📝 Notes",
+    "content": "• Both API keys are securely stored on your device\n• DeepL free plan allows up to 500,000 characters per month\n• Yahoo! API allows up to 300 requests per minute\n• You can use either one or both APIs"
+  }
+}
