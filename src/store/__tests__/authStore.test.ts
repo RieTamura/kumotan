@@ -5,7 +5,7 @@
 
 import { useAuthStore } from '../authStore';
 import * as AuthService from '../../services/bluesky/auth';
-import { ErrorCode } from '../../utils/errors';
+import { AppError, ErrorCode } from '../../utils/errors';
 
 // Mock expo-crypto (used by OAuth utilities)
 jest.mock('expo-crypto', () => ({
@@ -55,7 +55,11 @@ describe('AuthStore', () => {
 
       mockedAuthService.login.mockResolvedValue({
         success: true,
-        data: mockAuth,
+        data: {
+          ...mockAuth,
+          accessJwt: 'access-token',
+          refreshJwt: 'refresh-token',
+        },
       });
 
       mockedAuthService.getProfile.mockResolvedValue({
@@ -64,8 +68,8 @@ describe('AuthStore', () => {
           did: 'did:plc:test123',
           handle: 'test.bsky.social',
           displayName: 'Test User',
-          avatar: null,
-          description: null,
+          avatar: undefined,
+          description: undefined,
           followersCount: 0,
           followsCount: 0,
           postsCount: 0,
@@ -89,11 +93,7 @@ describe('AuthStore', () => {
     it('should handle login failure', async () => {
       mockedAuthService.login.mockResolvedValue({
         success: false,
-        error: {
-          code: ErrorCode.AUTH_FAILED,
-          message: 'Invalid credentials',
-          originalError: null,
-        },
+        error: new AppError(ErrorCode.AUTH_FAILED, 'Invalid credentials'),
       });
 
       const loginResult = await useAuthStore.getState().login('invalid', 'wrong');
@@ -103,18 +103,13 @@ describe('AuthStore', () => {
       expect(state.isAuthenticated).toBe(false);
       expect(state.isLoading).toBe(false);
       expect(state.user).toBeNull();
-      expect(state.error).toEqual({
-        code: ErrorCode.AUTH_FAILED,
-        message: 'Invalid credentials',
-        originalError: null,
-      });
+      expect(state.error?.code).toBe(ErrorCode.AUTH_FAILED);
     });
   });
 
   describe('logout', () => {
     it('should successfully logout and clear state', async () => {
       mockedAuthService.logout.mockResolvedValue(undefined);
-      mockedAuthService.clearOAuthSession.mockResolvedValue(undefined);
 
       // Set initial authenticated state
       useAuthStore.setState({
@@ -124,8 +119,8 @@ describe('AuthStore', () => {
           did: 'did:plc:test123',
           handle: 'test.bsky.social',
           displayName: 'Test User',
-          avatar: null,
-          description: null,
+          avatar: undefined,
+          description: undefined,
           followersCount: 0,
           followsCount: 0,
           postsCount: 0,
@@ -140,7 +135,6 @@ describe('AuthStore', () => {
       expect(state.profile).toBeNull();
       expect(state.error).toBeNull();
       expect(mockedAuthService.logout).toHaveBeenCalled();
-      expect(mockedAuthService.clearOAuthSession).toHaveBeenCalled();
     });
   });
 
@@ -149,8 +143,8 @@ describe('AuthStore', () => {
       mockedAuthService.getStoredAuth.mockResolvedValue({
         handle: 'test.bsky.social',
         did: 'did:plc:test123',
-        accessJwt: 'token',
-        refreshJwt: 'refresh',
+        accessToken: 'token',
+        refreshToken: 'refresh',
       });
 
       const isAuthenticated = await useAuthStore.getState().checkAuth();
@@ -196,8 +190,8 @@ describe('AuthStore', () => {
       mockedAuthService.getStoredAuth.mockResolvedValue({
         handle: 'test.bsky.social',
         did: 'did:plc:test123',
-        accessJwt: 'token',
-        refreshJwt: 'refresh',
+        accessToken: 'token',
+        refreshToken: 'refresh',
       });
 
       mockedAuthService.getProfile.mockResolvedValue({
@@ -206,8 +200,8 @@ describe('AuthStore', () => {
           did: 'did:plc:test123',
           handle: 'test.bsky.social',
           displayName: 'Test User',
-          avatar: null,
-          description: null,
+          avatar: undefined,
+          description: undefined,
           followersCount: 0,
           followsCount: 0,
           postsCount: 0,
@@ -225,68 +219,10 @@ describe('AuthStore', () => {
       });
     });
 
-    it('should fallback to OAuth session if App Password fails', async () => {
-      mockedAuthService.resumeSession.mockResolvedValue({
-        success: false,
-        error: {
-          code: ErrorCode.AUTH_FAILED,
-          message: 'No session',
-          originalError: null,
-        },
-      });
-
-      mockedAuthService.restoreOAuthSession.mockResolvedValue({
-        success: true,
-        data: undefined,
-      });
-
-      mockedAuthService.getStoredAuth.mockResolvedValue({
-        handle: 'test.bsky.social',
-        did: 'did:plc:test123',
-        accessJwt: 'token',
-        refreshJwt: 'refresh',
-      });
-
-      mockedAuthService.getProfile.mockResolvedValue({
-        success: true,
-        data: {
-          did: 'did:plc:test123',
-          handle: 'test.bsky.social',
-          displayName: 'Test User',
-          avatar: null,
-          description: null,
-          followersCount: 0,
-          followsCount: 0,
-          postsCount: 0,
-        },
-      });
-
-      const resumeResult = await useAuthStore.getState().resumeSession();
-      expect(resumeResult.success).toBe(true);
-
-      const state = useAuthStore.getState();
-      expect(state.isAuthenticated).toBe(true);
-      expect(mockedAuthService.resumeSession).toHaveBeenCalled();
-      expect(mockedAuthService.restoreOAuthSession).toHaveBeenCalled();
-    });
-
     it('should handle resume session failure', async () => {
       mockedAuthService.resumeSession.mockResolvedValue({
         success: false,
-        error: {
-          code: ErrorCode.AUTH_FAILED,
-          message: 'No session',
-          originalError: null,
-        },
-      });
-
-      mockedAuthService.restoreOAuthSession.mockResolvedValue({
-        success: false,
-        error: {
-          code: ErrorCode.AUTH_FAILED,
-          message: 'No OAuth session',
-          originalError: null,
-        },
+        error: new AppError(ErrorCode.AUTH_FAILED, 'No session'),
       });
 
       const resumeResult = await useAuthStore.getState().resumeSession();
@@ -302,11 +238,7 @@ describe('AuthStore', () => {
     it('should clear error state', () => {
       // Set error state
       useAuthStore.setState({
-        error: {
-          code: ErrorCode.AUTH_FAILED,
-          message: 'Error',
-          originalError: null,
-        },
+        error: new AppError(ErrorCode.AUTH_FAILED, 'Error'),
       });
 
       expect(useAuthStore.getState().error).not.toBeNull();
@@ -352,8 +284,8 @@ describe('AuthStore', () => {
         did: 'did:plc:test123',
         handle: 'test.bsky.social',
         displayName: 'Test User',
-        avatar: null,
-        description: null,
+        avatar: undefined,
+        description: undefined,
         followersCount: 0,
         followsCount: 0,
         postsCount: 0,
@@ -373,11 +305,7 @@ describe('AuthStore', () => {
     it('should handle profile fetch failure', async () => {
       mockedAuthService.getProfile.mockResolvedValue({
         success: false,
-        error: {
-          code: ErrorCode.API_ERROR,
-          message: 'Failed to fetch profile',
-          originalError: null,
-        },
+        error: new AppError(ErrorCode.API_ERROR, 'Failed to fetch profile'),
       });
 
       const profileResult = await useAuthStore.getState().fetchProfile();
@@ -413,8 +341,8 @@ describe('AuthStore', () => {
           did: 'did:plc:test123',
           handle: 'test.bsky.social',
           displayName: 'Old User',
-          avatar: null,
-          description: null,
+          avatar: undefined,
+          description: undefined,
           followersCount: 0,
           followsCount: 0,
           postsCount: 0,

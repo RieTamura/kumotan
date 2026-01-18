@@ -14,7 +14,7 @@ describe('Toast Component Snapshots', () => {
           message="操作が成功しました"
           type="success"
           visible={true}
-          onHide={() => {}}
+          onDismiss={() => { }}
         />
       )
       .toJSON();
@@ -28,7 +28,7 @@ describe('Toast Component Snapshots', () => {
           message="エラーが発生しました"
           type="error"
           visible={true}
-          onHide={() => {}}
+          onDismiss={() => { }}
         />
       )
       .toJSON();
@@ -42,7 +42,7 @@ describe('Toast Component Snapshots', () => {
           message="警告メッセージ"
           type="warning"
           visible={true}
-          onHide={() => {}}
+          onDismiss={() => { }}
         />
       )
       .toJSON();
@@ -56,7 +56,7 @@ describe('Toast Component Snapshots', () => {
           message="情報メッセージ"
           type="info"
           visible={true}
-          onHide={() => {}}
+          onDismiss={() => { }}
         />
       )
       .toJSON();
@@ -70,7 +70,7 @@ describe('Toast Component Snapshots', () => {
           message="非表示"
           type="success"
           visible={false}
-          onHide={() => {}}
+          onDismiss={() => { }}
         />
       )
       .toJSON();

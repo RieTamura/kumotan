@@ -41,50 +41,11 @@ export default function App(): React.JSX.Element {
 
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const resumeSession = useAuthStore((state) => state.resumeSession);
-  const completeOAuth = useAuthStore((state) => state.completeOAuth);
 
-  // OAuth deep link handler for custom OAuth implementation
-  useEffect(() => {
-    const handleDeepLink = async (event: { url: string }) => {
-      console.log('[App] Deep link received:', event.url);
-
-      // Check if this is an OAuth callback
-      if (event.url.startsWith('io.github.rietamura:/')) {
-        console.log('[App] OAuth callback detected, completing OAuth flow');
-
-        try {
-          const result = await completeOAuth(event.url);
-
-          if (result.success) {
-            console.log('[App] OAuth authentication successful');
-          } else {
-            console.error(
-              '[App] OAuth authentication failed:',
-              result.error.message
-            );
-          }
-        } catch (error) {
-          console.error('[App] Error handling OAuth callback:', error);
-        }
-      }
-    };
-
-    // Subscribe to deep link events
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    // Check for initial URL when app is opened from deep link
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        console.log('[App] Initial URL detected:', url);
-        handleDeepLink({ url });
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [completeOAuth]);
-
+  // OAuth callbacks are handled internally by the loginWithOAuth action
+  // using WebBrowser.openAuthSessionAsync, which returns the result directly.
+  // No global deep link listener for OAuth is needed unless there are other
+  // deep links to support.
   useEffect(() => {
     async function initializeApp() {
       try {

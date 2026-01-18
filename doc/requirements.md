@@ -13,13 +13,16 @@
 - **言語**: TypeScript
 - **ストレージ**: 
   - expo-sqlite（単語データ、学習統計）
-  - expo-secure-store（認証トークン、DeepL API Key、Yahoo! Client ID）
-  - AsyncStorage（UI設定、キャッシュ）
+  - expo-secure-store（DeepL API Key、Yahoo! Client ID）
+  - AsyncStorage（UI設定、キャッシュ、認証トークン、OAuthセッション/ステート）
+  - ※ 安定性と依存関係の最小化のため、`react-native-mmkv`は使用せず`AsyncStorage`ベースのカスタムアダプターを採用。
 - **辞書API**:
   - Free Dictionary API（英語定義）
   - DeepL API Free（日本語翻訳、月50万文字まで無料）
   - Yahoo! JAPAN Text Analysis API（日本語単語の形態素解析・ふりがな）
-- **認証**: Bluesky App Password（ユーザー名 + App Password）
+- **認証**: 
+  - Bluesky App Password（ユーザー名 + App Password）
+  - ATProtocol OAuth（PKCE / DPoP対応正規フロー。`@atproto/oauth-client`を使用）
 - **ネットワーク監視**: @react-native-community/netinfo
 
 ## MVP機能
@@ -142,9 +145,15 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ### 認証情報の管理
 
 #### Bluesky認証
+
 - **App Password**: 認証時のみ使用し、**保存しない**
-- **認証トークン（accessJwt, refreshJwt）**: expo-secure-storeに暗号化保存
-- **ユーザー情報（did, handle）**: expo-secure-storeに保存
+- **ATProtocol OAuth**: 
+  - `@atproto/oauth-client` を使用した正規の OAuth 2.0 フロー
+  - **DPoP (Demonstrating Proof-of-Possession)**: `expo-crypto` を使用したハードウェア支援（可能な場合）による鍵生成と署名
+  - **PKCE (Proof Key for Code Exchange)**: セキュアなコード交換
+- **トークンとセッション**: 
+  - 認証トークン（accessJWT, refreshJWT）および OAuth セッション/ステートは、安定性を考慮し `AsyncStorage` に保存（カスタムアダプター経由）
+  - ネイティブモジュール依存（MMKV等）を最小限に抑え、Expo Managed Workflow での動作安定性を確保
 - **トークンリフレッシュ**: 期限切れ時に自動リフレッシュ、失敗時は再ログインを要求
 
 #### DeepL API Key
@@ -744,6 +753,20 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.16 (2026-01-18)
+
+- **ATProtocol OAuth認証の正式・安定版実装**
+  - 背景：前バージョンまでの `react-native-mmkv` 依存によるビルドエラーや認証失敗を根本解決
+  - 核心的な修正：
+    - `@atproto/oauth-client` コアライブラリへの移行と、`AsyncStorage` を使用したカスタムストレージアダプターの導入
+    - `expo-crypto` を活用した DPoP 対応暗号化クラス `JoseKey` の自前実装
+    - `react-native-mmkv` の完全排除による、Expo SDK 54 環境での絶対的な安定性を確保
+  - 成果：
+    - TypeScript エラーの完全解消
+    - `authStore.test.ts` を含む全ユニットテストの通過を確認
+    - 認証フロー、セッション復元、ログアウトの動作安定性を検証済み
+
 
 ### v1.15 (2026-01-14)
 

@@ -27,7 +27,6 @@ interface AuthState {
   // Actions
   login: (identifier: string, appPassword: string) => Promise<Result<void, AppError>>;
   loginWithOAuth: (handle: string) => Promise<Result<void, AppError>>;
-  completeOAuth: (callbackUrl: string) => Promise<Result<void, AppError>>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
   resumeSession: () => Promise<Result<void, AppError>>;
@@ -84,8 +83,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Login with OAuth - Start OAuth flow
-   * Note: Changed from @atproto/oauth-client-expo to custom implementation
-   * Opens browser for authentication, completeOAuth handles the callback
+   * Note: Now handles the complete flow including browser interaction and session creation
    */
   loginWithOAuth: async (handle: string) => {
     set({ isLoading: true, error: null });
@@ -93,55 +91,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const result = await AuthService.startOAuthFlow(handle);
 
     if (result.success) {
-      // OAuth flow started successfully - browser opened
-      // Keep loading state true until completeOAuth is called
-      return { success: true, data: undefined };
-    } else {
-      // Failed to start OAuth flow
-      set({
-        isAuthenticated: false,
-        isLoading: false,
-        user: null,
-        error: result.error,
-      });
-      return result;
+      // With the new implementation, success means the session is established
+      const userDid = await AuthService.getCurrentDid();
+      const userHandle = await AuthService.getCurrentHandle();
+
+      if (userDid && userHandle) {
+        set({
+          isAuthenticated: true,
+          isLoading: false,
+          user: {
+            handle: userHandle,
+            did: userDid,
+          },
+          error: null,
+        });
+
+        // Fetch profile
+        get().fetchProfile();
+
+        return { success: true, data: undefined };
+      }
     }
-  },
 
-  /**
-   * Complete OAuth flow after callback
-   * Called when app receives deep link callback from OAuth provider
-   */
-  completeOAuth: async (callbackUrl: string) => {
-    // Keep loading state from loginWithOAuth
-    set({ error: null });
+    // Fallback if failed or no data
+    const error = !result.success ? result.error : new AppError(ErrorCode.OAUTH_ERROR, 'Login succeeded but user data missing');
 
-    const result = await AuthService.completeOAuthFlow(callbackUrl);
-
-    if (result.success) {
-      set({
-        isAuthenticated: true,
-        isLoading: false,
-        user: {
-          handle: result.data.handle,
-          did: result.data.did,
-        },
-        error: null,
-      });
-
-      // Fetch profile automatically after OAuth login
-      get().fetchProfile();
-
-      return { success: true, data: undefined };
-    } else {
-      set({
-        isAuthenticated: false,
-        isLoading: false,
-        user: null,
-        error: result.error,
-      });
-      return result;
-    }
+    set({
+      isAuthenticated: false,
+      isLoading: false,
+      user: null,
+      error: error,
+    });
+    return result.success ? { success: false, error } : result;
   },
 
   /**
@@ -150,7 +131,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     set({ isLoading: true });
     await AuthService.logout();
-    await AuthService.clearOAuthSession(); // Clear OAuth session data
     set({
       isAuthenticated: false,
       isLoading: false,
@@ -200,24 +180,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Resume session from stored tokens
-   * Tries App Password session first, then OAuth session
    */
   resumeSession: async () => {
     set({ isLoading: true, error: null });
 
-    // Try to resume App Password session first
-    let result = await AuthService.resumeSession();
-
-    // If App Password session fails, try OAuth session restoration
-    if (!result.success) {
-      const oauthResult = await AuthService.restoreOAuthSession();
-      // Map BlueskySession to void for consistency
-      if (oauthResult.success) {
-        result = { success: true, data: undefined };
-      } else {
-        result = oauthResult;
-      }
-    }
+    const result = await AuthService.resumeSession();
 
     if (result.success) {
       const storedAuth = await AuthService.getStoredAuth();
@@ -232,7 +199,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           error: null,
         });
 
-        // Fetch profile automatically after session resume
+        // Fetch profile
         get().fetchProfile();
       }
       return { success: true, data: undefined };
@@ -256,20 +223,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Fetch user profile
-   * Returns cached profile if available, otherwise fetches from API
    */
   fetchProfile: async () => {
     const currentProfile = get().profile;
-    
-    // Return cached profile if available
+
     if (currentProfile) {
       return { success: true, data: currentProfile };
     }
-    
+
     set({ isProfileLoading: true });
-    
+
     const result = await AuthService.getProfile();
-    
+
     if (result.success) {
       set({
         profile: result.data,
@@ -284,13 +249,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   /**
    * Refresh user profile from API
-   * Forces a fresh fetch regardless of cache
    */
   refreshProfile: async () => {
     set({ isProfileLoading: true });
-    
+
     const result = await AuthService.getProfile();
-    
+
     if (result.success) {
       set({
         profile: result.data,
@@ -303,7 +267,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 }));
 
 /**
- * Selector hooks for specific state pieces
+ * Selector hooks
  */
 export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenticated);
 export const useIsAuthLoading = () => useAuthStore((state) => state.isLoading);

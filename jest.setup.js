@@ -45,6 +45,19 @@ jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(() => Promise.resolve(true)),
 }));
 
+// Mock expo-web-browser
+jest.mock('expo-web-browser', () => ({
+  openAuthSessionAsync: jest.fn(),
+  dismissAuthSession: jest.fn(),
+}));
+
+// Mock expo-linking
+jest.mock('expo-linking', () => ({
+  createURL: jest.fn((path) => `exp://test/${path}`),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+}));
+
 // Mock react-native-view-shot
 jest.mock('react-native-view-shot', () => ({
   captureRef: jest.fn(() => Promise.resolve('mock-uri')),
