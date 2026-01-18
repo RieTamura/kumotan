@@ -35,7 +35,7 @@ export function LoginScreen(): React.JSX.Element {
   const { t: tc } = useTranslation('common');
 
   // Auth store
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, loginWithOAuth, isLoading, error, clearError } = useAuthStore();
 
   // Network status
   const isConnected = useNetworkStatus();
@@ -43,6 +43,7 @@ export function LoginScreen(): React.JSX.Element {
   // Form state
   const [identifier, setIdentifier] = useState('');
   const [appPassword, setAppPassword] = useState('');
+  const [showAppPasswordForm, setShowAppPasswordForm] = useState(false);
 
   // Validation errors
   const [identifierError, setIdentifierError] = useState<string | undefined>();
@@ -98,7 +99,29 @@ export function LoginScreen(): React.JSX.Element {
   }, [appPasswordError, error, clearError]);
 
   /**
-   * Handle login button press
+   * Handle OAuth login
+   */
+  const handleOAuthLogin = useCallback(async () => {
+    if (!isConnected) {
+      Alert.alert(t('errors.offline'), t('errors.offlineMessage'), [{ text: tc('buttons.ok') }]);
+      return;
+    }
+
+    const isIdentifierValid = validateIdentifier(identifier);
+    if (!isIdentifierValid) return;
+
+    const sanitizedIdentifier = sanitizeHandle(identifier);
+    const result = await loginWithOAuth(sanitizedIdentifier);
+
+    if (!result.success) {
+      if (result.error.code === 'NETWORK_ERROR') {
+        Alert.alert(t('errors.networkError'), result.error.message, [{ text: tc('buttons.ok') }]);
+      }
+    }
+  }, [identifier, isConnected, validateIdentifier, loginWithOAuth, t, tc]);
+
+  /**
+   * Handle App Password login button press
    */
   const handleLogin = useCallback(async () => {
     // Check network connectivity
@@ -160,11 +183,15 @@ export function LoginScreen(): React.JSX.Element {
   }, [t, tc]);
 
   /**
-   * Handle identifier submit (move to password field)
+   * Handle identifier submit
    */
   const handleIdentifierSubmit = useCallback(() => {
-    passwordInputRef.current?.focus();
-  }, []);
+    if (showAppPasswordForm) {
+      passwordInputRef.current?.focus();
+    } else {
+      handleOAuthLogin();
+    }
+  }, [showAppPasswordForm, handleOAuthLogin]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -203,72 +230,100 @@ export function LoginScreen(): React.JSX.Element {
               </View>
             )}
 
-            {/* App Password Login Form */}
-            <View style={styles.appPasswordSection}>
-              {/* Identifier Input */}
-              <Input
-                label={t('handle.label')}
-                placeholder={t('handle.placeholder')}
-                value={identifier}
-                onChangeText={handleIdentifierChange}
-                error={identifierError}
-                hint={t('handle.hint')}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                textContentType="username"
-                returnKeyType="next"
-                onSubmitEditing={handleIdentifierSubmit}
-                editable={!isLoading}
-              />
+            {/* Common Identifier Input */}
+            <Input
+              label={t('handle.label')}
+              placeholder={t('handle.placeholder')}
+              value={identifier}
+              onChangeText={handleIdentifierChange}
+              error={identifierError}
+              hint={t('handle.hint')}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              textContentType="username"
+              returnKeyType={showAppPasswordForm ? 'next' : 'go'}
+              onSubmitEditing={handleIdentifierSubmit}
+              editable={!isLoading}
+            />
 
-              {/* App Password Input */}
-              <Input
-                ref={passwordInputRef}
-                label={t('appPassword.label')}
-                placeholder={t('appPassword.placeholder')}
-                value={appPassword}
-                onChangeText={handleAppPasswordChange}
-                error={appPasswordError}
-                secureTextEntry
-                showPasswordToggle
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="password"
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-                editable={!isLoading}
-              />
+            {!showAppPasswordForm ? (
+              /* OAuth Section */
+              <View style={styles.oauthSection}>
+                <Button
+                  title={isLoading ? t('button.loggingIn') : t('oauth.button')}
+                  onPress={handleOAuthLogin}
+                  loading={isLoading}
+                  disabled={!isConnected || isLoading}
+                  fullWidth
+                  size="large"
+                />
 
-              {/* App Password Help Link */}
-              <Pressable
-                onPress={handleAppPasswordHelp}
-                style={styles.helpLink}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Text style={styles.helpLinkText}>
-                  {t('appPassword.help')}
-                </Text>
-              </Pressable>
-
-              {/* Login Button */}
-              <Button
-                title={isLoading ? t('button.loggingIn') : t('button.login')}
-                onPress={handleLogin}
-                loading={isLoading}
-                disabled={!isConnected || isLoading}
-                fullWidth
-                size="large"
-                style={styles.loginButton}
-              />
-
-              {/* Security Note */}
-              <View style={styles.securityNote}>
-                <Text style={styles.securityNoteText}>
-                  {t('security.note')}
-                </Text>
+                <Pressable
+                  onPress={() => setShowAppPasswordForm(true)}
+                  style={styles.advancedToggle}
+                >
+                  <Text style={styles.advancedToggleText}>
+                    {t('oauth.advancedOptions')}
+                  </Text>
+                </Pressable>
               </View>
-            </View>
+            ) : (
+              /* App Password Section */
+              <View style={styles.appPasswordSection}>
+                <Input
+                  ref={passwordInputRef}
+                  label={t('appPassword.label')}
+                  placeholder={t('appPassword.placeholder')}
+                  value={appPassword}
+                  onChangeText={handleAppPasswordChange}
+                  error={appPasswordError}
+                  secureTextEntry
+                  showPasswordToggle
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                  editable={!isLoading}
+                />
+
+                {/* App Password Help Link */}
+                <Pressable
+                  onPress={handleAppPasswordHelp}
+                  style={styles.helpLink}
+                >
+                  <Text style={styles.helpLinkText}>
+                    {t('appPassword.help')}
+                  </Text>
+                </Pressable>
+
+                <Button
+                  title={isLoading ? t('button.loggingIn') : t('button.login')}
+                  onPress={handleLogin}
+                  loading={isLoading}
+                  disabled={!isConnected || isLoading}
+                  fullWidth
+                  size="large"
+                />
+
+                <Pressable
+                  onPress={() => setShowAppPasswordForm(false)}
+                  style={styles.advancedToggle}
+                >
+                  <Text style={styles.advancedToggleText}>
+                    {t('form.hide')}
+                  </Text>
+                </Pressable>
+
+                {/* Security Note */}
+                <View style={styles.securityNote}>
+                  <Text style={styles.securityNoteText}>
+                    {t('security.note')}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Footer */}
@@ -376,6 +431,19 @@ const styles = StyleSheet.create({
   // App Password Section
   appPasswordSection: {
     marginBottom: Spacing.lg,
+  },
+  oauthSection: {
+    marginTop: Spacing.md,
+  },
+  advancedToggle: {
+    alignSelf: 'center',
+    marginVertical: Spacing.xl,
+    padding: Spacing.sm,
+  },
+  advancedToggleText: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.md,
+    textDecorationLine: 'underline',
   },
 });
 
