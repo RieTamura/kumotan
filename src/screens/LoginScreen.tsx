@@ -205,60 +205,16 @@ export function LoginScreen(): React.JSX.Element {
               editable={!isLoading}
             />
 
-            {/* Password Input (Used for App Password, always shown per user request) */}
-            <Input
-              ref={passwordInputRef}
-              label={t('appPassword.label')}
-              placeholder={t('appPassword.placeholder')}
-              value={password}
-              onChangeText={handlePasswordChange}
-              error={passwordError}
-              secureTextEntry
-              showPasswordToggle
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="password"
-              returnKeyType="done"
-              onSubmitEditing={handleAppPasswordLogin}
-              editable={!isLoading}
-            />
-
-            {/* App Password Help Link */}
-            <Pressable
-              onPress={handleAppPasswordHelp}
-              style={styles.helpLink}
-            >
-              <Text style={styles.helpLinkText}>
-                {t('appPassword.help')}
-              </Text>
-            </Pressable>
-
             {/* Actions */}
             <View style={styles.actionContainer}>
               <Button
-                title={isLoading ? t('button.loggingIn') : t('button.login')}
-                onPress={handleAppPasswordLogin}
+                title={t('oauth.button')}
+                onPress={handleOAuthLogin}
                 loading={isLoading}
                 disabled={!isConnected || isLoading}
                 fullWidth
                 size="large"
                 style={styles.mainButton}
-              />
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>{t('oauth.or')}</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <Button
-                title={t('oauth.button')}
-                onPress={handleOAuthLogin}
-                loading={isLoading && !password.includes('-')} // Heuristic: if no hyphen, likely trying OAuth
-                disabled={!isConnected || isLoading}
-                fullWidth
-                size="large"
-                style={styles.oauthButton}
               />
             </View>
 

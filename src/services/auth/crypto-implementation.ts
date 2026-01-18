@@ -26,15 +26,7 @@ export const cryptoImplementation: RuntimeImplementation = {
       default: throw new Error(`Unsupported digest algorithm: ${algorithm.name}`);
     }
 
-    const result = await Crypto.digestStringAsync(alg, Buffer.from(data).toString('base64'), { encoding: Crypto.CryptoEncoding.BASE64 });
-    // result is likely the digest string itself or an object. To be safe let's inspect or assume string if modern expo.
-    // Actually, looking at docs: "Returns a Promise which fulfills with a value representing the hashed input."
-    // If it returns Digest, and Digest is string, then result is string.
-    const binaryString = atob(typeof result === 'string' ? result : (result as any).digest);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes;
+    const hash = await Crypto.digest(alg, data as any);
+    return new Uint8Array(hash);
   }
 }

@@ -10,22 +10,38 @@ const ec = new EC('p256');
 export class JoseKey extends Key {
   private keyPair: EC.KeyPair;
 
-  constructor(keyPair: EC.KeyPair) {
-    const pub = keyPair.getPublic();
-    const x = pub.getX().toString(16).padStart(64, '0');
-    const y = pub.getY().toString(16).padStart(64, '0');
-    const kid = `key-${uuidv4()}`;
+  constructor(keyData: EC.KeyPair | any) {
+    if (keyData && typeof keyData.getPublic === 'function') {
+      const keyPair = keyData as EC.KeyPair;
+      const pub = keyPair.getPublic();
+      const x = pub.getX().toString(16).padStart(64, '0');
+      const y = pub.getY().toString(16).padStart(64, '0');
+      const kid = `key-${uuidv4()}`;
 
-    super({
-      kty: 'EC',
-      crv: 'P-256',
-      x: Buffer.from(x, 'hex').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''), // Manually base64url or use util
-      y: Buffer.from(y, 'hex').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
-      kid,
-      alg: 'ES256',
-      key_ops: ['sign', 'verify']
-    });
-    this.keyPair = keyPair;
+      super({
+        kty: 'EC',
+        crv: 'P-256',
+        x: Buffer.from(x, 'hex').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+        y: Buffer.from(y, 'hex').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+        kid,
+        alg: 'ES256',
+        key_ops: ['sign', 'verify']
+      });
+      this.keyPair = keyPair;
+    } else {
+      // It's a JWK
+      super(keyData);
+
+      const x = Buffer.from(keyData.x, 'base64url').toString('hex');
+      const y = Buffer.from(keyData.y, 'base64url').toString('hex');
+
+      if (keyData.d) {
+        const d = Buffer.from(keyData.d, 'base64url').toString('hex');
+        this.keyPair = ec.keyFromPrivate(d, 'hex');
+      } else {
+        this.keyPair = ec.keyFromPublic({ x, y }, 'hex');
+      }
+    }
   }
 
   async createJwt(header: JwtHeader, payload: JwtPayload): Promise<SignedJwt> {
