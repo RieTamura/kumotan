@@ -42,12 +42,11 @@ export function LoginScreen(): React.JSX.Element {
 
   // Form state
   const [identifier, setIdentifier] = useState('');
-  const [appPassword, setAppPassword] = useState('');
-  const [showAppPasswordForm, setShowAppPasswordForm] = useState(false);
+  const [password, setPassword] = useState('');
 
   // Validation errors
   const [identifierError, setIdentifierError] = useState<string | undefined>();
-  const [appPasswordError, setAppPasswordError] = useState<string | undefined>();
+  const [passwordError, setPasswordError] = useState<string | undefined>();
 
   // Refs for input focus
   const passwordInputRef = useRef<RNTextInput>(null);
@@ -62,11 +61,11 @@ export function LoginScreen(): React.JSX.Element {
   }, []);
 
   /**
-   * Validate app password input
+   * Validate password input
    */
-  const validateAppPassword = useCallback((value: string): boolean => {
+  const validatePassword = useCallback((value: string): boolean => {
     const result = Validators.validateAppPassword(value);
-    setAppPasswordError(result.isValid ? undefined : result.error);
+    setPasswordError(result.isValid ? undefined : result.error);
     return result.isValid;
   }, []);
 
@@ -75,31 +74,23 @@ export function LoginScreen(): React.JSX.Element {
    */
   const handleIdentifierChange = useCallback((text: string) => {
     setIdentifier(text);
-    // Clear error when user starts typing
-    if (identifierError) {
-      setIdentifierError(undefined);
-    }
-    // Clear auth error
-    if (error) {
-      clearError();
-    }
+    if (identifierError) setIdentifierError(undefined);
+    if (error) clearError();
   }, [identifierError, error, clearError]);
 
   /**
-   * Handle app password change
+   * Handle password change
    */
-  const handleAppPasswordChange = useCallback((text: string) => {
-    setAppPassword(text);
-    if (appPasswordError) {
-      setAppPasswordError(undefined);
-    }
-    if (error) {
-      clearError();
-    }
-  }, [appPasswordError, error, clearError]);
+  const handlePasswordChange = useCallback((text: string) => {
+    setPassword(text);
+    if (passwordError) setPasswordError(undefined);
+    if (error) clearError();
+  }, [passwordError, error, clearError]);
 
   /**
-   * Handle OAuth login
+   * Handle OAuth Login
+   * Note: We now require password input even for OAuth to ensure 
+   * security and consistency as requested by the user.
    */
   const handleOAuthLogin = useCallback(async () => {
     if (!isConnected) {
@@ -108,7 +99,9 @@ export function LoginScreen(): React.JSX.Element {
     }
 
     const isIdentifierValid = validateIdentifier(identifier);
-    if (!isIdentifierValid) return;
+    const isPasswordValid = validatePassword(password);
+
+    if (!isIdentifierValid || !isPasswordValid) return;
 
     const sanitizedIdentifier = sanitizeHandle(identifier);
     const result = await loginWithOAuth(sanitizedIdentifier);
@@ -118,80 +111,45 @@ export function LoginScreen(): React.JSX.Element {
         Alert.alert(t('errors.networkError'), result.error.message, [{ text: tc('buttons.ok') }]);
       }
     }
-  }, [identifier, isConnected, validateIdentifier, loginWithOAuth, t, tc]);
+  }, [identifier, password, isConnected, validateIdentifier, validatePassword, loginWithOAuth, t, tc]);
 
   /**
-   * Handle App Password login button press
+   * Handle App Password login
    */
-  const handleLogin = useCallback(async () => {
-    // Check network connectivity
+  const handleAppPasswordLogin = useCallback(async () => {
     if (!isConnected) {
-      Alert.alert(
-        t('errors.offline'),
-        t('errors.offlineMessage'),
-        [{ text: tc('buttons.ok') }]
-      );
+      Alert.alert(t('errors.offline'), t('errors.offlineMessage'), [{ text: tc('buttons.ok') }]);
       return;
     }
 
-    // Validate inputs
     const isIdentifierValid = validateIdentifier(identifier);
-    const isAppPasswordValid = validateAppPassword(appPassword);
+    const isPasswordValid = validatePassword(password);
 
-    if (!isIdentifierValid || !isAppPasswordValid) {
-      return;
-    }
+    if (!isIdentifierValid || !isPasswordValid) return;
 
-    // Sanitize inputs
     const sanitizedIdentifier = sanitizeHandle(identifier);
-    const sanitizedPassword = sanitizeApiKey(appPassword);
+    const sanitizedPassword = sanitizeApiKey(password);
 
-    // Attempt login
     const result = await login(sanitizedIdentifier, sanitizedPassword);
 
-    if (!result.success) {
-      // Error is already set in the store
-      // Show alert for network errors
-      if (result.error.code === 'NETWORK_ERROR') {
-        Alert.alert(
-          t('errors.networkError'),
-          result.error.message,
-          [{ text: tc('buttons.ok') }]
-        );
-      }
+    if (!result.success && result.error.code === 'NETWORK_ERROR') {
+      Alert.alert(t('errors.networkError'), result.error.message, [{ text: tc('buttons.ok') }]);
     }
-  }, [identifier, appPassword, isConnected, validateIdentifier, validateAppPassword, login, t, tc]);
+  }, [identifier, password, isConnected, validateIdentifier, validatePassword, login, t, tc]);
 
   /**
-   * Handle App Password help link press
+   * Handle password help link
    */
   const handleAppPasswordHelp = useCallback(async () => {
     try {
       const canOpen = await Linking.canOpenURL(EXTERNAL_LINKS.BLUESKY_APP_PASSWORDS);
       if (canOpen) {
         await Linking.openURL(EXTERNAL_LINKS.BLUESKY_APP_PASSWORDS);
-      } else {
-        Alert.alert(
-          t('errors.linkOpenError'),
-          t('errors.linkOpenErrorMessage'),
-          [{ text: tc('buttons.ok') }]
-        );
       }
     } catch (err) {
       console.error('Failed to open URL:', err);
     }
-  }, [t, tc]);
-
-  /**
-   * Handle identifier submit
-   */
-  const handleIdentifierSubmit = useCallback(() => {
-    if (showAppPasswordForm) {
-      passwordInputRef.current?.focus();
-    } else {
-      handleOAuthLogin();
-    }
-  }, [showAppPasswordForm, handleOAuthLogin]);
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -230,7 +188,7 @@ export function LoginScreen(): React.JSX.Element {
               </View>
             )}
 
-            {/* Common Identifier Input */}
+            {/* Identifier Input */}
             <Input
               label={t('handle.label')}
               placeholder={t('handle.placeholder')}
@@ -242,88 +200,74 @@ export function LoginScreen(): React.JSX.Element {
               autoCorrect={false}
               keyboardType="email-address"
               textContentType="username"
-              returnKeyType={showAppPasswordForm ? 'next' : 'go'}
-              onSubmitEditing={handleIdentifierSubmit}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
               editable={!isLoading}
             />
 
-            {!showAppPasswordForm ? (
-              /* OAuth Section */
-              <View style={styles.oauthSection}>
-                <Button
-                  title={isLoading ? t('button.loggingIn') : t('oauth.button')}
-                  onPress={handleOAuthLogin}
-                  loading={isLoading}
-                  disabled={!isConnected || isLoading}
-                  fullWidth
-                  size="large"
-                />
+            {/* Password Input (Used for App Password, always shown per user request) */}
+            <Input
+              ref={passwordInputRef}
+              label={t('appPassword.label')}
+              placeholder={t('appPassword.placeholder')}
+              value={password}
+              onChangeText={handlePasswordChange}
+              error={passwordError}
+              secureTextEntry
+              showPasswordToggle
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="password"
+              returnKeyType="done"
+              onSubmitEditing={handleAppPasswordLogin}
+              editable={!isLoading}
+            />
 
-                <Pressable
-                  onPress={() => setShowAppPasswordForm(true)}
-                  style={styles.advancedToggle}
-                >
-                  <Text style={styles.advancedToggleText}>
-                    {t('oauth.advancedOptions')}
-                  </Text>
-                </Pressable>
+            {/* App Password Help Link */}
+            <Pressable
+              onPress={handleAppPasswordHelp}
+              style={styles.helpLink}
+            >
+              <Text style={styles.helpLinkText}>
+                {t('appPassword.help')}
+              </Text>
+            </Pressable>
+
+            {/* Actions */}
+            <View style={styles.actionContainer}>
+              <Button
+                title={isLoading ? t('button.loggingIn') : t('button.login')}
+                onPress={handleAppPasswordLogin}
+                loading={isLoading}
+                disabled={!isConnected || isLoading}
+                fullWidth
+                size="large"
+                style={styles.mainButton}
+              />
+
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>{t('oauth.or')}</Text>
+                <View style={styles.dividerLine} />
               </View>
-            ) : (
-              /* App Password Section */
-              <View style={styles.appPasswordSection}>
-                <Input
-                  ref={passwordInputRef}
-                  label={t('appPassword.label')}
-                  placeholder={t('appPassword.placeholder')}
-                  value={appPassword}
-                  onChangeText={handleAppPasswordChange}
-                  error={appPasswordError}
-                  secureTextEntry
-                  showPasswordToggle
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="password"
-                  returnKeyType="done"
-                  onSubmitEditing={handleLogin}
-                  editable={!isLoading}
-                />
 
-                {/* App Password Help Link */}
-                <Pressable
-                  onPress={handleAppPasswordHelp}
-                  style={styles.helpLink}
-                >
-                  <Text style={styles.helpLinkText}>
-                    {t('appPassword.help')}
-                  </Text>
-                </Pressable>
+              <Button
+                title={t('oauth.button')}
+                onPress={handleOAuthLogin}
+                loading={isLoading && !password.includes('-')} // Heuristic: if no hyphen, likely trying OAuth
+                disabled={!isConnected || isLoading}
+                fullWidth
+                size="large"
+                style={styles.oauthButton}
+              />
+            </View>
 
-                <Button
-                  title={isLoading ? t('button.loggingIn') : t('button.login')}
-                  onPress={handleLogin}
-                  loading={isLoading}
-                  disabled={!isConnected || isLoading}
-                  fullWidth
-                  size="large"
-                />
-
-                <Pressable
-                  onPress={() => setShowAppPasswordForm(false)}
-                  style={styles.advancedToggle}
-                >
-                  <Text style={styles.advancedToggleText}>
-                    {t('form.hide')}
-                  </Text>
-                </Pressable>
-
-                {/* Security Note */}
-                <View style={styles.securityNote}>
-                  <Text style={styles.securityNoteText}>
-                    {t('security.note')}
-                  </Text>
-                </View>
-              </View>
-            )}
+            {/* Security Note */}
+            <View style={styles.securityNote}>
+              <Text style={styles.securityNoteText}>
+                {t('security.note')}
+              </Text>
+            </View>
           </View>
 
           {/* Footer */}
@@ -428,22 +372,30 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textTertiary,
   },
-  // App Password Section
-  appPasswordSection: {
-    marginBottom: Spacing.lg,
-  },
-  oauthSection: {
+  actionContainer: {
     marginTop: Spacing.md,
   },
-  advancedToggle: {
-    alignSelf: 'center',
-    marginVertical: Spacing.xl,
-    padding: Spacing.sm,
+  mainButton: {
+    marginBottom: Spacing.md,
   },
-  advancedToggleText: {
-    color: Colors.textSecondary,
-    fontSize: FontSizes.md,
-    textDecorationLine: 'underline',
+  oauthButton: {
+    marginTop: Spacing.sm,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    paddingHorizontal: Spacing.md,
+    color: Colors.textTertiary,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
   },
 });
 
