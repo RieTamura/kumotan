@@ -3883,3 +3883,106 @@ pm install を実行
 ### ステータス
 - **解決済み** (v1.12で対応)
 
+
+---
+
+## 問題35: OAuth認証後「Bad token scope」および「Authentication Required」エラー（2026-01-19）
+
+### 背景
+OAuth認証フロー自体は成功するものの、認証後のAPI呼び出しで以下のエラーが発生した：
+1. 「Bad token scope」エラー
+2. 「Authentication Required」エラー
+
+### 症状
+- OAuth認証（ブラウザでのBlueskyログイン）は正常に完了
+- アプリに戻った後、タイムライン取得などのAPI呼び出しが失敗
+- エラーメッセージ: `OAuth "invalid_grant" error: Bad token scope`
+- 後に: `Authentication Required`
+
+### 原因
+
+複数の根本原因があった：
+
+#### 原因1: PDSとAuthorization Serverの混同
+- `bsky.social`は**Authorization Server（Entryway）**であり、**PDS（Protected Resource）**ではない
+- ユーザーの実際のPDS URLは異なる（例：`puffball.us-east.host.bsky.network`）
+- `customResolver`でハードコードされた`serviceEndpoint: 'https://bsky.social'`は不正確
+- DID解決時に正しいPDS URLを取得する必要があった
+
+#### 原因2: DPoP-boundトークンとBskyAgentの非互換性
+- ATProtocol OAuthで取得するトークンはDPoP-bound（証明鍵に紐づけ）
+- `BskyAgent.resumeSession()`は従来のApp Password形式のトークンを想定
+- DPoP-boundトークンを`BskyAgent.resumeSession()`に渡すと「Bad token scope」エラー発生
+- OAuth sessionの`fetchHandler`を使用してAPI呼び出しを行う必要があった
+
+### 解決策
+
+#### 修正1: PLC Directoryから実際のDIDドキュメントを取得
+`src/services/auth/oauth-client.ts`の`customResolver`を修正：
+
+```typescript
+// Fetch the actual DID document from PLC Directory to get the real PDS URL
+let didDoc: any;
+if (did.startsWith('did:plc:')) {
+  console.log('[OAuth] Fetching DID document from PLC Directory...');
+  const plcRes = await fetch(`https://plc.directory/${did}`);
+  if (!plcRes.ok) {
+    throw new Error(`Failed to fetch DID document: ${plcRes.status}`);
+  }
+  didDoc = await plcRes.json();
+  console.log('[OAuth] Got DID document, PDS:', didDoc.service?.[0]?.serviceEndpoint);
+}
+```
+
+#### 修正2: キャッシュからProtected Resourceメタデータを削除
+```typescript
+// Only cache the Authorization Server metadata, not Protected Resource metadata
+asCache.set('https://bsky.social', BSKY_AS_METADATA);
+// prCache entries for bsky.social removed - it's not a PDS
+```
+
+#### 修正3: setOAuthSession()関数の導入
+`src/services/bluesky/auth.ts`に新しい関数を追加：
+
+```typescript
+export function setOAuthSession(session: any): void {
+  currentOAuthSession = session;
+  agent = new BskyAgent({
+    service: API.BLUESKY.SERVICE,
+  });
+  (agent as any).sessionManager = {
+    did: session.did,
+    fetchHandler: session.fetchHandler.bind(session),
+  };
+  console.log('[OAuth] Agent initialized with OAuth session fetchHandler');
+}
+```
+
+#### 修正4: startOAuthFlowとresumeSessionの更新
+- `startOAuthFlow`: 認証成功後に`setOAuthSession(session)`を呼び出し
+- `resumeSession`: OAuth session復元時に`setOAuthSession(oauthSession)`を呼び出し
+- `clearAuth`: `currentOAuthSession`もクリア
+
+### 関連ファイル
+- `src/services/auth/oauth-client.ts` - OAuthクライアント設定
+- `src/services/bluesky/auth.ts` - 認証サービス
+
+### 教訓
+1. **ATProtocolの認証アーキテクチャを正しく理解する**
+   - `bsky.social`はAuthorization Server（Entryway）
+   - ユーザーのPDSは別のサーバー（DIDドキュメントで確認）
+   - Protected Resource MetadataとAuthorization Server Metadataは別物
+
+2. **DPoP-boundトークンの特性を理解する**
+   - 従来のBearer tokenとは異なる
+   - 専用の`fetchHandler`を使用する必要がある
+   - `BskyAgent`の標準メソッドとは非互換
+
+3. **エラーメッセージの調査が重要**
+   - 「Bad token scope」は実際には認証方式の不一致
+   - OAuth libraryのソースコードを読んで理解
+
+### ステータス
+- **解決済み** (v1.17で対応)
+- **実機でのOAuthログイン成功を確認**
+

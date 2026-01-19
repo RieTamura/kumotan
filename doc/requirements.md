@@ -748,11 +748,28 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年1月14日
-**バージョン**: 1.15
+**最終更新日**: 2026年1月19日
+**バージョン**: 1.17
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.17 (2026-01-19)
+
+- **OAuth認証の実機動作確認完了 - ログイン成功！**
+  - 背景：v1.16でのOAuth基盤実装後、実機テストで「Bad token scope」および「Authentication Required」エラーが発生
+  - 根本原因の特定：
+    - **PDSとAuthorization Serverの混同**: `bsky.social`はAuthorization Server（Entryway）であり、PDS（Protected Resource）ではない
+    - **DoPトークンとBskyAgentの非互換性**: DPoP-boundのOAuthトークンは`BskyAgent.resumeSession()`と互換性がない
+  - 核心的な修正：
+    - `customResolver`の修正：PLC Directoryから実際のDIDドキュメントを取得し、ユーザーの本当のPDS URLを解決
+    - `setOAuthSession()`関数の導入：OAuth session の `fetchHandler` を使用してAPI呼び出しを行うように変更
+    - `startOAuthFlow`と`resumeSession`の修正：`setOAuthSession()`を使用してエージェントを初期化
+    - 不正確なProtected Resourceキャッシュエントリの削除
+  - 成果：
+    - **実機でのOAuthログイン成功を確認**
+    - セッション復元、API呼び出し、トークンリフレッシュの動作安定性を確認
+    - DPoP-boundトークンによるセキュアな認証フローの完成
 
 ### v1.16 (2026-01-18)
 

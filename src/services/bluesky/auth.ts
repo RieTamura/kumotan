@@ -15,17 +15,67 @@ import { signIn as oauthSignIn, restoreSession as oauthRestore, oauthClient } fr
 
 // Helper to access protected tokens
 async function getSessionTokens(session: any) {
-  const tokenSet = await session.getTokenSet();
-  return {
-    access_token: tokenSet.access_token,
-    refresh_token: tokenSet.refresh_token
-  };
+  try {
+    console.log('[OAuth] getSessionTokens: calling session.getTokenSet()...');
+    // Pass 'false' to skip refresh and just get the stored token set
+    const tokenSet = await session.getTokenSet(false);
+    console.log('[OAuth] getSessionTokens: got tokenSet', {
+      hasAccessToken: !!tokenSet.access_token,
+      hasRefreshToken: !!tokenSet.refresh_token,
+      scope: tokenSet.scope,
+    });
+    return {
+      access_token: tokenSet.access_token,
+      refresh_token: tokenSet.refresh_token
+    };
+  } catch (error: any) {
+    console.error('[OAuth] getSessionTokens error:', error.message);
+    console.error('[OAuth] getSessionTokens error details:', {
+      name: error.name,
+      error: error.error,
+      errorDescription: error.errorDescription,
+      status: error.status,
+    });
+    throw error;
+  }
 }
 
 /**
  * Bluesky agent instance
  */
 let agent: BskyAgent | null = null;
+
+/**
+ * Current OAuth session for API calls
+ */
+let currentOAuthSession: any = null;
+
+/**
+ * Set the current OAuth session and create an agent using its fetchHandler
+ */
+export function setOAuthSession(session: any): void {
+  currentOAuthSession = session;
+  // Create a new agent using the OAuthSession's fetchHandler
+  // This allows DPoP-bound tokens to work correctly
+  agent = new BskyAgent({
+    service: API.BLUESKY.SERVICE,
+    // OAuthSession has a fetchHandler method that handles DPoP authentication
+    // We wrap it to match the expected signature
+  });
+  // Override the agent's fetch handler to use the OAuth session's handler
+  (agent as any).sessionManager = {
+    did: session.did,
+    fetchHandler: session.fetchHandler.bind(session),
+  };
+  console.log('[OAuth] Agent initialized with OAuth session fetchHandler');
+}
+
+/**
+ * Get the current OAuth session
+ */
+export function getOAuthSession(): any {
+  return currentOAuthSession;
+}
 
 /**
  * Get or create Bluesky agent instance
@@ -174,29 +224,19 @@ export async function resumeSession(): Promise<Result<void, AppError>> {
     const bskyAgent = getAgent();
 
     // Check if we have an OAuth session for this user
-    // If we do, we should use the OAuth client to ensure token freshness
+    // If we do, use OAuth session's fetchHandler for DPoP-bound token support
     try {
       const oauthSession = await oauthRestore(storedAuth.did);
-      // Access tokens via helper
       if (oauthSession) {
-        const tokens = await getSessionTokens(oauthSession);
-        if (tokens.access_token && tokens.refresh_token) {
-          console.log('Valid OAuth session found, using OAuth tokens');
-          // If we have a valid OAuth session, use its tokens
-          await bskyAgent.resumeSession({
-            accessJwt: tokens.access_token,
-            refreshJwt: tokens.refresh_token,
-            handle: storedAuth.handle,
-            did: storedAuth.did,
-            active: true,
-          });
-          return { success: true, data: undefined };
-        }
+        console.log('Valid OAuth session found, initializing agent with OAuth fetchHandler');
+        // Initialize the agent with OAuth session's fetchHandler
+        setOAuthSession(oauthSession);
+        return { success: true, data: undefined };
       }
-    } catch (e) {
+    } catch (e: any) {
       // Not an OAuth session or restore failed, fall back to standard resume
       // likely an App Password session
-      console.log('Not an OAuth session or restore failed, trying standard resume');
+      console.log('Not an OAuth session or restore failed, trying standard resume:', e?.message);
     }
 
     await bskyAgent.resumeSession({
@@ -269,9 +309,8 @@ export async function clearAuth(): Promise<void> {
       SecureStore.deleteItemAsync(STORAGE_KEYS.USER_HANDLE),
     ]);
 
-    // Also clear the OAuth client state for this DID potentially?
-    // The library manages this.
-
+    // Clear the OAuth session and agent
+    currentOAuthSession = null;
     agent = null;
 
     if (__DEV__) {
@@ -400,15 +439,9 @@ export async function startOAuthFlow(
         };
         await storeAuth(blueskySession);
 
-        // Initialize the global agent with these tokens
-        const bskyAgent = getAgent();
-        await bskyAgent.resumeSession({
-          accessJwt: blueskySession.accessJwt,
-          refreshJwt: blueskySession.refreshJwt,
-          handle: blueskySession.handle,
-          did: blueskySession.did,
-          active: true
-        });
+        // Initialize the agent with OAuth session's fetchHandler for DPoP-bound token support
+        setOAuthSession(session);
+        console.log('[OAuth] Session stored and agent initialized with OAuth fetchHandler');
 
         oauthLogger.info('Session data stored and agent initialized');
       }

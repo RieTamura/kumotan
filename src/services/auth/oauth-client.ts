@@ -84,23 +84,37 @@ const customResolver = {
         console.log('[OAuth] Resolved handle to DID:', did);
       } else {
         console.log('[OAuth] Input is already a DID:', did);
-        // We don't have the handle easily, but the library mostly cares about the DID
+      }
+
+      // Fetch the actual DID document from PLC Directory to get the real PDS URL
+      let didDoc: any;
+      if (did.startsWith('did:plc:')) {
+        console.log('[OAuth] Fetching DID document from PLC Directory...');
+        const plcRes = await fetch(`https://plc.directory/${did}`);
+        if (!plcRes.ok) {
+          throw new Error(`Failed to fetch DID document: ${plcRes.status}`);
+        }
+        didDoc = await plcRes.json();
+        console.log('[OAuth] Got DID document, PDS:', didDoc.service?.[0]?.serviceEndpoint);
+      } else if (did.startsWith('did:web:')) {
+        // For did:web, construct the URL from the DID
+        const domain = did.replace('did:web:', '').replace(/%3A/g, ':');
+        console.log('[OAuth] Fetching DID document from did:web domain:', domain);
+        const webRes = await fetch(`https://${domain}/.well-known/did.json`);
+        if (!webRes.ok) {
+          throw new Error(`Failed to fetch did:web document: ${webRes.status}`);
+        }
+        didDoc = await webRes.json();
+        console.log('[OAuth] Got DID document, PDS:', didDoc.service?.[0]?.serviceEndpoint);
+      } else {
+        throw new Error(`Unsupported DID method: ${did}`);
       }
 
       // Return IdentityInfo structure expected by the library
       return {
         did,
         handle,
-        didDoc: {
-          id: did,
-          service: [
-            {
-              id: '#atproto_pds',
-              type: 'AtprotoPersonalDataServer',
-              serviceEndpoint: 'https://bsky.social'
-            }
-          ]
-        }
+        didDoc
       };
     } catch (err: any) {
       console.error('[OAuth] Custom resolve failed:', err.message);
@@ -109,9 +123,9 @@ const customResolver = {
   }
 };
 
-// Pre-populate bsky.social metadata
-// Pre-populate bsky.social metadata with exact matching keys to satisfy strict library checks
-const BSKY_METADATA = {
+// Pre-populate bsky.social Authorization Server metadata
+// bsky.social is the Authorization Server (Entryway), not a Protected Resource (PDS)
+const BSKY_AS_METADATA = {
   issuer: 'https://bsky.social',
   authorization_endpoint: 'https://bsky.social/oauth/authorize',
   token_endpoint: 'https://bsky.social/oauth/token',
@@ -125,20 +139,11 @@ const BSKY_METADATA = {
   client_id_metadata_document_supported: true,
 };
 
-const BSKY_RESOURCE = {
-  resource: 'https://bsky.social',
-  authorization_servers: ['https://bsky.social'],
-};
+// Only cache the Authorization Server metadata, not Protected Resource metadata
+// The library will fetch Protected Resource metadata from the user's actual PDS
+asCache.set('https://bsky.social', BSKY_AS_METADATA);
 
-// Register variant for https://bsky.social
-asCache.set('https://bsky.social', { ...BSKY_METADATA, issuer: 'https://bsky.social' });
-prCache.set('https://bsky.social', { ...BSKY_RESOURCE, resource: 'https://bsky.social' });
-
-// Register variant for https://bsky.social/ (library often adds a trailing slash)
-asCache.set('https://bsky.social/', { ...BSKY_METADATA, issuer: 'https://bsky.social/' });
-prCache.set('https://bsky.social/', { ...BSKY_RESOURCE, resource: 'https://bsky.social/' });
-
-console.log('[OAuth] Pre-populated metadata cache for bsky.social');
+console.log('[OAuth] Pre-populated AS metadata cache for bsky.social');
 
 // Define the client configuration
 export const oauthClient = new OAuthClient({
@@ -216,8 +221,37 @@ export async function signIn(handle: string): Promise<OAuthSession> {
     }
   } catch (err: any) {
     console.error('[OAuth] signIn error:', err.message || err);
-    if (err.stack) {
-      console.error('[OAuth] stack trace:', err.stack);
+    // Log all error properties for debugging
+    console.error('[OAuth] Error keys:', Object.keys(err));
+    try {
+      console.error('[OAuth] Full error:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+    } catch {
+      console.error('[OAuth] Could not stringify error');
+    }
+
+    // Traverse the cause chain
+    let currentError = err;
+    let depth = 0;
+    while (currentError && depth < 5) {
+      console.error(`[OAuth] Error level ${depth}:`, {
+        name: currentError.name,
+        message: currentError.message,
+        constructor: currentError.constructor?.name,
+      });
+      if (currentError.cause) {
+        console.error(`[OAuth] Cause at level ${depth}:`, currentError.cause.message || currentError.cause);
+        if (currentError.cause.response) {
+          console.error(`[OAuth] Response at level ${depth}:`, {
+            status: currentError.cause.response.status,
+            statusText: currentError.cause.response.statusText,
+          });
+        }
+        if (currentError.cause.json) {
+          console.error(`[OAuth] Response JSON at level ${depth}:`, currentError.cause.json);
+        }
+      }
+      currentError = currentError.cause;
+      depth++;
     }
     throw err;
   }
