@@ -51,10 +51,12 @@ class MemoryCache {
   private cache = new Map<string, { value: any, expiresAt: number }>();
   async get(key: string) {
     const entry = this.cache.get(key);
+    console.log(`[OAuth] Cache GET ${key}:`, { hit: !!entry });
     if (!entry || entry.expiresAt < Date.now()) return undefined;
     return entry.value;
   }
   async set(key: string, value: any) {
+    console.log(`[OAuth] Cache SET ${key}`);
     this.cache.set(key, { value, expiresAt: Date.now() + 3600000 });
   }
   async del(key: string) { this.cache.delete(key); }
@@ -108,6 +110,7 @@ const customResolver = {
 };
 
 // Pre-populate bsky.social metadata
+// Pre-populate bsky.social metadata with exact matching keys to satisfy strict library checks
 const BSKY_METADATA = {
   issuer: 'https://bsky.social',
   authorization_endpoint: 'https://bsky.social/oauth/authorize',
@@ -119,6 +122,7 @@ const BSKY_METADATA = {
   token_endpoint_auth_methods_supported: ['none'],
   dpop_signing_alg_values_supported: ['ES256'],
   code_challenge_methods_supported: ['S256'],
+  client_id_metadata_document_supported: true,
 };
 
 const BSKY_RESOURCE = {
@@ -126,8 +130,15 @@ const BSKY_RESOURCE = {
   authorization_servers: ['https://bsky.social'],
 };
 
-asCache.set('https://bsky.social', BSKY_METADATA);
-prCache.set('https://bsky.social', BSKY_RESOURCE);
+// Register variant for https://bsky.social
+asCache.set('https://bsky.social', { ...BSKY_METADATA, issuer: 'https://bsky.social' });
+prCache.set('https://bsky.social', { ...BSKY_RESOURCE, resource: 'https://bsky.social' });
+
+// Register variant for https://bsky.social/ (library often adds a trailing slash)
+asCache.set('https://bsky.social/', { ...BSKY_METADATA, issuer: 'https://bsky.social/' });
+prCache.set('https://bsky.social/', { ...BSKY_RESOURCE, resource: 'https://bsky.social/' });
+
+console.log('[OAuth] Pre-populated metadata cache for bsky.social');
 
 // Define the client configuration
 export const oauthClient = new OAuthClient({
