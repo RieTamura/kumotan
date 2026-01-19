@@ -97,7 +97,7 @@ const customResolver = {
             {
               id: '#atproto_pds',
               type: 'AtprotoPersonalDataServer',
-              serviceEndpoint: 'https://bsky.social/'
+              serviceEndpoint: 'https://bsky.social'
             }
           ]
         }
