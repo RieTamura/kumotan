@@ -9,7 +9,7 @@ export const oauthClient = new OAuthClient({
   clientMetadata: {
     client_id: 'https://rietamura.github.io/kumotan/oauth-client-metadata.json',
     client_name: 'くもたん (Kumotan)',
-    redirect_uris: ['io.github.rietamura:/oauth/callback'],
+    redirect_uris: ['io.github.rietamura://oauth/callback'],
     scope: 'atproto transition:generic',
     token_endpoint_auth_method: 'none',
     application_type: 'native',
@@ -26,12 +26,15 @@ export const oauthClient = new OAuthClient({
 
 export async function signIn(handle: string): Promise<OAuthSession> {
   // 1. Resolve and Authorize
+  const redirectUrl = 'io.github.rietamura://oauth/callback';
+  console.log('[OAuth] Calling oauthClient.authorize', { handle, redirectUrl });
   const url = await oauthClient.authorize(handle, {
+    redirect_uri: redirectUrl as any,
     scope: 'atproto transition:generic'
   });
+  console.log('[OAuth] authorize success', { url: url.toString() });
 
   // 2. Open Browser
-  const redirectUrl = Linking.createURL('/oauth/callback'); // io.github.rietamura:/oauth/callback
   const result = await WebBrowser.openAuthSessionAsync(
     url.toString(),
     redirectUrl
