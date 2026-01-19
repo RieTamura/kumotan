@@ -1,11 +1,17 @@
 import { ec as EC } from 'elliptic';
 import { Key, JwtHeader, JwtPayload, SignedJwt, VerifyOptions, VerifyResult } from '@atproto/oauth-client';
 import * as Crypto from 'expo-crypto';
-import { base64UrlEncode } from './utils';
+import { base64UrlEncode, base64UrlDecode } from './utils';
 import { Buffer } from 'buffer';
-import { v4 as uuidv4 } from 'uuid';
 
 const ec = new EC('p256');
+
+/**
+ * Generate a simple random ID without depending on uuid library
+ */
+function generateRandomId(): string {
+  return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+}
 
 export class JoseKey extends Key {
   private keyPair: EC.KeyPair;
@@ -16,32 +22,46 @@ export class JoseKey extends Key {
       const pub = keyPair.getPublic();
       const x = pub.getX().toString(16).padStart(64, '0');
       const y = pub.getY().toString(16).padStart(64, '0');
-      const kid = `key-${uuidv4()}`;
+      const d = keyPair.getPrivate() ? keyPair.getPrivate().toString(16).padStart(64, '0') : undefined;
+      const kid = `key-${generateRandomId()}`;
 
       super({
         kty: 'EC',
         crv: 'P-256',
         x: Buffer.from(x, 'hex').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
         y: Buffer.from(y, 'hex').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+        d: d ? Buffer.from(d, 'hex').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : undefined,
         kid,
         alg: 'ES256',
         key_ops: ['sign', 'verify']
-      });
+      } as any);
       this.keyPair = keyPair;
     } else {
       // It's a JWK
       super(keyData);
 
-      const x = Buffer.from(keyData.x, 'base64url').toString('hex');
-      const y = Buffer.from(keyData.y, 'base64url').toString('hex');
+      if (!keyData.x || !keyData.y) {
+        throw new Error(`Invalid JWK: Missing x or y coordinates`);
+      }
+
+      const x = base64UrlDecode(keyData.x).toString('hex');
+      const y = base64UrlDecode(keyData.y).toString('hex');
 
       if (keyData.d) {
-        const d = Buffer.from(keyData.d, 'base64url').toString('hex');
+        const d = base64UrlDecode(keyData.d).toString('hex');
         this.keyPair = ec.keyFromPrivate(d, 'hex');
       } else {
         this.keyPair = ec.keyFromPublic({ x, y }, 'hex');
       }
     }
+  }
+
+  /**
+   * Explicitly define algorithms to avoid 'includes of undefined' error 
+   * when base class decorators fail in React Native environment.
+   */
+  get algorithms(): string[] {
+    return ['ES256'];
   }
 
   async createJwt(header: JwtHeader, payload: JwtPayload): Promise<SignedJwt> {
@@ -51,25 +71,31 @@ export class JoseKey extends Key {
     const encodedPayload = base64UrlEncode(JSON.stringify(payload));
     const message = `${encodedHeader}.${encodedPayload}`;
 
-    const msgBytes = Buffer.from(message);
-    const hashBuffer = await Crypto.digest(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      msgBytes
-    );
+    const msgBytes = new Uint8Array(Buffer.from(message));
 
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const signature = this.keyPair.sign(hashArray);
+    try {
+      const hashBuffer = await Crypto.digest(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        msgBytes
+      );
 
-    const r = signature.r.toString(16).padStart(64, '0');
-    const s = signature.s.toString(16).padStart(64, '0');
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const signature = this.keyPair.sign(hashArray);
 
-    const sigBuffer = Buffer.concat([
-      Buffer.from(r, 'hex'),
-      Buffer.from(s, 'hex')
-    ]);
-    const encodedSignature = base64UrlEncode(sigBuffer);
+      const r = signature.r.toString(16).padStart(64, '0');
+      const s = signature.s.toString(16).padStart(64, '0');
 
-    return `${message}.${encodedSignature}` as SignedJwt;
+      const sigBuffer = Buffer.concat([
+        Buffer.from(r, 'hex'),
+        Buffer.from(s, 'hex')
+      ]);
+      const encodedSignature = base64UrlEncode(sigBuffer);
+
+      return `${message}.${encodedSignature}` as SignedJwt;
+    } catch (err: any) {
+      console.error('[JoseKey] createJwt error', err.message || err);
+      throw err;
+    }
   }
 
   async verifyJwt<C extends string = never>(token: SignedJwt, options: VerifyOptions<C> = {}): Promise<VerifyResult<C>> {

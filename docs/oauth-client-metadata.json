@@ -6,7 +6,8 @@
   "tos_uri": "https://rietamura.github.io/kumotan/",
   "policy_uri": "https://rietamura.github.io/kumotan/",
   "redirect_uris": [
-    "io.github.rietamura:/oauth/callback"
+    "io.github.rietamura:/oauth/callback",
+    "io.github.rietamura://oauth/callback"
   ],
   "scope": "atproto transition:generic",
   "token_endpoint_auth_method": "none",

@@ -1,9 +1,9 @@
 /**
  * Login Screen
- * Handles Bluesky authentication with App Password
+ * Handles Bluesky authentication with OAuth
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,17 +11,14 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
-  Linking,
-  TextInput as RNTextInput,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
-import { APP_INFO, EXTERNAL_LINKS } from '../constants/config';
+import { APP_INFO } from '../constants/config';
 import { useAuthStore } from '../store/authStore';
-import { Validators, sanitizeHandle, sanitizeApiKey } from '../utils/validators';
+import { Validators, sanitizeHandle } from '../utils/validators';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
@@ -35,21 +32,16 @@ export function LoginScreen(): React.JSX.Element {
   const { t: tc } = useTranslation('common');
 
   // Auth store
-  const { login, loginWithOAuth, isLoading, error, clearError } = useAuthStore();
+  const { loginWithOAuth, isLoading, error, clearError } = useAuthStore();
 
   // Network status
   const isConnected = useNetworkStatus();
 
   // Form state
   const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
 
   // Validation errors
   const [identifierError, setIdentifierError] = useState<string | undefined>();
-  const [passwordError, setPasswordError] = useState<string | undefined>();
-
-  // Refs for input focus
-  const passwordInputRef = useRef<RNTextInput>(null);
 
   /**
    * Validate identifier input
@@ -57,15 +49,6 @@ export function LoginScreen(): React.JSX.Element {
   const validateIdentifier = useCallback((value: string): boolean => {
     const result = Validators.validateHandle(value);
     setIdentifierError(result.isValid ? undefined : result.error);
-    return result.isValid;
-  }, []);
-
-  /**
-   * Validate password input
-   */
-  const validatePassword = useCallback((value: string): boolean => {
-    const result = Validators.validateAppPassword(value);
-    setPasswordError(result.isValid ? undefined : result.error);
     return result.isValid;
   }, []);
 
@@ -79,18 +62,7 @@ export function LoginScreen(): React.JSX.Element {
   }, [identifierError, error, clearError]);
 
   /**
-   * Handle password change
-   */
-  const handlePasswordChange = useCallback((text: string) => {
-    setPassword(text);
-    if (passwordError) setPasswordError(undefined);
-    if (error) clearError();
-  }, [passwordError, error, clearError]);
-
-  /**
    * Handle OAuth Login
-   * Note: We now require password input even for OAuth to ensure 
-   * security and consistency as requested by the user.
    */
   const handleOAuthLogin = useCallback(async () => {
     if (!isConnected) {
@@ -99,9 +71,7 @@ export function LoginScreen(): React.JSX.Element {
     }
 
     const isIdentifierValid = validateIdentifier(identifier);
-    const isPasswordValid = validatePassword(password);
-
-    if (!isIdentifierValid || !isPasswordValid) return;
+    if (!isIdentifierValid) return;
 
     const sanitizedIdentifier = sanitizeHandle(identifier);
     const result = await loginWithOAuth(sanitizedIdentifier);
@@ -111,45 +81,7 @@ export function LoginScreen(): React.JSX.Element {
         Alert.alert(t('errors.networkError'), result.error.message, [{ text: tc('buttons.ok') }]);
       }
     }
-  }, [identifier, password, isConnected, validateIdentifier, validatePassword, loginWithOAuth, t, tc]);
-
-  /**
-   * Handle App Password login
-   */
-  const handleAppPasswordLogin = useCallback(async () => {
-    if (!isConnected) {
-      Alert.alert(t('errors.offline'), t('errors.offlineMessage'), [{ text: tc('buttons.ok') }]);
-      return;
-    }
-
-    const isIdentifierValid = validateIdentifier(identifier);
-    const isPasswordValid = validatePassword(password);
-
-    if (!isIdentifierValid || !isPasswordValid) return;
-
-    const sanitizedIdentifier = sanitizeHandle(identifier);
-    const sanitizedPassword = sanitizeApiKey(password);
-
-    const result = await login(sanitizedIdentifier, sanitizedPassword);
-
-    if (!result.success && result.error.code === 'NETWORK_ERROR') {
-      Alert.alert(t('errors.networkError'), result.error.message, [{ text: tc('buttons.ok') }]);
-    }
-  }, [identifier, password, isConnected, validateIdentifier, validatePassword, login, t, tc]);
-
-  /**
-   * Handle password help link
-   */
-  const handleAppPasswordHelp = useCallback(async () => {
-    try {
-      const canOpen = await Linking.canOpenURL(EXTERNAL_LINKS.BLUESKY_APP_PASSWORDS);
-      if (canOpen) {
-        await Linking.openURL(EXTERNAL_LINKS.BLUESKY_APP_PASSWORDS);
-      }
-    } catch (err) {
-      console.error('Failed to open URL:', err);
-    }
-  }, []);
+  }, [identifier, isConnected, validateIdentifier, loginWithOAuth, t, tc]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -200,8 +132,8 @@ export function LoginScreen(): React.JSX.Element {
               autoCorrect={false}
               keyboardType="email-address"
               textContentType="username"
-              returnKeyType="next"
-              onSubmitEditing={() => passwordInputRef.current?.focus()}
+              returnKeyType="done"
+              onSubmitEditing={handleOAuthLogin}
               editable={!isLoading}
             />
 
@@ -296,18 +228,6 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: FontSizes.md,
   },
-  helpLink: {
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.xl,
-  },
-  helpLinkText: {
-    color: Colors.primary,
-    fontSize: FontSizes.md,
-    fontWeight: '500',
-  },
-  loginButton: {
-    marginTop: Spacing.md,
-  },
   securityNote: {
     marginTop: Spacing.lg,
     padding: Spacing.md,
@@ -333,25 +253,6 @@ const styles = StyleSheet.create({
   },
   mainButton: {
     marginBottom: Spacing.md,
-  },
-  oauthButton: {
-    marginTop: Spacing.sm,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    paddingHorizontal: Spacing.md,
-    color: Colors.textTertiary,
-    fontSize: FontSizes.sm,
-    fontWeight: '500',
   },
 });
 
