@@ -134,10 +134,7 @@ export const oauthClient = new OAuthClient({
   clientMetadata: {
     client_id: 'https://rietamura.github.io/kumotan/oauth-client-metadata.json',
     client_name: 'くもたん (Kumotan)',
-    redirect_uris: [
-      'io.github.rietamura:/oauth/callback',
-      'io.github.rietamura://oauth/callback'
-    ],
+    redirect_uris: ['io.github.rietamura:/oauth/callback'],
     scope: 'atproto transition:generic',
     token_endpoint_auth_method: 'none',
     application_type: 'native',
