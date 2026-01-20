@@ -29,7 +29,7 @@ import { Loading } from '../components/common/Loading';
 import { getStats, getCalendarData } from '../services/database/stats';
 import { Stats } from '../types/stats';
 import { useAuthStore } from '../store/authStore';
-import { shareToBlueskyTimeline, shareTodaysSession } from '../services/learning/session';
+import { shareToBlueskyWithImage, shareTodaysSession } from '../services/learning/session';
 import { getAgent } from '../services/bluesky/auth';
 
 /**
@@ -231,10 +231,10 @@ export function ProgressScreen(): React.JSX.Element {
   }, [stats, t, tc]);
 
   /**
-   * Share to Bluesky timeline with AT Protocol learning session record
+   * Share to Bluesky timeline with image and AT Protocol learning session record
    */
   const handleShareToBluesky = useCallback(async () => {
-    if (!stats) {
+    if (!shareCardRef.current || !stats) {
       Alert.alert(tc('status.error'), t('errors.noStats'));
       return;
     }
@@ -249,8 +249,23 @@ export function ProgressScreen(): React.JSX.Element {
       return;
     }
 
+    setIsCapturing(true);
     try {
       const agent = getAgent();
+
+      // Capture the share card as base64 image (JPG to avoid transparency issues)
+      const imageBase64 = await captureRef(shareCardRef, {
+        format: 'jpg',
+        quality: 0.9,
+        result: 'base64',
+      });
+
+      // Debug: Log image info
+      console.log('[Share] Image captured:', {
+        length: imageBase64.length,
+        prefix: imageBase64.substring(0, 50),
+        isDataUrl: imageBase64.startsWith('data:'),
+      });
 
       // Create learning session record in PDS
       const streakMessage = stats.streak > 1 ? t('share.textWithStreak', { streak: stats.streak }) : undefined;
@@ -261,10 +276,11 @@ export function ProgressScreen(): React.JSX.Element {
         streakMessage
       );
 
-      // Share to Bluesky timeline
-      await shareToBlueskyTimeline(
+      // Share to Bluesky timeline with image
+      await shareToBlueskyWithImage(
         agent,
         stats.todayCount,
+        imageBase64,
         streakMessage
       );
 
@@ -273,6 +289,8 @@ export function ProgressScreen(): React.JSX.Element {
     } catch (error) {
       console.error('Failed to share to Bluesky:', error);
       Alert.alert(tc('status.error'), t('share.blueskyError'));
+    } finally {
+      setIsCapturing(false);
     }
   }, [stats, isAuthenticated, isConnected, t, tc]);
 
@@ -511,12 +529,12 @@ export function ProgressScreen(): React.JSX.Element {
             </TouchableOpacity>
             
             {/* Share Card Preview */}
-            <ViewShot
-              ref={shareCardRef}
-              options={{ format: 'png', quality: 1 }}
-              style={styles.shareCard}
-            >
-              <View style={styles.shareCardInner}>
+            <View style={styles.shareCardPreviewWrapper}>
+              <ViewShot
+                ref={shareCardRef}
+                options={{ format: 'jpg', quality: 0.9 }}
+                style={styles.shareCard}
+              >
                 {/* App Logo/Title */}
                 <Text style={styles.shareCardAppName}>{t('shareCard.appName')}</Text>
 
@@ -562,8 +580,8 @@ export function ProgressScreen(): React.JSX.Element {
                     <Text style={styles.shareCardStatLabel}>{t('shareCard.readRate')}</Text>
                   </View>
                 </View>
-              </View>
-            </ViewShot>
+              </ViewShot>
+            </View>
 
             {/* Action Buttons */}
             <View style={styles.modalButtons}>
@@ -578,43 +596,23 @@ export function ProgressScreen(): React.JSX.Element {
                 <Text style={styles.modalButtonCancelText}>{t('share.cancel')}</Text>
               </TouchableOpacity>
 
-              {/* Bluesky Direct Post Button */}
-              {isAuthenticated && (
-                <TouchableOpacity
-                  style={[
-                    styles.modalButtonBluesky,
-                    (!isConnected || isCapturing) && styles.modalButtonDisabled,
-                  ]}
-                  onPress={handleShareToBluesky}
-                  disabled={!isConnected || isCapturing}
-                  accessible={true}
-                  accessibilityLabel={t('share.bluesky')}
-                  accessibilityHint={t('share.blueskyHint')}
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: !isConnected || isCapturing }}
-                >
-                  <Text style={styles.modalButtonBlueskyText}>
-                    {t('share.bluesky')}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
+              {/* Unified Share Button */}
               <TouchableOpacity
                 style={[
                   styles.modalButtonShare,
-                  isCapturing && styles.modalButtonDisabled,
+                  (isCapturing || (isAuthenticated && !isConnected)) && styles.modalButtonDisabled,
                 ]}
-                onPress={captureAndShare}
-                disabled={isCapturing}
+                onPress={isAuthenticated ? handleShareToBluesky : captureAndShare}
+                disabled={isCapturing || (isAuthenticated && !isConnected)}
                 accessible={true}
-                accessibilityLabel={isCapturing ? t('share.creating') : t('share.image')}
-                accessibilityHint={t('share.imageHint')}
+                accessibilityLabel={isCapturing ? t('share.creating') : t('share.button')}
+                accessibilityHint={isAuthenticated ? t('share.blueskyHint') : t('share.imageHint')}
                 accessibilityRole="button"
-                accessibilityState={{ disabled: isCapturing, busy: isCapturing }}
+                accessibilityState={{ disabled: isCapturing || (isAuthenticated && !isConnected), busy: isCapturing }}
               >
                 <ShareIcon size={18} color={Colors.textInverse} />
                 <Text style={styles.modalButtonShareText}>
-                  {isCapturing ? t('share.creating') : t('share.image')}
+                  {isCapturing ? t('share.creating') : t('share.button')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -857,15 +855,17 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   // Share Card styles
-  shareCard: {
+  shareCardPreviewWrapper: {
+    marginBottom: Spacing.lg,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    marginBottom: Spacing.lg,
   },
-  shareCardInner: {
+  shareCard: {
     backgroundColor: Colors.primary,
     padding: Spacing.xl,
     alignItems: 'center',
+    // No borderRadius here - ViewShot captures this as a rectangle
+    // The preview shows rounded corners via shareCardPreviewWrapper's overflow:hidden
   },
   shareCardAppName: {
     fontSize: FontSizes.lg,
@@ -942,19 +942,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontWeight: '600',
     color: Colors.textSecondary,
-  },
-  modalButtonBluesky: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: BorderRadius.md,
-    backgroundColor: '#0085FF', // Bluesky brand color
-  },
-  modalButtonBlueskyText: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.textInverse,
   },
   modalButtonShare: {
     flex: 1,
