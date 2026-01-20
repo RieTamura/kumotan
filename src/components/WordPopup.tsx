@@ -21,6 +21,7 @@ import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler'
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { DictionaryResult, TranslateResult, JapaneseWordInfo, WordInfo } from '../types/word';
 import { lookupWord } from '../services/dictionary/freeDictionary';
+import { useTranslation } from 'react-i18next';
 import { translateToJapanese, hasApiKey } from '../services/dictionary/deepl';
 import {
   analyzeMorphology,
@@ -190,6 +191,7 @@ export function WordPopup({
   onClose,
   onAddToWordList,
 }: WordPopupProps): React.JSX.Element {
+  const { t } = useTranslation('wordPopup');
   const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
   const [backdropOpacity] = useState(new Animated.Value(0));
   
@@ -557,7 +559,7 @@ export function WordPopup({
         const wordsToAdd = wordsInfo.filter(w => !w.isRegistered);
         
         if (wordsToAdd.length === 0) {
-          Alert.alert('情報', '登録する単語がありません');
+          Alert.alert(t('alerts.info'), t('alerts.noWordsToRegister'));
           setIsAdding(false);
           return;
         }
@@ -579,17 +581,16 @@ export function WordPopup({
         const failCount = results.length - successCount;
 
         if (successCount > 0) {
-          Alert.alert(
-            '成功',
-            `${successCount}個の単語を追加しました${failCount > 0 ? `\n(${failCount}個は失敗)` : '！'}`
-          );
-          
+          const message = t('alerts.wordsAdded', { count: successCount }) +
+            (failCount > 0 ? `\n${t('alerts.wordsFailed', { count: failCount })}` : '!');
+          Alert.alert(t('alerts.success'), message);
+
           // Close popup after adding successfully
           setTimeout(() => {
             onClose();
           }, 500);
         } else {
-          Alert.alert('エラー', 'すべての単語の追加に失敗しました');
+          Alert.alert(t('alerts.error'), t('alerts.allWordsFailed'));
         }
       } else if (isJapanese) {
         // Japanese word - use Yahoo! morphology result
@@ -617,12 +618,12 @@ export function WordPopup({
         });
         
         if (result.success) {
-          Alert.alert('成功', '単語を追加しました！');
+          Alert.alert(t('alerts.success'), t('alerts.wordAdded'));
           setTimeout(() => {
             onClose();
           }, 500);
         } else {
-          Alert.alert('エラー', result.error.message);
+          Alert.alert(t('alerts.error'), result.error.message);
         }
       } else {
         // English word
@@ -633,19 +634,19 @@ export function WordPopup({
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
         });
-        
+
         if (result.success) {
-          Alert.alert('成功', '単語を追加しました！');
+          Alert.alert(t('alerts.success'), t('alerts.wordAdded'));
           setTimeout(() => {
             onClose();
           }, 500);
         } else {
-          Alert.alert('エラー', result.error.message);
+          Alert.alert(t('alerts.error'), result.error.message);
         }
       }
     } catch (error) {
       console.error('Failed to add word:', error);
-      Alert.alert('エラー', '単語の追加に失敗しました');
+      Alert.alert(t('alerts.error'), t('alerts.addFailed'));
     } finally {
       setIsAdding(false);
     }
