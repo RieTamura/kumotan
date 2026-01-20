@@ -16,5 +16,6 @@
   "scrollToTop": "Back to top",
   "wordAdded": "Word added!",
   "wordAddError": "Failed to add word",
-  "selectionHint": "Long press to select word. Double tap to select sentence *English only"
+  "selectionHint": "Long press to select word. Double tap to select sentence *English only",
+  "lookupPost": "Look up post"
 }

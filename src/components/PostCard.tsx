@@ -11,7 +11,7 @@ import {
   Image,
   Pressable,
 } from 'react-native';
-import { MessageCircle, Repeat2, Heart } from 'lucide-react-native';
+import { MessageCircle, Repeat2, Heart, BookSearch } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
@@ -77,7 +77,10 @@ function parseTextIntoTokens(text: string): TextToken[] {
     
     // Check if sentence contains English words
     const hasEnglish = /[a-zA-Z]/.test(sentence);
-    const isEnglishSentence = hasEnglish && /[.!?]$/.test(sentence.trim());
+    const hasTerminalPunctuation = /[.!?]$/.test(sentence.trim());
+    // 句読点がない場合でも、単一文章なら英文として扱う
+    const isOnlySentence = sentences.length === 1;
+    const isEnglishSentence = hasEnglish && (hasTerminalPunctuation || isOnlySentence);
     
     if (isEnglishSentence) {
       // English sentence - parse into words and spaces
@@ -222,6 +225,19 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
   );
 
   /**
+   * Handle BookSearch button press - select entire post as sentence
+   */
+  const handleBookSearchPress = useCallback(() => {
+    if (!onSentenceSelect) return;
+    const fullText = post.text.trim();
+    if (fullText) {
+      setSelectedSentence(fullText);
+      setSelectedWord(null);
+      onSentenceSelect(fullText, post.uri, post.text);
+    }
+  }, [post.uri, post.text, onSentenceSelect]);
+
+  /**
    * Handle word press with double-tap detection
    */
   const handleWordPress = useCallback(
@@ -364,6 +380,18 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
           <Heart size={16} color={Colors.textSecondary} />
           <Text style={styles.metricText}>{post.likeCount ?? 0}</Text>
         </View>
+        {onSentenceSelect && (
+          <Pressable
+            style={styles.bookSearchButton}
+            onPress={handleBookSearchPress}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessible={true}
+            accessibilityLabel={t('home:lookupPost')}
+            accessibilityRole="button"
+          >
+            <BookSearch size={16} color={Colors.textSecondary} />
+          </Pressable>
+        )}
       </View>
 
       {/* Selection hint */}
@@ -454,6 +482,11 @@ const styles = StyleSheet.create({
   metricText: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
+  },
+  bookSearchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.xs,
   },
   hint: {
     fontSize: FontSizes.xs,
