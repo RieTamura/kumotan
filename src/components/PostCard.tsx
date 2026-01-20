@@ -12,6 +12,7 @@ import {
   Pressable,
 } from 'react-native';
 import { MessageCircle, Repeat2, Heart } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { formatRelativeTime } from '../services/bluesky/feed';
@@ -130,6 +131,7 @@ function parseTextIntoTokens(text: string): TextToken[] {
  * PostCard Component (internal)
  */
 function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelection }: PostCardProps): React.JSX.Element {
+  const { t, i18n } = useTranslation(['home', 'common']);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -339,7 +341,7 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
           </Text>
         </View>
         <Text style={styles.timestamp}>
-          {formatRelativeTime(post.createdAt)}
+          {formatRelativeTime(post.createdAt, t, i18n.language)}
         </Text>
       </View>
 
@@ -367,7 +369,7 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
       {/* Selection hint */}
       {!selectedWord && !selectedSentence && (
         <Text style={styles.hint}>
-          長押しで単語選択。ダブルタップで文章を選択 ※英文のみ
+          {t('home:selectionHint')}
         </Text>
       )}
     </Pressable>

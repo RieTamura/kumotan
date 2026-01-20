@@ -15,5 +15,6 @@
   "refreshHint": "最新の投稿を読み込みます",
   "scrollToTop": "TOPへ戻る",
   "wordAdded": "単語を追加しました！",
-  "wordAddError": "単語の追加に失敗しました"
+  "wordAddError": "単語の追加に失敗しました",
+  "selectionHint": "長押しで単語選択。ダブルタップで文章を選択 ※英文のみ"
 }

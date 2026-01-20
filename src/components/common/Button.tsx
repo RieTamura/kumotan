@@ -252,7 +252,7 @@ const variantStyles = StyleSheet.create({
     backgroundColor: Colors.backgroundSecondary,
   },
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.primary,
   },

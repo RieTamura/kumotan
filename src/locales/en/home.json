@@ -15,5 +15,6 @@
   "refreshHint": "Load the latest posts",
   "scrollToTop": "Back to top",
   "wordAdded": "Word added!",
-  "wordAddError": "Failed to add word"
+  "wordAddError": "Failed to add word",
+  "selectionHint": "Long press to select word. Double tap to select sentence *English only"
 }

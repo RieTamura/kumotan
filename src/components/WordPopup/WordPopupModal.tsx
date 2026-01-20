@@ -16,6 +16,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/colors';
@@ -46,6 +47,7 @@ export function WordPopupModal({
   onAddToWordList,
 }: WordPopupProps): React.JSX.Element {
   const { t } = useTranslation('wordPopup');
+  const insets = useSafeAreaInsets();
   const [state, dispatch] = useReducer(wordPopupReducer, initialState);
   const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
   const [backdropOpacity] = useState(new Animated.Value(0));
@@ -443,7 +445,7 @@ export function WordPopupModal({
           </ScrollView>
 
           {/* Action Buttons */}
-          <View style={styles.actions}>
+          <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, Spacing.lg) }]}>
             <Button
               title={
                 isSentenceMode
@@ -554,7 +556,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 140,
   },
   section: {
     paddingHorizontal: Spacing.xl,
@@ -639,13 +641,15 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
+    paddingTop: Spacing.lg,
     gap: Spacing.md,
     position: 'absolute',
-    bottom: Spacing.xl,
+    bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
   },
   addButton: {
     flex: 2,
