@@ -51,7 +51,13 @@ export class AppError extends Error {
     this.timestamp = new Date().toISOString();
 
     // Log error (in production, consider sending to error tracking service)
-    if (__DEV__) {
+    // Skip logging for expected/handled cases that don't need console output
+    const silentErrors: ErrorCode[] = [
+      ErrorCode.WORD_NOT_FOUND, // Normal case: word not in dictionary
+      ErrorCode.RATE_LIMIT, // Expected when API limits are hit
+      ErrorCode.RATE_LIMIT_EXCEEDED, // Expected when API limits are hit
+    ];
+    if (__DEV__ && !silentErrors.includes(code)) {
       console.error(`[${this.timestamp}] ${code}: ${message}`, originalError);
     }
   }
