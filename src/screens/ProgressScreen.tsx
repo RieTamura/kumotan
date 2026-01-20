@@ -269,6 +269,11 @@ export function ProgressScreen(): React.JSX.Element {
         );
       });
 
+      // Validate image dimensions
+      if (!width || !height || width <= 0 || height <= 0 || !isFinite(width) || !isFinite(height)) {
+        throw new Error(`Invalid image dimensions: width=${width}, height=${height}`);
+      }
+
       // Capture the share card as base64 image (JPG to avoid transparency issues)
       const imageBase64 = await captureRef(shareCardRef, {
         format: 'jpg',
