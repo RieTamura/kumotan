@@ -112,3 +112,11 @@ export interface CreateLearningSessionInput {
   achievement?: string;
   visibility?: 'public' | 'private';
 }
+
+/**
+ * 画像のアスペクト比
+ */
+export interface ImageAspectRatio {
+  width: number;
+  height: number;
+}

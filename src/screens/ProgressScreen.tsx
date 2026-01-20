@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Modal,
+  Image,
 } from 'react-native';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -28,6 +29,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
 import { getStats, getCalendarData } from '../services/database/stats';
 import { Stats } from '../types/stats';
+import { ImageAspectRatio } from '../types/word';
 import { useAuthStore } from '../store/authStore';
 import { shareToBlueskyWithImage, shareTodaysSession } from '../services/learning/session';
 import { getAgent } from '../services/bluesky/auth';
@@ -253,6 +255,26 @@ export function ProgressScreen(): React.JSX.Element {
     try {
       const agent = getAgent();
 
+      // Capture the share card as URI first to get dimensions
+      const imageUri = await captureRef(shareCardRef, {
+        format: 'jpg',
+        quality: 0.9,
+      });
+
+      // Get image dimensions
+      const { width, height } = await new Promise<ImageAspectRatio>((resolve, reject) => {
+        Image.getSize(
+          imageUri,
+          (width, height) => resolve({ width, height }),
+          (error) => reject(error)
+        );
+      });
+
+      // Validate image dimensions
+      if (!width || !height || width <= 0 || height <= 0 || !isFinite(width) || !isFinite(height)) {
+        throw new Error(`画像の寸法が無効です: width=${width}, height=${height}`);
+      }
+
       // Capture the share card as base64 image (JPG to avoid transparency issues)
       const imageBase64 = await captureRef(shareCardRef, {
         format: 'jpg',
@@ -260,12 +282,17 @@ export function ProgressScreen(): React.JSX.Element {
         result: 'base64',
       });
 
-      // Debug: Log image info
-      console.log('[Share] Image captured:', {
-        length: imageBase64.length,
-        prefix: imageBase64.substring(0, 50),
-        isDataUrl: imageBase64.startsWith('data:'),
-      });
+      // Debug: Log image info in development mode
+      if (__DEV__) {
+        console.log('[Share] Image captured:', {
+          length: imageBase64.length,
+          prefix: imageBase64.substring(0, 50),
+          isDataUrl: imageBase64.startsWith('data:'),
+          width,
+          height,
+          aspectRatio: width / height,
+        });
+      }
 
       // Create learning session record in PDS
       const streakMessage = stats.streak > 1 ? t('share.textWithStreak', { streak: stats.streak }) : undefined;
@@ -276,11 +303,12 @@ export function ProgressScreen(): React.JSX.Element {
         streakMessage
       );
 
-      // Share to Bluesky timeline with image
+      // Share to Bluesky timeline with image and aspect ratio
       await shareToBlueskyWithImage(
         agent,
         stats.todayCount,
         imageBase64,
+        { width, height },
         streakMessage
       );
 
