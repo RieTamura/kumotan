@@ -6,7 +6,7 @@
 
 import { BskyAgent } from '@atproto/api';
 import { Buffer } from 'buffer';
-import { CreateLearningSessionInput, LearningSession } from '../../types/word';
+import { CreateLearningSessionInput, LearningSession, ImageAspectRatio } from '../../types/word';
 
 /**
  * 学習セッションをPDSに保存
@@ -204,22 +204,26 @@ export async function uploadImageToBluesky(
     // Convert base64 to Uint8Array using Buffer
     const uint8Array = new Uint8Array(Buffer.from(base64Data, 'base64'));
 
-    console.log('[Upload] Image data:', {
-      base64Length: base64Data.length,
-      base64Prefix: base64Data.substring(0, 30),
-      uint8ArrayLength: uint8Array.length,
-      mimeType,
-    });
+    if (__DEV__) {
+      console.log('[Upload] Image data:', {
+        base64Length: base64Data.length,
+        base64Prefix: base64Data.substring(0, 30),
+        uint8ArrayLength: uint8Array.length,
+        mimeType,
+      });
+    }
 
     // Upload to Bluesky
     const uploadResponse = await agent.uploadBlob(uint8Array, {
       encoding: mimeType,
     });
 
-    console.log('[Upload] Upload response:', {
-      mimeType: uploadResponse.data.blob.mimeType,
-      size: uploadResponse.data.blob.size,
-    });
+    if (__DEV__) {
+      console.log('[Upload] Upload response:', {
+        mimeType: uploadResponse.data.blob.mimeType,
+        size: uploadResponse.data.blob.size,
+      });
+    }
 
     return {
       blob: {
@@ -241,7 +245,7 @@ export async function uploadImageToBluesky(
  * @param agent - 認証済みのBskyAgentインスタンス
  * @param wordsLearned - 学習した単語数
  * @param imageBase64 - シェアカード画像のbase64データ
- * @param aspectRatio - 画像のアスペクト比 {width: number, height: number}
+ * @param aspectRatio - 画像のアスペクト比
  * @param achievement - 達成内容（オプション）
  * @returns 投稿のURI
  */
@@ -249,7 +253,7 @@ export async function shareToBlueskyWithImage(
   agent: BskyAgent,
   wordsLearned: number,
   imageBase64: string,
-  aspectRatio: { width: number; height: number },
+  aspectRatio: ImageAspectRatio,
   achievement?: string
 ): Promise<string> {
   // Check for session DID (standard auth) or sessionManager DID (OAuth)
@@ -265,11 +269,13 @@ export async function shareToBlueskyWithImage(
     // Upload image first
     const uploadedImage = await uploadImageToBluesky(agent, imageBase64);
 
-    console.log('[Share] Image aspect ratio:', {
-      width: aspectRatio.width,
-      height: aspectRatio.height,
-      ratio: aspectRatio.width / aspectRatio.height,
-    });
+    if (__DEV__) {
+      console.log('[Share] Image aspect ratio:', {
+        width: aspectRatio.width,
+        height: aspectRatio.height,
+        ratio: aspectRatio.width / aspectRatio.height,
+      });
+    }
 
     const response = await agent.api.app.bsky.feed.post.create(
       { repo: did },

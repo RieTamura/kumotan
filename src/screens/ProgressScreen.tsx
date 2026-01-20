@@ -29,6 +29,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
 import { getStats, getCalendarData } from '../services/database/stats';
 import { Stats } from '../types/stats';
+import { ImageAspectRatio } from '../types/word';
 import { useAuthStore } from '../store/authStore';
 import { shareToBlueskyWithImage, shareTodaysSession } from '../services/learning/session';
 import { getAgent } from '../services/bluesky/auth';
@@ -261,7 +262,7 @@ export function ProgressScreen(): React.JSX.Element {
       });
 
       // Get image dimensions
-      const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const { width, height } = await new Promise<ImageAspectRatio>((resolve, reject) => {
         Image.getSize(
           imageUri,
           (width, height) => resolve({ width, height }),
@@ -271,7 +272,7 @@ export function ProgressScreen(): React.JSX.Element {
 
       // Validate image dimensions
       if (!width || !height || width <= 0 || height <= 0 || !isFinite(width) || !isFinite(height)) {
-        throw new Error(`Invalid image dimensions: width=${width}, height=${height}`);
+        throw new Error(`画像の寸法が無効です: width=${width}, height=${height}`);
       }
 
       // Capture the share card as base64 image (JPG to avoid transparency issues)
@@ -281,15 +282,17 @@ export function ProgressScreen(): React.JSX.Element {
         result: 'base64',
       });
 
-      // Debug: Log image info
-      console.log('[Share] Image captured:', {
-        length: imageBase64.length,
-        prefix: imageBase64.substring(0, 50),
-        isDataUrl: imageBase64.startsWith('data:'),
-        width,
-        height,
-        aspectRatio: width / height,
-      });
+      // Debug: Log image info in development mode
+      if (__DEV__) {
+        console.log('[Share] Image captured:', {
+          length: imageBase64.length,
+          prefix: imageBase64.substring(0, 50),
+          isDataUrl: imageBase64.startsWith('data:'),
+          width,
+          height,
+          aspectRatio: width / height,
+        });
+      }
 
       // Create learning session record in PDS
       const streakMessage = stats.streak > 1 ? t('share.textWithStreak', { streak: stats.streak }) : undefined;
