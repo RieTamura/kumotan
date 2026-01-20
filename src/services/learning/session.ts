@@ -241,6 +241,7 @@ export async function uploadImageToBluesky(
  * @param agent - 認証済みのBskyAgentインスタンス
  * @param wordsLearned - 学習した単語数
  * @param imageBase64 - シェアカード画像のbase64データ
+ * @param aspectRatio - 画像のアスペクト比 {width: number, height: number}
  * @param achievement - 達成内容（オプション）
  * @returns 投稿のURI
  */
@@ -248,6 +249,7 @@ export async function shareToBlueskyWithImage(
   agent: BskyAgent,
   wordsLearned: number,
   imageBase64: string,
+  aspectRatio: { width: number; height: number },
   achievement?: string
 ): Promise<string> {
   // Check for session DID (standard auth) or sessionManager DID (OAuth)
@@ -263,6 +265,12 @@ export async function shareToBlueskyWithImage(
     // Upload image first
     const uploadedImage = await uploadImageToBluesky(agent, imageBase64);
 
+    console.log('[Share] Image aspect ratio:', {
+      width: aspectRatio.width,
+      height: aspectRatio.height,
+      ratio: aspectRatio.width / aspectRatio.height,
+    });
+
     const response = await agent.api.app.bsky.feed.post.create(
       { repo: did },
       {
@@ -274,6 +282,10 @@ export async function shareToBlueskyWithImage(
             {
               alt: `${wordsLearned}個の単語を学習しました`,
               image: uploadedImage.blob,
+              aspectRatio: {
+                width: aspectRatio.width,
+                height: aspectRatio.height,
+              },
             },
           ],
         },

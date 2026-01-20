@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Modal,
+  Image,
 } from 'react-native';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
@@ -253,6 +254,21 @@ export function ProgressScreen(): React.JSX.Element {
     try {
       const agent = getAgent();
 
+      // Capture the share card as URI first to get dimensions
+      const imageUri = await captureRef(shareCardRef, {
+        format: 'jpg',
+        quality: 0.9,
+      });
+
+      // Get image dimensions
+      const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        Image.getSize(
+          imageUri,
+          (width, height) => resolve({ width, height }),
+          (error) => reject(error)
+        );
+      });
+
       // Capture the share card as base64 image (JPG to avoid transparency issues)
       const imageBase64 = await captureRef(shareCardRef, {
         format: 'jpg',
@@ -265,6 +281,9 @@ export function ProgressScreen(): React.JSX.Element {
         length: imageBase64.length,
         prefix: imageBase64.substring(0, 50),
         isDataUrl: imageBase64.startsWith('data:'),
+        width,
+        height,
+        aspectRatio: width / height,
       });
 
       // Create learning session record in PDS
@@ -276,11 +295,12 @@ export function ProgressScreen(): React.JSX.Element {
         streakMessage
       );
 
-      // Share to Bluesky timeline with image
+      // Share to Bluesky timeline with image and aspect ratio
       await shareToBlueskyWithImage(
         agent,
         stats.todayCount,
         imageBase64,
+        { width, height },
         streakMessage
       );
 
