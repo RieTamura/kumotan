@@ -10,10 +10,11 @@ import {
   StyleSheet,
   Image,
   Pressable,
+  Linking,
 } from 'react-native';
 import { MessageCircle, Repeat2, Heart, BookSearch } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { TimelinePost } from '../types/bluesky';
+import { TimelinePost, PostImage } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { formatRelativeTime } from '../services/bluesky/feed';
 import { splitIntoSentences } from '../utils/validators';
@@ -25,6 +26,8 @@ interface PostCardProps {
   post: TimelinePost;
   onWordSelect?: (word: string, postUri: string, postText: string) => void;
   onSentenceSelect?: (sentence: string, postUri: string, postText: string) => void;
+  onPostPress?: (postUri: string) => void;
+  onLikePress?: (post: TimelinePost, isLiked: boolean) => void;
   clearSelection?: boolean;
 }
 
@@ -41,26 +44,33 @@ interface TextToken {
   isEnglishWord: boolean;
   isJapaneseWord: boolean;
   isEnglishSentence: boolean;
+  isUrl: boolean;
   index: number;
 }
 
 /**
- * Parse text into tokens (sentences and words)
+ * URL regex pattern for detecting links in text
  */
-function parseTextIntoTokens(text: string): TextToken[] {
+const URL_REGEX = /https?:\/\/[^\s<>"\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+/g;
+
+/**
+ * Parse text segment into tokens (words, Japanese text, etc.)
+ * Used for non-URL text segments
+ */
+function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens: TextToken[]; nextIndex: number } {
   const tokens: TextToken[] = [];
   const sentences = splitIntoSentences(text);
-  
+
   if (sentences.length === 0) {
-    return tokens;
+    return { tokens, nextIndex: startIndex };
   }
-  
-  let index = 0;
+
+  let index = startIndex;
   let currentPos = 0;
-  
+
   for (const sentence of sentences) {
     const sentenceStart = text.indexOf(sentence, currentPos);
-    
+
     // Add any text before this sentence
     if (sentenceStart > currentPos) {
       const beforeText = text.substring(currentPos, sentenceStart);
@@ -70,31 +80,32 @@ function parseTextIntoTokens(text: string): TextToken[] {
           isEnglishWord: false,
           isJapaneseWord: false,
           isEnglishSentence: false,
+          isUrl: false,
           index: index++,
         });
       }
     }
-    
+
     // Check if sentence contains English words
     const hasEnglish = /[a-zA-Z]/.test(sentence);
     const hasTerminalPunctuation = /[.!?]$/.test(sentence.trim());
     // 句読点がない場合でも、単一文章なら英文として扱う
     const isOnlySentence = sentences.length === 1;
     const isEnglishSentence = hasEnglish && (hasTerminalPunctuation || isOnlySentence);
-    
+
     if (isEnglishSentence) {
       // English sentence - parse into words and spaces
       const wordPattern = /([a-zA-Z][a-zA-Z'-]*)|(\s+)|([^\sa-zA-Z]+)/g;
       let match;
-      
+
       while ((match = wordPattern.exec(sentence)) !== null) {
         const isWord = match[1] !== undefined;
-        const isSpace = match[2] !== undefined;
         tokens.push({
           text: match[0],
           isEnglishWord: isWord,
           isJapaneseWord: false,
           isEnglishSentence: false,
+          isUrl: false,
           index: index++,
         });
       }
@@ -106,13 +117,14 @@ function parseTextIntoTokens(text: string): TextToken[] {
         isEnglishWord: false,
         isJapaneseWord: japanesePattern.test(sentence),
         isEnglishSentence: false,
+        isUrl: false,
         index: index++,
       });
     }
-    
+
     currentPos = sentenceStart + sentence.length;
   }
-  
+
   // Add any remaining text
   if (currentPos < text.length) {
     const remaining = text.substring(currentPos);
@@ -122,23 +134,97 @@ function parseTextIntoTokens(text: string): TextToken[] {
         isEnglishWord: false,
         isJapaneseWord: false,
         isEnglishSentence: false,
+        isUrl: false,
         index: index++,
       });
     }
   }
-  
+
+  return { tokens, nextIndex: index };
+}
+
+/**
+ * Parse text into tokens (sentences, words, and URLs)
+ * URLs are extracted first and then remaining text is parsed
+ */
+function parseTextIntoTokens(text: string): TextToken[] {
+  const tokens: TextToken[] = [];
+  let index = 0;
+
+  // Find all URLs in the text
+  const urlMatches: { url: string; start: number; end: number }[] = [];
+  let match;
+  const urlRegex = new RegExp(URL_REGEX.source, 'g');
+
+  while ((match = urlRegex.exec(text)) !== null) {
+    urlMatches.push({
+      url: match[0],
+      start: match.index,
+      end: match.index + match[0].length,
+    });
+  }
+
+  // If no URLs, parse the entire text as before
+  if (urlMatches.length === 0) {
+    const result = parseTextSegmentIntoTokens(text, 0);
+    return result.tokens;
+  }
+
+  // Process text with URLs
+  let currentPos = 0;
+
+  for (const urlMatch of urlMatches) {
+    // Process text before this URL
+    if (urlMatch.start > currentPos) {
+      const beforeText = text.substring(currentPos, urlMatch.start);
+      const result = parseTextSegmentIntoTokens(beforeText, index);
+      tokens.push(...result.tokens);
+      index = result.nextIndex;
+    }
+
+    // Add URL token
+    tokens.push({
+      text: urlMatch.url,
+      isEnglishWord: false,
+      isJapaneseWord: false,
+      isEnglishSentence: false,
+      isUrl: true,
+      index: index++,
+    });
+
+    currentPos = urlMatch.end;
+  }
+
+  // Process text after the last URL
+  if (currentPos < text.length) {
+    const afterText = text.substring(currentPos);
+    const result = parseTextSegmentIntoTokens(afterText, index);
+    tokens.push(...result.tokens);
+  }
+
   return tokens;
 }
 
 /**
  * PostCard Component (internal)
  */
-function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelection }: PostCardProps): React.JSX.Element {
+function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, onLikePress, clearSelection }: PostCardProps): React.JSX.Element {
   const { t, i18n } = useTranslation(['home', 'common']);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Like state - track locally for immediate UI feedback
+  const [isLiked, setIsLiked] = useState(!!post.viewer?.like);
+  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  // Sync like state with post prop changes
+  useEffect(() => {
+    setIsLiked(!!post.viewer?.like);
+    setLikeCount(post.likeCount ?? 0);
+  }, [post.viewer?.like, post.likeCount]);
 
   /**
    * Clear selection when clearSelection prop changes to true
@@ -259,16 +345,60 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
   );
 
   /**
-   * Handle press to clear selection
+   * Handle press to clear selection or navigate to thread
    */
   const handlePress = useCallback(() => {
-    setSelectedWord(null);
-    setSelectedSentence(null);
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
+    // If there's a selection, clear it first
+    if (selectedWord || selectedSentence) {
+      setSelectedWord(null);
+      setSelectedSentence(null);
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+      }
+      return;
     }
-  }, [longPressTimer]);
+
+    // If no selection and we have a double-tap timer pending, don't navigate yet
+    if (longPressTimer) {
+      return;
+    }
+
+    // Navigate to thread
+    if (onPostPress) {
+      onPostPress(post.uri);
+    }
+  }, [selectedWord, selectedSentence, longPressTimer, onPostPress, post.uri]);
+
+  /**
+   * Handle URL press - open in browser
+   */
+  const handleUrlPress = useCallback((url: string) => {
+    Linking.openURL(url).catch((err) => {
+      if (__DEV__) {
+        console.error('Failed to open URL:', err);
+      }
+    });
+  }, []);
+
+  /**
+   * Handle like button press
+   */
+  const handleLikePress = useCallback(() => {
+    if (isLikeLoading || !onLikePress) return;
+
+    // Optimistic update
+    setIsLikeLoading(true);
+    const newIsLiked = !isLiked;
+    setIsLiked(newIsLiked);
+    setLikeCount((prev) => newIsLiked ? prev + 1 : Math.max(0, prev - 1));
+
+    // Call parent handler
+    onLikePress(post, newIsLiked);
+
+    // Reset loading state after a short delay
+    setTimeout(() => setIsLikeLoading(false), 500);
+  }, [isLiked, isLikeLoading, onLikePress, post]);
 
   /**
    * Memoize parsed tokens to avoid re-parsing on every render
@@ -283,11 +413,25 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
     return (
       <Text style={styles.postText}>
         {tokens.map((token) => {
+          // URL tokens - make them tappable links
+          if (token.isUrl) {
+            return (
+              <Text
+                key={token.index}
+                style={styles.urlText}
+                onPress={() => handleUrlPress(token.text)}
+                suppressHighlighting={false}
+              >
+                {token.text}
+              </Text>
+            );
+          }
+
           if (token.isEnglishWord) {
             const isWordSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
             const sentence = getSentenceContainingWord(token.text);
             const isSentenceSelected = selectedSentence && sentence === selectedSentence;
-            
+
             return (
               <Text
                 key={token.index}
@@ -306,10 +450,10 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
               </Text>
             );
           }
-          
+
           if (token.isJapaneseWord) {
             const isSentenceSelected = selectedSentence === token.text;
-            
+
             return (
               <Text
                 key={token.index}
@@ -325,10 +469,117 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
               </Text>
             );
           }
-          
+
           return <Text key={token.index}>{token.text}</Text>;
         })}
       </Text>
+    );
+  };
+
+  /**
+   * Handle image press - open full size image
+   */
+  const handleImagePress = useCallback((image: PostImage) => {
+    if (image.fullsize) {
+      Linking.openURL(image.fullsize).catch((err) => {
+        if (__DEV__) {
+          console.error('Failed to open image:', err);
+        }
+      });
+    }
+  }, []);
+
+  /**
+   * Render embedded images
+   */
+  const renderImages = () => {
+    const images = post.embed?.images;
+    if (!images || images.length === 0) return null;
+
+    const imageCount = images.length;
+
+    // Single image
+    if (imageCount === 1) {
+      const image = images[0];
+      return (
+        <Pressable
+          style={styles.singleImageContainer}
+          onPress={() => handleImagePress(image)}
+          accessible={true}
+          accessibilityLabel={image.alt || '投稿画像'}
+          accessibilityRole="image"
+        >
+          <Image
+            source={{ uri: image.thumb }}
+            style={styles.singleImage}
+            resizeMode="cover"
+          />
+          {image.alt ? (
+            <View style={styles.altBadge}>
+              <Text style={styles.altBadgeText}>ALT</Text>
+            </View>
+          ) : null}
+        </Pressable>
+      );
+    }
+
+    // Two images - side by side
+    if (imageCount === 2) {
+      return (
+        <View style={styles.twoImageContainer}>
+          {images.map((image, index) => (
+            <Pressable
+              key={index}
+              style={styles.twoImageItem}
+              onPress={() => handleImagePress(image)}
+              accessible={true}
+              accessibilityLabel={image.alt || `投稿画像 ${index + 1}`}
+              accessibilityRole="image"
+            >
+              <Image
+                source={{ uri: image.thumb }}
+                style={styles.gridImage}
+                resizeMode="cover"
+              />
+              {image.alt ? (
+                <View style={styles.altBadge}>
+                  <Text style={styles.altBadgeText}>ALT</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ))}
+        </View>
+      );
+    }
+
+    // Three or four images - grid
+    return (
+      <View style={styles.gridContainer}>
+        {images.slice(0, 4).map((image, index) => (
+          <Pressable
+            key={index}
+            style={[
+              styles.gridItem,
+              imageCount === 3 && index === 0 && styles.gridItemLarge,
+            ]}
+            onPress={() => handleImagePress(image)}
+            accessible={true}
+            accessibilityLabel={image.alt || `投稿画像 ${index + 1}`}
+            accessibilityRole="image"
+          >
+            <Image
+              source={{ uri: image.thumb }}
+              style={styles.gridImage}
+              resizeMode="cover"
+            />
+            {image.alt ? (
+              <View style={styles.altBadge}>
+                <Text style={styles.altBadgeText}>ALT</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        ))}
+      </View>
     );
   };
 
@@ -371,6 +622,9 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
             {renderText()}
           </View>
 
+          {/* Embedded images */}
+          {renderImages()}
+
           {/* Engagement metrics */}
           <View style={styles.metricsRow}>
             <View style={styles.metric}>
@@ -381,10 +635,24 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
               <Repeat2 size={16} color={Colors.textSecondary} />
               <Text style={styles.metricText}>{post.repostCount ?? 0}</Text>
             </View>
-            <View style={styles.metric}>
-              <Heart size={16} color={Colors.textSecondary} />
-              <Text style={styles.metricText}>{post.likeCount ?? 0}</Text>
-            </View>
+            <Pressable
+              style={styles.likeButton}
+              onPress={handleLikePress}
+              disabled={isLikeLoading || !onLikePress}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessible={true}
+              accessibilityLabel={isLiked ? t('home:unlike') : t('home:like')}
+              accessibilityRole="button"
+            >
+              <Heart
+                size={16}
+                color={isLiked ? Colors.error : Colors.textSecondary}
+                fill={isLiked ? Colors.error : 'none'}
+              />
+              <Text style={[styles.metricText, isLiked && styles.likedText]}>
+                {likeCount}
+              </Text>
+            </Pressable>
             {onSentenceSelect && (
               <Pressable
                 style={styles.bookSearchButton}
@@ -474,6 +742,10 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '500',
   },
+  urlText: {
+    color: Colors.primary,
+    textDecorationLine: 'underline',
+  },
   metricsRow: {
     flexDirection: 'row',
     paddingTop: Spacing.sm,
@@ -488,10 +760,79 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
   },
+  likeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  likedText: {
+    color: Colors.error,
+  },
   bookSearchButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.xs,
+  },
+  // Image styles
+  singleImageContainer: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  singleImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: BorderRadius.md,
+  },
+  twoImageContainer: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  twoImageItem: {
+    flex: 1,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  gridItem: {
+    width: '48%',
+    aspectRatio: 1,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  gridItemLarge: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
+  },
+  altBadge: {
+    position: 'absolute',
+    bottom: Spacing.xs,
+    left: Spacing.xs,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  altBadgeText: {
+    color: Colors.textInverse,
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
   },
 });
 

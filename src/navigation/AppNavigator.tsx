@@ -29,6 +29,7 @@ import ApiKeySetupScreen from '../screens/ApiKeySetupScreen';
 import LicenseScreen from '../screens/LicenseScreen';
 import { DebugLogsScreen } from '../screens/DebugLogsScreen';
 import { TipsScreen } from '../screens/TipsScreen';
+import { ThreadScreen } from '../screens/ThreadScreen';
 
 /**
  * Stack Navigator Types
@@ -41,6 +42,7 @@ export type RootStackParamList = {
   License: undefined;
   DebugLogs: undefined;
   Tips: undefined;
+  Thread: { postUri: string };
 };
 
 /**
@@ -238,6 +240,19 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.tips'),
+              headerBackTitle: t('common:buttons.back'),
+              headerTintColor: Colors.primary,
+              headerStyle: {
+                backgroundColor: Colors.background,
+              },
+            }}
+          />
+          <Stack.Screen
+            name="Thread"
+            component={ThreadScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.thread'),
               headerBackTitle: t('common:buttons.back'),
               headerTintColor: Colors.primary,
               headerStyle: {

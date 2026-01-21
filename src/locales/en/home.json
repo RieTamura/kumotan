@@ -1,5 +1,6 @@
 {
-  "header": "Home",
+  "header": "Following",
+  "headerSubtitle": "Posts from people you follow",
   "loading": "Loading...",
   "loadingTimeline": "Loading timeline...",
   "loadingMore": "Loading...",
@@ -19,5 +20,7 @@
   "selectionHint": "Long press to select word. Double tap to select sentence *English only",
   "lookupPost": "Look up post",
   "tips": "Tips",
-  "tipsHint": "View app usage tips"
+  "tipsHint": "View app usage tips",
+  "like": "Like",
+  "unlike": "Unlike"
 }

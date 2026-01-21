@@ -51,10 +51,46 @@ export interface TimelineResponse {
 }
 
 /**
+ * Image embed in a post
+ */
+export interface PostImage {
+  thumb: string;
+  fullsize: string;
+  alt: string;
+  aspectRatio?: {
+    width: number;
+    height: number;
+  };
+}
+
+/**
+ * Post embed types
+ */
+export interface PostEmbed {
+  $type: string;
+  images?: PostImage[];
+  external?: {
+    uri: string;
+    title: string;
+    description: string;
+    thumb?: string;
+  };
+}
+
+/**
+ * Viewer state for a post
+ */
+export interface PostViewer {
+  like?: string; // URI of the like record if liked
+  repost?: string; // URI of the repost record if reposted
+}
+
+/**
  * Simplified post for display in the app
  */
 export interface TimelinePost {
   uri: string;
+  cid: string;
   text: string;
   author: {
     handle: string;
@@ -65,6 +101,8 @@ export interface TimelinePost {
   likeCount?: number;
   repostCount?: number;
   replyCount?: number;
+  embed?: PostEmbed;
+  viewer?: PostViewer;
 }
 
 /**

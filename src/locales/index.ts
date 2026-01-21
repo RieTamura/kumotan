@@ -21,6 +21,7 @@ import jaWordPopup from './ja/wordPopup.json';
 import jaLicense from './ja/license.json';
 import jaDebugLogs from './ja/debugLogs.json';
 import jaTips from './ja/tips.json';
+import jaThread from './ja/thread.json';
 
 // Import English translations
 import enCommon from './en/common.json';
@@ -35,6 +36,7 @@ import enWordPopup from './en/wordPopup.json';
 import enLicense from './en/license.json';
 import enDebugLogs from './en/debugLogs.json';
 import enTips from './en/tips.json';
+import enThread from './en/thread.json';
 
 /**
  * Translation resources
@@ -53,6 +55,7 @@ export const resources = {
     license: jaLicense,
     debugLogs: jaDebugLogs,
     tips: jaTips,
+    thread: jaThread,
   },
   en: {
     common: enCommon,
@@ -67,6 +70,7 @@ export const resources = {
     license: enLicense,
     debugLogs: enDebugLogs,
     tips: enTips,
+    thread: enThread,
   },
 } as const;
 
@@ -136,6 +140,7 @@ i18n
       'license',
       'debugLogs',
       'tips',
+      'thread',
     ],
     interpolation: {
       escapeValue: false, // React already handles escaping

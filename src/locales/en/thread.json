@@ -1,0 +1,8 @@
+{
+  "loading": "Loading thread...",
+  "loadError": "Failed to load thread",
+  "notFound": "Post not found",
+  "replies": "{{count}} replies",
+  "replies_one": "{{count}} reply",
+  "noReplies": "No replies"
+}

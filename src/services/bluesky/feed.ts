@@ -4,7 +4,7 @@
  */
 
 import { Result } from '../../types/result';
-import { TimelinePost } from '../../types/bluesky';
+import { TimelinePost, PostEmbed, PostImage } from '../../types/bluesky';
 import { AppError, ErrorCode, mapToAppError } from '../../utils/errors';
 import { PAGINATION } from '../../constants/config';
 import { getAgent, refreshSession, hasActiveSession } from './auth';
@@ -97,20 +97,69 @@ export async function getTimeline(
     });
 
     // Map response to our TimelinePost type
-    const posts: TimelinePost[] = response.data.feed.map((item) => ({
-      uri: item.post.uri,
-      text:
-        (item.post.record as { text?: string })?.text ?? '',
-      author: {
-        handle: item.post.author.handle,
-        displayName: item.post.author.displayName ?? item.post.author.handle,
-        avatar: item.post.author.avatar,
-      },
-      createdAt: (item.post.record as { createdAt?: string })?.createdAt ?? '',
-      likeCount: item.post.likeCount,
-      repostCount: item.post.repostCount,
-      replyCount: item.post.replyCount,
-    }));
+    const posts: TimelinePost[] = response.data.feed.map((item) => {
+      // Extract embed information if present
+      let embed: PostEmbed | undefined;
+      const rawEmbed = item.post.embed as {
+        $type?: string;
+        images?: Array<{
+          thumb?: string;
+          fullsize?: string;
+          alt?: string;
+          aspectRatio?: { width: number; height: number };
+        }>;
+        external?: {
+          uri?: string;
+          title?: string;
+          description?: string;
+          thumb?: string;
+        };
+      } | undefined;
+
+      if (rawEmbed?.$type) {
+        if (rawEmbed.$type === 'app.bsky.embed.images#view' && rawEmbed.images) {
+          embed = {
+            $type: rawEmbed.$type,
+            images: rawEmbed.images.map((img): PostImage => ({
+              thumb: img.thumb ?? '',
+              fullsize: img.fullsize ?? '',
+              alt: img.alt ?? '',
+              aspectRatio: img.aspectRatio,
+            })),
+          };
+        } else if (rawEmbed.$type === 'app.bsky.embed.external#view' && rawEmbed.external) {
+          embed = {
+            $type: rawEmbed.$type,
+            external: {
+              uri: rawEmbed.external.uri ?? '',
+              title: rawEmbed.external.title ?? '',
+              description: rawEmbed.external.description ?? '',
+              thumb: rawEmbed.external.thumb,
+            },
+          };
+        }
+      }
+
+      // Extract viewer state
+      const viewer = item.post.viewer as { like?: string; repost?: string } | undefined;
+
+      return {
+        uri: item.post.uri,
+        cid: item.post.cid,
+        text: (item.post.record as { text?: string })?.text ?? '',
+        author: {
+          handle: item.post.author.handle,
+          displayName: item.post.author.displayName ?? item.post.author.handle,
+          avatar: item.post.author.avatar,
+        },
+        createdAt: (item.post.record as { createdAt?: string })?.createdAt ?? '',
+        likeCount: item.post.likeCount,
+        repostCount: item.post.repostCount,
+        replyCount: item.post.replyCount,
+        embed,
+        viewer: viewer ? { like: viewer.like, repost: viewer.repost } : undefined,
+      };
+    });
 
     if (__DEV__) {
       console.log(`Fetched ${posts.length} posts from timeline`);
@@ -213,6 +262,95 @@ export async function shareProgress(
   }
 
   return { success: true, data: true };
+}
+
+/**
+ * Like a post on Bluesky
+ */
+export async function likePost(
+  uri: string,
+  cid: string
+): Promise<Result<{ uri: string }, AppError>> {
+  try {
+    const agent = getAgent();
+
+    // Check if we have an active session
+    if (!hasActiveSession()) {
+      const refreshResult = await refreshSession();
+      if (!refreshResult.success) {
+        return { success: false, error: refreshResult.error };
+      }
+    }
+
+    // Apply rate limiting
+    await rateLimiter.throttle();
+
+    // Like the post
+    const response = await agent.like(uri, cid);
+
+    if (__DEV__) {
+      console.log('Post liked successfully:', response.uri);
+    }
+
+    return {
+      success: true,
+      data: {
+        uri: response.uri,
+      },
+    };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to like post:', error);
+    }
+
+    return {
+      success: false,
+      error: mapToAppError(error, 'いいね'),
+    };
+  }
+}
+
+/**
+ * Unlike a post on Bluesky
+ */
+export async function unlikePost(
+  likeUri: string
+): Promise<Result<boolean, AppError>> {
+  try {
+    const agent = getAgent();
+
+    // Check if we have an active session
+    if (!hasActiveSession()) {
+      const refreshResult = await refreshSession();
+      if (!refreshResult.success) {
+        return { success: false, error: refreshResult.error };
+      }
+    }
+
+    // Apply rate limiting
+    await rateLimiter.throttle();
+
+    // Unlike the post
+    await agent.deleteLike(likeUri);
+
+    if (__DEV__) {
+      console.log('Post unliked successfully');
+    }
+
+    return {
+      success: true,
+      data: true,
+    };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to unlike post:', error);
+    }
+
+    return {
+      success: false,
+      error: mapToAppError(error, 'いいね解除'),
+    };
+  }
 }
 
 /**

@@ -9,6 +9,7 @@
     "apiKeySetup": "API Key設定",
     "license": "ライセンス",
     "debugLogs": "デバッグログ",
-    "tips": "操作のヒント"
+    "tips": "操作のヒント",
+    "thread": "スレッド"
   }
 }

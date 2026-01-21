@@ -32,6 +32,7 @@ import { Button } from '../components/common/Button';
 import { WordPopup } from '../components/WordPopup';
 import { TimelinePost } from '../types/bluesky';
 import { addWord } from '../services/database/words';
+import { likePost, unlikePost } from '../services/bluesky/feed';
 
 /**
  * Word popup state interface
@@ -205,6 +206,50 @@ export function HomeScreen(): React.JSX.Element {
   }, []);
 
   /**
+   * Handle post press - navigate to thread
+   */
+  const handlePostPress = useCallback(
+    (postUri: string) => {
+      navigation.navigate('Thread', { postUri });
+    },
+    [navigation]
+  );
+
+  /**
+   * Handle like press
+   */
+  const handleLikePress = useCallback(
+    async (post: TimelinePost, shouldLike: boolean) => {
+      try {
+        if (shouldLike) {
+          // Like the post
+          const result = await likePost(post.uri, post.cid);
+          if (!result.success) {
+            if (__DEV__) {
+              console.error('Failed to like post:', result.error);
+            }
+          }
+        } else {
+          // Unlike the post
+          if (post.viewer?.like) {
+            const result = await unlikePost(post.viewer.like);
+            if (!result.success) {
+              if (__DEV__) {
+                console.error('Failed to unlike post:', result.error);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Like operation failed:', error);
+        }
+      }
+    },
+    []
+  );
+
+  /**
    * Render individual post item
    */
   const renderPost = useCallback(
@@ -213,15 +258,17 @@ export function HomeScreen(): React.JSX.Element {
       // and only when the popup is closed but postUri hasn't been reset yet
       const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri && wordPopup.postUri !== '';
       return (
-        <PostCard 
-          post={item} 
+        <PostCard
+          post={item}
           onWordSelect={handleWordSelect}
           onSentenceSelect={handleSentenceSelect}
+          onPostPress={handlePostPress}
+          onLikePress={handleLikePress}
           clearSelection={shouldClearSelection}
         />
       );
     },
-    [handleWordSelect, handleSentenceSelect, wordPopup.visible, wordPopup.postUri]
+    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, wordPopup.visible, wordPopup.postUri]
   );
 
   /**
@@ -308,7 +355,10 @@ export function HomeScreen(): React.JSX.Element {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('header')}</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>{t('header')}</Text>
+            <Text style={styles.headerSubtitle}>{t('headerSubtitle')}</Text>
+          </View>
         </View>
         <Loading fullScreen message={t('loadingTimeline')} />
       </SafeAreaView>
@@ -320,7 +370,10 @@ export function HomeScreen(): React.JSX.Element {
       <OfflineBanner />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('header')}</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>{t('header')}</Text>
+          <Text style={styles.headerSubtitle}>{t('headerSubtitle')}</Text>
+        </View>
         <Pressable
           onPress={() => navigation.navigate('Tips')}
           style={styles.tipsButton}
@@ -408,10 +461,18 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
   },
+  headerTitleContainer: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: FontSizes.xl,
     fontWeight: '700',
     color: Colors.text,
+  },
+  headerSubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   tipsButton: {
     padding: Spacing.sm,
