@@ -1,0 +1,23 @@
+{
+  "skip": "スキップ",
+  "next": "次へ",
+  "done": "完了",
+  "steps": {
+    "wordSelection": {
+      "title": "単語を長押し",
+      "description": "英単語を長押しすると、その単語の意味を調べて単語帳に追加できます。"
+    },
+    "bookSearch": {
+      "title": "投稿を調べる",
+      "description": "本のアイコンをタップすると、投稿全体を翻訳・解析できます。"
+    },
+    "tips": {
+      "title": "操作のヒント",
+      "description": "電球アイコンをタップすると、いつでも使い方を確認できます。"
+    },
+    "apiSetup": {
+      "title": "翻訳機能を有効化",
+      "description": "設定画面でDeepL API Keyを登録すると、日本語翻訳が使えるようになります。無料で始められます！"
+    }
+  }
+}

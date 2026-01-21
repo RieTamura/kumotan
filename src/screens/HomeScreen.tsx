@@ -3,7 +3,7 @@
  * Displays Bluesky timeline feed with word selection functionality
  */
 
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,8 +15,9 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Animated,
+  Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Lightbulb, ArrowUp } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,14 +26,18 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useTutorial, TutorialStep } from '../hooks/useTutorial';
 import { PostCard } from '../components/PostCard';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { Loading } from '../components/common/Loading';
 import { Button } from '../components/common/Button';
 import { WordPopup } from '../components/WordPopup';
+import { TutorialTooltip } from '../components/Tutorial';
 import { TimelinePost } from '../types/bluesky';
 import { addWord } from '../services/database/words';
 import { likePost, unlikePost } from '../services/bluesky/feed';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 /**
  * Word popup state interface
@@ -61,8 +66,72 @@ const initialWordPopupState: WordPopupState = {
  */
 export function HomeScreen(): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation('home');
   const { t: tc } = useTranslation('common');
+  const { t: tt } = useTranslation('tutorial');
+
+  // Tutorial steps configuration
+  const tutorialSteps: TutorialStep[] = useMemo(() => [
+    {
+      id: 'wordSelection',
+      title: tt('steps.wordSelection.title'),
+      description: tt('steps.wordSelection.description'),
+      targetPosition: {
+        x: 20,
+        y: insets.top + 200,
+        width: SCREEN_WIDTH - 40,
+        height: 80,
+      },
+      arrowDirection: 'down',
+    },
+    {
+      id: 'bookSearch',
+      title: tt('steps.bookSearch.title'),
+      description: tt('steps.bookSearch.description'),
+      targetPosition: {
+        x: SCREEN_WIDTH - 100,
+        y: insets.top + 280,
+        width: 40,
+        height: 40,
+      },
+      arrowDirection: 'up',
+    },
+    {
+      id: 'tips',
+      title: tt('steps.tips.title'),
+      description: tt('steps.tips.description'),
+      targetPosition: {
+        x: SCREEN_WIDTH - 50,
+        y: insets.top + 8,
+        width: 40,
+        height: 40,
+      },
+      arrowDirection: 'down',
+    },
+    {
+      id: 'apiSetup',
+      title: tt('steps.apiSetup.title'),
+      description: tt('steps.apiSetup.description'),
+      targetPosition: {
+        x: SCREEN_WIDTH / 2 - 100,
+        y: insets.top + 150,
+        width: 200,
+        height: 60,
+      },
+      arrowDirection: 'up',
+    },
+  ], [tt, insets.top]);
+
+  // Tutorial hook
+  const {
+    isActive: isTutorialActive,
+    currentStepIndex,
+    currentStepData,
+    totalSteps,
+    nextStep,
+    skipTutorial,
+  } = useTutorial(tutorialSteps);
 
   // Feed state and actions
   const {
@@ -442,6 +511,28 @@ export function HomeScreen(): React.JSX.Element {
         onClose={closeWordPopup}
         onAddToWordList={handleAddWord}
       />
+
+      {/* Tutorial Tooltip */}
+      {isTutorialActive && currentStepData && (
+        <TutorialTooltip
+          visible={isTutorialActive}
+          title={currentStepData.title}
+          description={currentStepData.description}
+          tooltipPosition={
+            currentStepData.arrowDirection === 'down'
+              ? { top: (currentStepData.targetPosition?.y ?? 0) + (currentStepData.targetPosition?.height ?? 0) + 20, left: Spacing.lg }
+              : { top: (currentStepData.targetPosition?.y ?? 0) - 150, left: Spacing.lg }
+          }
+          highlightArea={currentStepData.targetPosition}
+          arrowDirection={currentStepData.arrowDirection ?? 'up'}
+          currentStep={currentStepIndex}
+          totalSteps={totalSteps}
+          onNext={nextStep}
+          onSkip={skipTutorial}
+          nextLabel={currentStepIndex === totalSteps ? tt('done') : tt('next')}
+          skipLabel={tt('skip')}
+        />
+      )}
     </SafeAreaView>
   );
 }

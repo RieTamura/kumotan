@@ -1,0 +1,23 @@
+{
+  "skip": "Skip",
+  "next": "Next",
+  "done": "Done",
+  "steps": {
+    "wordSelection": {
+      "title": "Long Press Words",
+      "description": "Long press on an English word to look up its meaning and add it to your vocabulary."
+    },
+    "bookSearch": {
+      "title": "Look Up Posts",
+      "description": "Tap the book icon to translate and analyze the entire post."
+    },
+    "tips": {
+      "title": "Usage Tips",
+      "description": "Tap the lightbulb icon to view usage tips anytime."
+    },
+    "apiSetup": {
+      "title": "Enable Translation",
+      "description": "Register a DeepL API Key in Settings to enable Japanese translation. It's free to start!"
+    }
+  }
+}
