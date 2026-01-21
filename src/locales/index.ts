@@ -20,6 +20,7 @@ import jaApiSetup from './ja/apiSetup.json';
 import jaWordPopup from './ja/wordPopup.json';
 import jaLicense from './ja/license.json';
 import jaDebugLogs from './ja/debugLogs.json';
+import jaTips from './ja/tips.json';
 
 // Import English translations
 import enCommon from './en/common.json';
@@ -33,6 +34,7 @@ import enApiSetup from './en/apiSetup.json';
 import enWordPopup from './en/wordPopup.json';
 import enLicense from './en/license.json';
 import enDebugLogs from './en/debugLogs.json';
+import enTips from './en/tips.json';
 
 /**
  * Translation resources
@@ -50,6 +52,7 @@ export const resources = {
     wordPopup: jaWordPopup,
     license: jaLicense,
     debugLogs: jaDebugLogs,
+    tips: jaTips,
   },
   en: {
     common: enCommon,
@@ -63,6 +66,7 @@ export const resources = {
     wordPopup: enWordPopup,
     license: enLicense,
     debugLogs: enDebugLogs,
+    tips: enTips,
   },
 } as const;
 
@@ -131,6 +135,7 @@ i18n
       'wordPopup',
       'license',
       'debugLogs',
+      'tips',
     ],
     interpolation: {
       escapeValue: false, // React already handles escaping

@@ -17,5 +17,7 @@
   "wordAdded": "Word added!",
   "wordAddError": "Failed to add word",
   "selectionHint": "Long press to select word. Double tap to select sentence *English only",
-  "lookupPost": "Look up post"
+  "lookupPost": "Look up post",
+  "tips": "Tips",
+  "tipsHint": "View app usage tips"
 }

@@ -8,6 +8,7 @@
   "headers": {
     "apiKeySetup": "API Key Setup",
     "license": "License",
-    "debugLogs": "Debug Logs"
+    "debugLogs": "Debug Logs",
+    "tips": "Tips"
   }
 }

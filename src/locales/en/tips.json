@@ -1,0 +1,15 @@
+{
+  "header": "Tips",
+  "wordSelection": {
+    "title": "Word Selection",
+    "description": "Long press on an English word to select it and add it to your vocabulary."
+  },
+  "bookSearch": {
+    "title": "Look Up Post",
+    "description": "Tap the book icon (BookSearch) below a post to select the entire post for translation or looking up meanings."
+  },
+  "share": {
+    "title": "Share Feature",
+    "description": "After selecting a word, tap the 'Share' button in the popup to share the post to Bluesky with an image. Share your learning progress with friends."
+  }
+}

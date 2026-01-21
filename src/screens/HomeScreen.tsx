@@ -17,7 +17,10 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { RefreshCw, ArrowUp } from 'lucide-react-native';
+import { Lightbulb, ArrowUp } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
@@ -56,6 +59,7 @@ const initialWordPopupState: WordPopupState = {
  * HomeScreen Component
  */
 export function HomeScreen(): React.JSX.Element {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation('home');
   const { t: tc } = useTranslation('common');
 
@@ -317,19 +321,17 @@ export function HomeScreen(): React.JSX.Element {
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('header')}</Text>
-        {isConnected && (
-          <Pressable
-            onPress={refresh}
-            style={styles.refreshButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessible={true}
-            accessibilityLabel={t('refreshTimeline')}
-            accessibilityHint={t('refreshHint')}
-            accessibilityRole="button"
-          >
-            <RefreshCw size={24} color={Colors.primary} />
-          </Pressable>
-        )}
+        <Pressable
+          onPress={() => navigation.navigate('Tips')}
+          style={styles.tipsButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessible={true}
+          accessibilityLabel={t('tips')}
+          accessibilityHint={t('tipsHint')}
+          accessibilityRole="button"
+        >
+          <Lightbulb size={24} color={Colors.primary} />
+        </Pressable>
       </View>
 
       <FlatList
@@ -411,7 +413,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
   },
-  refreshButton: {
+  tipsButton: {
     padding: Spacing.sm,
   },
   listContent: {

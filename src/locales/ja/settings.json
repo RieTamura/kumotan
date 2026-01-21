@@ -2,6 +2,7 @@
   "header": "設定",
   "sections": {
     "account": "アカウント",
+    "tips": "ヘルプ",
     "apiSettings": "API設定",
     "dataManagement": "データ管理",
     "support": "サポート",
@@ -68,6 +69,10 @@
     "selectTitle": "言語を選択",
     "japanese": "日本語",
     "english": "English"
+  },
+  "tips": {
+    "title": "操作のヒント",
+    "subtitle": "アプリの使い方を確認する"
   },
   "version": "バージョン {{version}}",
   "linkError": "リンクを開けませんでした。"

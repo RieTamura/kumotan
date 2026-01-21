@@ -380,6 +380,15 @@ export function SettingsScreen(): React.JSX.Element {
           </View>
         </SettingsSection>
 
+        {/* Tips Section */}
+        <SettingsSection title={t('sections.tips')}>
+          <SettingsItem
+            title={t('tips.title')}
+            subtitle={t('tips.subtitle')}
+            onPress={() => navigation.navigate('Tips')}
+          />
+        </SettingsSection>
+
         {/* Language Section */}
         <SettingsSection title={t('sections.language')}>
           <SettingsItem

@@ -2,6 +2,7 @@
   "header": "Settings",
   "sections": {
     "account": "Account",
+    "tips": "Help",
     "apiSettings": "API Settings",
     "dataManagement": "Data Management",
     "support": "Support",
@@ -68,6 +69,10 @@
     "selectTitle": "Select Language",
     "japanese": "日本語",
     "english": "English"
+  },
+  "tips": {
+    "title": "Usage Tips",
+    "subtitle": "Learn how to use the app"
   },
   "version": "Version {{version}}",
   "linkError": "Could not open link."

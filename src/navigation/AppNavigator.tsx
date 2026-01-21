@@ -28,6 +28,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ApiKeySetupScreen from '../screens/ApiKeySetupScreen';
 import LicenseScreen from '../screens/LicenseScreen';
 import { DebugLogsScreen } from '../screens/DebugLogsScreen';
+import { TipsScreen } from '../screens/TipsScreen';
 
 /**
  * Stack Navigator Types
@@ -39,6 +40,7 @@ export type RootStackParamList = {
   ApiKeySetup: { section?: 'deepl' | 'yahoo' };
   License: undefined;
   DebugLogs: undefined;
+  Tips: undefined;
 };
 
 /**
@@ -223,6 +225,19 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.debugLogs'),
+              headerBackTitle: t('common:buttons.back'),
+              headerTintColor: Colors.primary,
+              headerStyle: {
+                backgroundColor: Colors.background,
+              },
+            }}
+          />
+          <Stack.Screen
+            name="Tips"
+            component={TipsScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.tips'),
               headerBackTitle: t('common:buttons.back'),
               headerTintColor: Colors.primary,
               headerStyle: {
