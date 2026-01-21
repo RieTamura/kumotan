@@ -341,65 +341,65 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, clearSelectio
       accessibilityHint="長押しで単語を選択できます"
       accessibilityRole="button"
     >
-      {/* Author row */}
-      <View style={styles.authorRow}>
+      <View style={styles.postLayout}>
+        {/* Avatar column */}
         <Image
           source={{ uri: imageError ? DEFAULT_AVATAR : (post.author.avatar || DEFAULT_AVATAR) }}
           style={styles.avatar}
           onError={handleImageError}
         />
-        <View style={styles.authorInfo}>
-          <Text style={styles.displayName} numberOfLines={1}>
-            {post.author.displayName}
-          </Text>
-          <Text style={styles.handle} numberOfLines={1}>
-            @{post.author.handle}
-          </Text>
-        </View>
-        <Text style={styles.timestamp}>
-          {formatRelativeTime(post.createdAt, t, i18n.language)}
-        </Text>
-      </View>
 
-      {/* Post content */}
-      <View style={styles.content}>
-        {renderText()}
-      </View>
+        {/* Content column */}
+        <View style={styles.contentColumn}>
+          {/* Author row */}
+          <View style={styles.authorRow}>
+            <View style={styles.authorInfo}>
+              <Text style={styles.displayName} numberOfLines={1}>
+                {post.author.displayName}
+              </Text>
+              <Text style={styles.handle} numberOfLines={1}>
+                @{post.author.handle}
+              </Text>
+            </View>
+            <Text style={styles.timestamp}>
+              {formatRelativeTime(post.createdAt, t, i18n.language)}
+            </Text>
+          </View>
 
-      {/* Engagement metrics */}
-      <View style={styles.metricsRow}>
-        <View style={styles.metric}>
-          <MessageCircle size={16} color={Colors.textSecondary} />
-          <Text style={styles.metricText}>{post.replyCount ?? 0}</Text>
-        </View>
-        <View style={styles.metric}>
-          <Repeat2 size={16} color={Colors.textSecondary} />
-          <Text style={styles.metricText}>{post.repostCount ?? 0}</Text>
-        </View>
-        <View style={styles.metric}>
-          <Heart size={16} color={Colors.textSecondary} />
-          <Text style={styles.metricText}>{post.likeCount ?? 0}</Text>
-        </View>
-        {onSentenceSelect && (
-          <Pressable
-            style={styles.bookSearchButton}
-            onPress={handleBookSearchPress}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessible={true}
-            accessibilityLabel={t('home:lookupPost')}
-            accessibilityRole="button"
-          >
-            <BookSearch size={16} color={Colors.textSecondary} />
-          </Pressable>
-        )}
-      </View>
+          {/* Post content */}
+          <View style={styles.content}>
+            {renderText()}
+          </View>
 
-      {/* Selection hint */}
-      {!selectedWord && !selectedSentence && (
-        <Text style={styles.hint}>
-          {t('home:selectionHint')}
-        </Text>
-      )}
+          {/* Engagement metrics */}
+          <View style={styles.metricsRow}>
+            <View style={styles.metric}>
+              <MessageCircle size={16} color={Colors.textSecondary} />
+              <Text style={styles.metricText}>{post.replyCount ?? 0}</Text>
+            </View>
+            <View style={styles.metric}>
+              <Repeat2 size={16} color={Colors.textSecondary} />
+              <Text style={styles.metricText}>{post.repostCount ?? 0}</Text>
+            </View>
+            <View style={styles.metric}>
+              <Heart size={16} color={Colors.textSecondary} />
+              <Text style={styles.metricText}>{post.likeCount ?? 0}</Text>
+            </View>
+            {onSentenceSelect && (
+              <Pressable
+                style={styles.bookSearchButton}
+                onPress={handleBookSearchPress}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessible={true}
+                accessibilityLabel={t('home:lookupPost')}
+                accessibilityRole="button"
+              >
+                <BookSearch size={16} color={Colors.textSecondary} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+      </View>
     </Pressable>
   );
 }
@@ -413,20 +413,27 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.sm,
     ...Shadows.sm,
   },
+  postLayout: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.skeleton,
+    marginRight: Spacing.md,
+  },
+  contentColumn: {
+    flex: 1,
+  },
   authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.skeleton,
+    marginBottom: Spacing.sm,
   },
   authorInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
   },
   displayName: {
     fontSize: FontSizes.lg,
@@ -469,9 +476,7 @@ const styles = StyleSheet.create({
   },
   metricsRow: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     gap: Spacing.xl,
   },
   metric: {
@@ -487,12 +492,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.xs,
-  },
-  hint: {
-    fontSize: FontSizes.xs,
-    color: Colors.textTertiary,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
   },
 });
 
