@@ -713,15 +713,23 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [ ] App Store申請
 - [ ] 正式リリース
 
-### M5: 軽量化・データ配信基盤（計画中）
+### M5: 軽量化・データ配信基盤 🔄 **進行中**
+
 - [x] 単語データの外部化アーキテクチャ設計
   - [x] 要件定義 (doc/kumotan-worddb-plane.md)
   - [x] 実装案作成 (doc/kumotan-worddb-implementation-proposal.md)
   - [x] リポジトリ最適化 (巨大データのGit管理除外と.gitignore設定)
-- [ ] 実装フェーズ
-  - [ ] 辞書データ生成スクリプト改修 (Gzip圧縮)
-  - [ ] GitHub Pages配信設定
-  - [ ] アプリ側ダウンロード・解凍機能実装
+- [x] 辞書データ配信基盤構築 (2026-01-26)
+  - [x] 辞書ファイル圧縮 (jmdict.db.gz: 29MB)
+  - [x] 別リポジトリ作成 ([RieTamura/kumotan-dictionary](https://github.com/RieTamura/kumotan-dictionary))
+  - [x] GitHub Pages配信設定・疎通確認
+    - [metadata.json](https://rietamura.github.io/kumotan-dictionary/metadata.json)
+    - [jmdict.db.gz](https://rietamura.github.io/kumotan-dictionary/jmdict.db.gz)
+- [ ] アプリ側実装フェーズ
+  - [ ] DICTIONARY_CONFIG定数追加
+  - [ ] ExternalDictionaryService.ts作成（ダウンロード・解凍）
+  - [ ] 初回起動時の辞書準備画面UI
+  - [ ] 設定画面に「辞書データ管理」追加
 
 
 ## 注意事項・制約
