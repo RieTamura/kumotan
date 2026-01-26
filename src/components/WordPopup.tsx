@@ -19,16 +19,18 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
-import { DictionaryResult, TranslateResult, JapaneseWordInfo, WordInfo } from '../types/word';
+import { DictionaryResult, JapaneseWordInfo, WordInfo } from '../types/word';
 import { lookupWord } from '../services/dictionary/freeDictionary';
 import { useTranslation } from 'react-i18next';
-import { translateToJapanese, hasApiKey } from '../services/dictionary/deepl';
+import {
+  translateToJapaneseWithFallback,
+  ExtendedTranslateResult,
+} from '../services/dictionary/translate';
 import {
   analyzeMorphology,
   hasClientId as hasYahooClientId
 } from '../services/dictionary/yahooJapan';
 import { Validators, extractEnglishWords } from '../utils/validators';
-import { AppError, ErrorCode } from '../utils/errors';
 import { Button } from './common/Button';
 import { useWordStore } from '../store/wordStore';
 
@@ -196,11 +198,11 @@ export function WordPopup({
   const [backdropOpacity] = useState(new Animated.Value(0));
   
   const [definition, setDefinition] = useState<DictionaryResult | null>(null);
-  const [translation, setTranslation] = useState<TranslateResult | null>(null);
+  const [translation, setTranslation] = useState<ExtendedTranslateResult | null>(null);
   const [japaneseInfo, setJapaneseInfo] = useState<JapaneseWordInfo[]>([]);
-  
+
   // Sentence mode states
-  const [sentenceTranslation, setSentenceTranslation] = useState<TranslateResult | null>(null);
+  const [sentenceTranslation, setSentenceTranslation] = useState<ExtendedTranslateResult | null>(null);
   const [wordsInfo, setWordsInfo] = useState<WordInfo[]>([]);
   
   const [definitionError, setDefinitionError] = useState<string | null>(null);
@@ -221,7 +223,7 @@ export function WordPopup({
   const updateLoading = (key: keyof LoadingState, value: boolean) => {
     setLoading((prev: LoadingState) => ({ ...prev, [key]: value }));
   };
-  const [apiKeyAvailable, setApiKeyAvailable] = useState(false);
+  const [translationAvailable, setTranslationAvailable] = useState(false);
   const [yahooClientIdAvailable, setYahooClientIdAvailable] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isJapanese, setIsJapanese] = useState(false);
@@ -292,10 +294,9 @@ export function WordPopup({
   }, [visible, word]);
 
   /**
-   * Check API key availability
+   * Check Yahoo Client ID availability
    */
   useEffect(() => {
-    hasApiKey().then(setApiKeyAvailable);
     hasYahooClientId().then(setYahooClientIdAvailable);
   }, []);
 
@@ -392,21 +393,17 @@ export function WordPopup({
         setDefinitionError('予期しないエラーが発生しました');
       }
 
-      // Fetch translation (only if API key is set)
-      const hasKey = await hasApiKey();
-      setApiKeyAvailable(hasKey);
-      console.log(`WordPopup: API key available: ${hasKey}`);
+      // Fetch translation (JMdict優先、DeepLフォールバック)
+      updateLoading('translation', true);
+      const transResult = await translateToJapaneseWithFallback(word);
+      updateLoading('translation', false);
 
-      if (hasKey) {
-        updateLoading('translation', true);
-        const transResult = await translateToJapanese(word);
-        updateLoading('translation', false);
-
-        if (transResult.success) {
-          setTranslation(transResult.data);
-        } else {
-          setTranslationError(transResult.error.message);
-        }
+      if (transResult.success) {
+        setTranslation(transResult.data);
+        setTranslationAvailable(true);
+      } else {
+        setTranslationError(transResult.error.message);
+        setTranslationAvailable(false);
       }
     }
   }, [word]);
@@ -415,20 +412,17 @@ export function WordPopup({
    * Fetch data for English sentence mode
    */
   const fetchEnglishSentenceData = useCallback(async () => {
-    const hasKey = await hasApiKey();
-    setApiKeyAvailable(hasKey);
+    // 1. Translate the entire sentence (JMdict + DeepL fallback)
+    updateLoading('sentenceTranslation', true);
+    const sentenceResult = await translateToJapaneseWithFallback(word, { isWord: false });
+    updateLoading('sentenceTranslation', false);
 
-    // 1. Translate the entire sentence
-    if (hasKey) {
-      updateLoading('sentenceTranslation', true);
-      const sentenceResult = await translateToJapanese(word);
-      updateLoading('sentenceTranslation', false);
-
-      if (sentenceResult.success) {
-        setSentenceTranslation(sentenceResult.data);
-      } else {
-        setSentenceError(sentenceResult.error.message);
-      }
+    if (sentenceResult.success) {
+      setSentenceTranslation(sentenceResult.data);
+      setTranslationAvailable(true);
+    } else {
+      setSentenceError(sentenceResult.error.message);
+      setTranslationAvailable(false);
     }
 
     // 2. Extract words from sentence
@@ -465,15 +459,15 @@ export function WordPopup({
         };
       }
 
-      // Fetch new data
+      // Fetch new data (JMdict優先、DeepLフォールバック)
       const [defResult, transResult] = await Promise.all([
         lookupWord(w),
-        hasKey ? translateToJapanese(w) : Promise.resolve({ success: false, error: new AppError(ErrorCode.VALIDATION_ERROR, 'No API key') }),
+        translateToJapaneseWithFallback(w),
       ]);
 
       return {
         word: w,
-        japanese: (transResult.success && 'data' in transResult) ? transResult.data.text : null,
+        japanese: transResult.success ? transResult.data.text : null,
         definition: defResult.success ? defResult.data.definition : null,
         isRegistered: false,
         isSelected: !isRegistered, // Auto-select unregistered words
@@ -730,9 +724,9 @@ export function WordPopup({
                   <Text style={styles.translationText}>{sentenceTranslation.text}</Text>
                 ) : sentenceError ? (
                   <Text style={styles.errorText}>{sentenceError}</Text>
-                ) : !apiKeyAvailable ? (
+                ) : !translationAvailable ? (
                   <Text style={styles.hintText}>
-                    DeepL API Keyを設定すると日本語訳が表示されます
+                    翻訳が利用できません
                   </Text>
                 ) : (
                   <Text style={styles.hintText}>-</Text>
@@ -812,9 +806,9 @@ export function WordPopup({
                 <Text style={styles.translationText}>{translation.text}</Text>
               ) : translationError ? (
                 <Text style={styles.errorText}>{translationError}</Text>
-              ) : !apiKeyAvailable ? (
+              ) : !translationAvailable ? (
                 <Text style={styles.hintText}>
-                  DeepL API Keyを設定すると日本語訳が表示されます
+                  翻訳が利用できません
                 </Text>
               ) : (
                 <Text style={styles.hintText}>-</Text>

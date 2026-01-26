@@ -34,7 +34,10 @@
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "build:ios": "eas build --platform ios",
-    "build:android": "eas build --platform android"
+    "build:android": "eas build --platform android",
+    "jmdict:download": "npx ts-node scripts/jmdict/download-jmdict.ts",
+    "jmdict:convert": "npx ts-node scripts/jmdict/convert-to-sqlite.ts",
+    "jmdict:setup": "npm run jmdict:download && npm run jmdict:convert"
   },
   "dependencies": {
     "@atproto/api": "^0.13.0",
@@ -52,9 +55,11 @@
     "elliptic": "^6.6.1",
     "event-target-polyfill": "^0.0.4",
     "expo": "~54.0.31",
+    "expo-asset": "~12.0.12",
     "expo-clipboard": "~8.0.8",
     "expo-crypto": "^15.0.8",
     "expo-dev-client": "^6.0.20",
+    "expo-file-system": "~19.0.21",
     "expo-linking": "^8.0.11",
     "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",
@@ -80,6 +85,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
+    "@types/better-sqlite3": "^7.6.8",
+    "better-sqlite3": "^11.0.0",
     "@babel/preset-env": "^7.28.5",
     "@types/jest": "^29.5.0",
     "@types/react": "~19.1.10",

@@ -161,14 +161,22 @@ export async function getTimeline(
       };
     });
 
+    // Remove duplicates based on URI (just in case API returns duplicates)
+    const uniquePosts = posts.filter((post, index, self) =>
+      index === self.findIndex((p) => p.uri === post.uri)
+    );
+
     if (__DEV__) {
-      console.log(`Fetched ${posts.length} posts from timeline`);
+      console.log(`Fetched ${uniquePosts.length} posts from timeline`);
+      if (posts.length !== uniquePosts.length) {
+        console.warn(`Removed ${posts.length - uniquePosts.length} duplicate posts`);
+      }
     }
 
     return {
       success: true,
       data: {
-        posts,
+        posts: uniquePosts,
         cursor: response.data.cursor,
       },
     };

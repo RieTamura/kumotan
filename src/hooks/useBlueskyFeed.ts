@@ -163,13 +163,19 @@ export function useBlueskyFeed(): UseFeedReturn {
     const result = await FeedService.getTimeline(50, state.cursor);
 
     if (result.success) {
-      setState((prev) => ({
-        ...prev,
-        posts: [...prev.posts, ...result.data.posts],
-        isLoadingMore: false,
-        cursor: result.data.cursor,
-        hasMore: !!result.data.cursor && result.data.posts.length > 0,
-      }));
+      setState((prev) => {
+        // Filter out duplicate posts by URI
+        const existingUris = new Set(prev.posts.map(p => p.uri));
+        const newPosts = result.data.posts.filter(p => !existingUris.has(p.uri));
+
+        return {
+          ...prev,
+          posts: [...prev.posts, ...newPosts],
+          isLoadingMore: false,
+          cursor: result.data.cursor,
+          hasMore: !!result.data.cursor && result.data.posts.length > 0,
+        };
+      });
     } else {
       setState((prev) => ({
         ...prev,

@@ -3,7 +3,8 @@
  * Shared type definitions for WordPopup and its sub-components
  */
 
-import { DictionaryResult, TranslateResult, JapaneseWordInfo, WordInfo } from '../../types/word';
+import { DictionaryResult, JapaneseWordInfo, WordInfo } from '../../types/word';
+import { ExtendedTranslateResult } from '../../services/dictionary/translate';
 
 /**
  * Props for WordPopup component
@@ -48,7 +49,7 @@ export interface LoadingState {
  */
 export interface WordModeState {
   definition: DictionaryResult | null;
-  translation: TranslateResult | null;
+  translation: ExtendedTranslateResult | null;
   japaneseInfo: JapaneseWordInfo[];
   definitionError: string | null;
   definitionNotFound: boolean;
@@ -60,7 +61,7 @@ export interface WordModeState {
  * State for sentence mode
  */
 export interface SentenceModeState {
-  sentenceTranslation: TranslateResult | null;
+  sentenceTranslation: ExtendedTranslateResult | null;
   wordsInfo: WordInfo[];
   sentenceError: string | null;
 }
@@ -81,9 +82,9 @@ export type WordPopupAction =
   | { type: 'RESET' }
   | { type: 'SET_LOADING'; key: keyof LoadingState; value: boolean }
   | { type: 'SET_DEFINITION'; definition: DictionaryResult | null }
-  | { type: 'SET_TRANSLATION'; translation: TranslateResult | null }
+  | { type: 'SET_TRANSLATION'; translation: ExtendedTranslateResult | null }
   | { type: 'SET_JAPANESE_INFO'; japaneseInfo: JapaneseWordInfo[] }
-  | { type: 'SET_SENTENCE_TRANSLATION'; translation: TranslateResult | null }
+  | { type: 'SET_SENTENCE_TRANSLATION'; translation: ExtendedTranslateResult | null }
   | { type: 'SET_WORDS_INFO'; wordsInfo: WordInfo[] }
   | { type: 'SET_DEFINITION_ERROR'; error: string | null }
   | { type: 'SET_DEFINITION_NOT_FOUND'; notFound: boolean }

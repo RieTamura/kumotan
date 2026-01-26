@@ -4,21 +4,23 @@
  */
 
 import { useState, useCallback } from 'react';
-import { TranslateResult, WordInfo, JapaneseWordInfo } from '../../../types/word';
+import { WordInfo, JapaneseWordInfo } from '../../../types/word';
 import { lookupWord } from '../../../services/dictionary/freeDictionary';
-import { translateToJapanese, hasApiKey } from '../../../services/dictionary/deepl';
+import {
+  translateToJapaneseWithFallback,
+  ExtendedTranslateResult,
+} from '../../../services/dictionary/translate';
 import { analyzeMorphology, hasClientId as hasYahooClientId } from '../../../services/dictionary/yahooJapan';
 import { extractEnglishWords } from '../../../utils/validators';
-import { AppError, ErrorCode } from '../../../utils/errors';
 import { useWordStore } from '../../../store/wordStore';
 import { LoadingState } from '../types';
 
 export interface UseSentenceLookupResult {
-  sentenceTranslation: TranslateResult | null;
+  sentenceTranslation: ExtendedTranslateResult | null;
   wordsInfo: WordInfo[];
   sentenceError: string | null;
   loading: Pick<LoadingState, 'sentenceTranslation' | 'wordsInfo'>;
-  apiKeyAvailable: boolean;
+  translationAvailable: boolean;
   yahooClientIdAvailable: boolean;
   fetchEnglishSentence: (sentence: string) => Promise<void>;
   fetchJapaneseSentence: (sentence: string) => Promise<void>;
@@ -43,14 +45,14 @@ function convertJapaneseInfoToWordInfo(tokens: JapaneseWordInfo[]): WordInfo[] {
  * Hook for sentence-level word lookup (English and Japanese)
  */
 export function useSentenceLookup(): UseSentenceLookupResult {
-  const [sentenceTranslation, setSentenceTranslation] = useState<TranslateResult | null>(null);
+  const [sentenceTranslation, setSentenceTranslation] = useState<ExtendedTranslateResult | null>(null);
   const [wordsInfo, setWordsInfo] = useState<WordInfo[]>([]);
   const [sentenceError, setSentenceError] = useState<string | null>(null);
   const [loading, setLoading] = useState<Pick<LoadingState, 'sentenceTranslation' | 'wordsInfo'>>({
     sentenceTranslation: false,
     wordsInfo: false,
   });
-  const [apiKeyAvailable, setApiKeyAvailable] = useState(false);
+  const [translationAvailable, setTranslationAvailable] = useState(false);
   const [yahooClientIdAvailable, setYahooClientIdAvailable] = useState(false);
 
   const updateLoading = useCallback((key: 'sentenceTranslation' | 'wordsInfo', value: boolean) => {
@@ -75,20 +77,17 @@ export function useSentenceLookup(): UseSentenceLookupResult {
     // Reset errors
     setSentenceError(null);
 
-    const hasKey = await hasApiKey();
-    setApiKeyAvailable(hasKey);
+    // 1. Translate the entire sentence (JMdict + DeepL fallback)
+    updateLoading('sentenceTranslation', true);
+    const sentenceResult = await translateToJapaneseWithFallback(sentence, { isWord: false });
+    updateLoading('sentenceTranslation', false);
 
-    // 1. Translate the entire sentence
-    if (hasKey) {
-      updateLoading('sentenceTranslation', true);
-      const sentenceResult = await translateToJapanese(sentence);
-      updateLoading('sentenceTranslation', false);
-
-      if (sentenceResult.success) {
-        setSentenceTranslation(sentenceResult.data);
-      } else {
-        setSentenceError(sentenceResult.error.message);
-      }
+    if (sentenceResult.success) {
+      setSentenceTranslation(sentenceResult.data);
+      setTranslationAvailable(true);
+    } else {
+      setSentenceError(sentenceResult.error.message);
+      setTranslationAvailable(false);
     }
 
     // 2. Extract words from sentence
@@ -104,7 +103,7 @@ export function useSentenceLookup(): UseSentenceLookupResult {
       registeredWords.map(w => w.english.toLowerCase())
     );
 
-    // 4. Fetch info for each word (N+1 problem - will be fixed with caching)
+    // 4. Fetch info for each word
     updateLoading('wordsInfo', true);
 
     const wordsInfoPromises = words.map(async (w): Promise<WordInfo> => {
@@ -124,15 +123,15 @@ export function useSentenceLookup(): UseSentenceLookupResult {
         };
       }
 
-      // Fetch new data
+      // Fetch new data (JMdict優先、DeepLフォールバック)
       const [defResult, transResult] = await Promise.all([
         lookupWord(w),
-        hasKey ? translateToJapanese(w) : Promise.resolve({ success: false, error: new AppError(ErrorCode.VALIDATION_ERROR, 'No API key') }),
+        translateToJapaneseWithFallback(w),
       ]);
 
       return {
         word: w,
-        japanese: (transResult.success && 'data' in transResult) ? transResult.data.text : null,
+        japanese: transResult.success ? transResult.data.text : null,
         definition: defResult.success ? defResult.data.definition : null,
         isRegistered: false,
         isSelected: !isRegistered, // Auto-select unregistered words
@@ -202,7 +201,7 @@ export function useSentenceLookup(): UseSentenceLookupResult {
     wordsInfo,
     sentenceError,
     loading,
-    apiKeyAvailable,
+    translationAvailable,
     yahooClientIdAvailable,
     fetchEnglishSentence,
     fetchJapaneseSentence,

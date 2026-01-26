@@ -120,3 +120,44 @@ export interface ImageAspectRatio {
   width: number;
   height: number;
 }
+
+/**
+ * JMdict辞書エントリ
+ */
+export interface JMdictEntry {
+  id: number;
+  kanji: string | null;
+  kana: string;
+  isCommon: boolean;
+  priority: number;
+}
+
+/**
+ * JMdict検索結果（意味を含む）
+ */
+export interface JMdictResult {
+  entry: JMdictEntry;
+  glosses: JMdictGloss[];
+}
+
+/**
+ * JMdict意味（英語→日本語検索用）
+ */
+export interface JMdictGloss {
+  id: number;
+  entryId: number;
+  gloss: string;
+  partOfSpeech: string;
+  senseIndex: number;
+}
+
+/**
+ * JMdict翻訳結果（TranslateResultと互換）
+ */
+export interface JMdictTranslateResult {
+  text: string;
+  readings: string[];
+  partOfSpeech: string[];
+  isCommon: boolean;
+  source: 'jmdict';
+}

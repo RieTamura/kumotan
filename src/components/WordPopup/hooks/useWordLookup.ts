@@ -4,19 +4,22 @@
  */
 
 import { useState, useCallback } from 'react';
-import { DictionaryResult, TranslateResult } from '../../../types/word';
+import { DictionaryResult } from '../../../types/word';
 import { lookupWord } from '../../../services/dictionary/freeDictionary';
-import { translateToJapanese, hasApiKey } from '../../../services/dictionary/deepl';
+import {
+  translateToJapaneseWithFallback,
+  ExtendedTranslateResult,
+} from '../../../services/dictionary/translate';
 import { LoadingState } from '../types';
 
 export interface UseWordLookupResult {
   definition: DictionaryResult | null;
-  translation: TranslateResult | null;
+  translation: ExtendedTranslateResult | null;
   definitionError: string | null;
   definitionNotFound: boolean;
   translationError: string | null;
   loading: Pick<LoadingState, 'definition' | 'translation'>;
-  apiKeyAvailable: boolean;
+  translationAvailable: boolean;
   fetchWordData: (word: string) => Promise<void>;
   reset: () => void;
 }
@@ -26,7 +29,7 @@ export interface UseWordLookupResult {
  */
 export function useWordLookup(): UseWordLookupResult {
   const [definition, setDefinition] = useState<DictionaryResult | null>(null);
-  const [translation, setTranslation] = useState<TranslateResult | null>(null);
+  const [translation, setTranslation] = useState<ExtendedTranslateResult | null>(null);
   const [definitionError, setDefinitionError] = useState<string | null>(null);
   const [definitionNotFound, setDefinitionNotFound] = useState<boolean>(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
@@ -34,7 +37,7 @@ export function useWordLookup(): UseWordLookupResult {
     definition: false,
     translation: false,
   });
-  const [apiKeyAvailable, setApiKeyAvailable] = useState(false);
+  const [translationAvailable, setTranslationAvailable] = useState(false);
 
   const updateLoading = useCallback((key: 'definition' | 'translation', value: boolean) => {
     setLoading((prev) => ({ ...prev, [key]: value }));
@@ -77,20 +80,17 @@ export function useWordLookup(): UseWordLookupResult {
       setDefinitionError('予期しないエラーが発生しました');
     }
 
-    // Fetch translation (only if API key is set)
-    const hasKey = await hasApiKey();
-    setApiKeyAvailable(hasKey);
+    // Fetch translation (JMdict優先、DeepLフォールバック)
+    updateLoading('translation', true);
+    const transResult = await translateToJapaneseWithFallback(word);
+    updateLoading('translation', false);
 
-    if (hasKey) {
-      updateLoading('translation', true);
-      const transResult = await translateToJapanese(word);
-      updateLoading('translation', false);
-
-      if (transResult.success) {
-        setTranslation(transResult.data);
-      } else {
-        setTranslationError(transResult.error.message);
-      }
+    if (transResult.success) {
+      setTranslation(transResult.data);
+      setTranslationAvailable(true);
+    } else {
+      setTranslationError(transResult.error.message);
+      setTranslationAvailable(false);
     }
   }, [updateLoading]);
 
@@ -101,7 +101,7 @@ export function useWordLookup(): UseWordLookupResult {
     definitionNotFound,
     translationError,
     loading,
-    apiKeyAvailable,
+    translationAvailable,
     fetchWordData,
     reset,
   };

@@ -713,6 +713,16 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [ ] App Store申請
 - [ ] 正式リリース
 
+### M5: 軽量化・データ配信基盤（計画中）
+- [x] 単語データの外部化アーキテクチャ設計
+  - [x] 要件定義 (doc/kumotan-worddb-plane.md)
+  - [x] 実装案作成 (doc/kumotan-worddb-implementation-proposal.md)
+- [ ] 実装フェーズ
+  - [ ] 辞書データ生成スクリプト改修 (Gzip圧縮)
+  - [ ] GitHub Pages配信設定
+  - [ ] アプリ側ダウンロード・解凍機能実装
+
+
 ## 注意事項・制約
 
 ### API制限
@@ -798,6 +808,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - `useTutorial`フックによる状態管理
   - AsyncStorageで完了状態を永続化
   - i18next対応（日本語/英語翻訳ファイル追加）
+
+### v1.20 (2026-01-26)
+
+- **単語データ外部配信アーキテクチャ策定**
+  - アプリサイズ軽量化とオフライン利用の両立を目指す
+  - GitHub Pagesを利用したデータ配信、アプリ初回起動時のダウンロード方式を採用
+  - 実装計画書を作成 (`doc/kumotan-worddb-implementation-proposal.md`)
 
 ### v1.18 (2026-01-21)
 

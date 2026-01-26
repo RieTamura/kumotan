@@ -336,7 +336,7 @@ export function WordPopupModal({
                     <Text style={styles.translationText}>{state.sentenceTranslation.text}</Text>
                   ) : state.sentenceError ? (
                     <Text style={styles.errorText}>{state.sentenceError}</Text>
-                  ) : !sentenceLookup.apiKeyAvailable ? (
+                  ) : !sentenceLookup.translationAvailable ? (
                     <Text style={styles.hintText}>{t('englishWord.translationHint')}</Text>
                   ) : (
                     <Text style={styles.hintText}>{t('placeholder')}</Text>
@@ -410,7 +410,7 @@ export function WordPopupModal({
                       <Text style={styles.translationText}>{state.translation.text}</Text>
                     ) : state.translationError ? (
                       <Text style={styles.errorText}>{state.translationError}</Text>
-                    ) : !wordLookup.apiKeyAvailable ? (
+                    ) : !wordLookup.translationAvailable ? (
                       <Text style={styles.hintText}>{t('englishWord.translationHint')}</Text>
                     ) : (
                       <Text style={styles.hintText}>{t('placeholder')}</Text>

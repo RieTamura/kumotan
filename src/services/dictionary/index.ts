@@ -39,3 +39,25 @@ export {
   validateClientId as validateYahooClientId,
   type JapaneseWordInfo,
 } from './yahooJapan';
+
+// JMdict辞書 (オフライン英日辞書)
+export {
+  initJMdictDatabase,
+  isJMdictAvailable,
+  lookupJMdict,
+  translateWithJMdict,
+  clearJMdictCache,
+  getJMdictMetadata,
+  JMDICT_LICENSE_TEXT,
+  JMDICT_ATTRIBUTION,
+} from './jmdict';
+
+// 統合翻訳サービス (JMdict + DeepL フォールバック)
+export {
+  translateToJapaneseWithFallback,
+  getTranslationServiceStatus,
+  getRecommendedSource,
+  type TranslationSource,
+  type ExtendedTranslateResult,
+  type TranslateOptions,
+} from './translate';

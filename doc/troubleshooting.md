@@ -3728,9 +3728,12 @@ Pluginsセクションに`expo-build-properties`の設定を追加し、iOS/Andr
 
 ### 問題31：TestFlightでのOAuth認証エラー (MMKV New Architecture)
 
-- **症状**: TestFlightでOAuth認証を行うと、MMKV関連のエラー (eact-native-mmkv 3.x.x requires TurboModules) が発生し、クラッシュまたは赤画面になる。
-- **原因**: eact-native-mmkv v3以降はNew Architecture (TurboModules) が必須だが、アプリがOld Architectureでビルドされていたため。
-- **解決策**: eact-native-mmkv をOld Architecture対応のv2.x系 (^2.12.2) にダウングレードし、pp.jsonのNew Architecture設定を削除した。
+- **症状**: TestFlightでOAuth認証を行うと、MMKV関連のエラー (
+eact-native-mmkv 3.x.x requires TurboModules) が発生し、クラッシュまたは赤画面になる。
+- **原因**: 
+eact-native-mmkv v3以降はNew Architecture (TurboModules) が必須だが、アプリがOld Architectureでビルドされていたため。
+- **解決策**: 
+eact-native-mmkv をOld Architecture対応のv2.x系 (^2.12.2) にダウングレードし、pp.jsonのNew Architecture設定を削除した。
 - **ステータス**: 解決済み (v1.8で対応)
 
 
@@ -3805,7 +3808,8 @@ npm ls react-native-mmkv
   `
 
 ### 原因
-eact-native-mmkv v2.x 系を使用しているが、pp.json で New Architecture (TurboModules) の設定が曖昧、またはデフォルトで有効になっていた可能性がある。
+
+eact-native-mmkv v2.x 系を使用しているが、pp.json で New Architecture (TurboModules) の設定が曖昧、またはデフォルトで有効になっていた可能性がある。
 Expo SDK 54 環境ではデフォルトの設定により、Old Architecture用のモジュールが正しくロードされなかった可能性がある。
 
 ### 解決策
@@ -3831,8 +3835,10 @@ expo-build-properties プラグイン経由ではなく、ルートプロパテ�
 ## 問題33: New Architecture (TurboModules) への移行（2026-01-11）
 
 ### 背景
-Old Architecture環境下で eact-native-mmkv v2 を使用する試み（問題32）は、Expo SDK 54 環境でのビルドエラーやJSI初期化エラーの解決に至らず、設定が複雑化していた。
-また、@atproto/oauth-client-expo は内部でNew Architecture対応の eact-native-mmkv v3 を使用することを前提としている。
+Old Architecture環境下で 
+eact-native-mmkv v2 を使用する試み（問題32）は、Expo SDK 54 環境でのビルドエラーやJSI初期化エラーの解決に至らず、設定が複雑化していた。
+また、@atproto/oauth-client-expo は内部でNew Architecture対応の 
+eact-native-mmkv v3 を使用することを前提としている。
 
 ### 解決策
 根本的な解決として、React Nativeの **New Architecture (TurboModules/Fabric)** を有効にする方針へ転換。
@@ -3848,7 +3854,8 @@ ewArchEnabled: true を設定。
    `
 
 2. **依存関係の更新:**
-   package.json で overrides を削除し、eact-native-mmkv を ^3.2.0 にアップグレード。
+   package.json で overrides を削除し、
+eact-native-mmkv を ^3.2.0 にアップグレード。
 
 ### 検証
 - ビルドエラー（Install pods phase）の解消
@@ -3985,4 +3992,127 @@ export function setOAuthSession(session: any): void {
 ### ステータス
 - **解決済み** (v1.17で対応)
 - **実機でのOAuthログイン成功を確認**
+
+---
+
+## 44. ログイン後にReact Nativeの重複キーエラーが発生する問題
+
+### 発生日
+2026年1月23日
+
+### 症状
+- ログイン後、ホーム画面のタイムラインを表示すると、以下のエラーが複数表示される:
+  ```
+  ERROR Encountered two children with the same key, `%s`. 
+  Keys should be unique so that components maintain their identity across updates.
+  ```
+- エラーメッセージに投稿URI（例: `.%s=2//did=2plc=2viumcw4bffp32jaizbhdik2u/app.bsky.feed.post/3ljzytwody22d`）が含まれる
+- タイムラインのスクロールや追加読み込み時に発生する
+
+### 調査過程
+
+1. **HomeScreen.tsxの確認** - FlatListの`keyExtractor`が正しく実装されていることを確認（346行目で`item.uri`を使用）
+
+2. **useBlueskyFeed.tsの確認** - `loadMore`関数で新しい投稿を追加する際に、重複チェックを行っていないことを発見
+
+3. **feed.tsの確認** - APIから返されるデータ自体に重複がある可能性も考慮
+
+### 原因
+1. **`useBlueskyFeed.ts`の`loadMore`関数**で、無限スクロール時に新しい投稿を既存の投稿配列に追加する際、重複チェックを行っていなかった:
+   ```typescript
+   // 問題のコード
+   setState((prev) => ({
+     ...prev,
+     posts: [...prev.posts, ...result.data.posts],  // 重複チェックなし
+   }));
+   ```
+
+2. 同じ投稿が複数回配列に追加されると、`FlatList`の`keyExtractor`が同じキー（URI）を持つ複数の子要素を検出し、React Nativeの重複キーエラーが発生
+
+### 解決策
+
+#### 修正1: useBlueskyFeed.tsのloadMore関数
+
+新しい投稿を追加する前に、既存のURIと重複しないようフィルタリングを追加:
+
+```typescript
+// 修正後のコード
+if (result.success) {
+  setState((prev) => {
+    // Filter out duplicate posts by URI
+    const existingUris = new Set(prev.posts.map(p => p.uri));
+    const newPosts = result.data.posts.filter(p => !existingUris.has(p.uri));
+    
+    return {
+      ...prev,
+      posts: [...prev.posts, ...newPosts],
+      isLoadingMore: false,
+      cursor: result.data.cursor,
+      hasMore: !!result.data.cursor && result.data.posts.length > 0,
+    };
+  });
+}
+```
+
+**実装のポイント:**
+- `Set`を使用して既存の投稿URIを効率的に管理
+- `filter`で重複する投稿を除外してから配列に追加
+- パフォーマンスを考慮した実装（O(n)の時間計算量）
+
+#### 修正2: feed.tsのgetTimeline関数（予防的修正）
+
+APIから返されたデータ自体に重複がある場合に備えて、URIベースで重複を除外:
+
+```typescript
+// マッピング後に重複除外を追加
+const uniquePosts = posts.filter((post, index, self) =>
+  index === self.findIndex((p) => p.uri === post.uri)
+);
+
+if (__DEV__) {
+  console.log(`Fetched ${uniquePosts.length} posts from timeline`);
+  if (posts.length !== uniquePosts.length) {
+    console.warn(`Removed ${posts.length - uniquePosts.length} duplicate posts`);
+  }
+}
+
+return {
+  success: true,
+  data: {
+    posts: uniquePosts,
+    cursor: response.data.cursor,
+  },
+};
+```
+
+**実装のポイント:**
+- `findIndex`を使用して最初に出現した投稿のみを保持
+- 開発モードでは重複が検出された場合に警告を表示
+- API側の問題にも対応できる防御的プログラミング
+
+### 関連ファイル
+- `src/hooks/useBlueskyFeed.ts` - Blueskyフィードフック（主要な修正）
+- `src/services/bluesky/feed.ts` - フィードサービス（予防的修正）
+- `src/screens/HomeScreen.tsx` - ホーム画面（keyExtractorは正しく実装済み）
+
+### 教訓
+1. **無限スクロールでのデータ追加時は重複チェックが必須**
+   - 既存データと新規データを結合する際は、必ず重複を確認する
+   - ユニークキー（この場合はURI）を使用して重複を検出
+
+2. **Setを使った効率的な重複チェック**
+   - `Set`を使用することで、O(1)の検索時間で重複を検出できる
+   - 大量のデータでもパフォーマンスが低下しない
+
+3. **防御的プログラミングの重要性**
+   - API側のデータに問題がある可能性も考慮する
+   - 複数のレイヤーで重複チェックを行うことで、より堅牢なアプリケーションになる
+
+4. **React NativeのFlatListの特性**
+   - `keyExtractor`で返すキーは必ずユニークである必要がある
+   - 重複キーがあると、コンポーネントの状態管理やレンダリングに問題が発生する
+
+### ステータス
+- **解決済み** (2026年1月23日)
+- **修正内容を確認済み**
 

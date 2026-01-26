@@ -50,3 +50,7 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Large data files
+assets/jmdict/*.db
+assets/jmdict/*.json
