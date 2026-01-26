@@ -717,6 +717,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [x] 単語データの外部化アーキテクチャ設計
   - [x] 要件定義 (doc/kumotan-worddb-plane.md)
   - [x] 実装案作成 (doc/kumotan-worddb-implementation-proposal.md)
+  - [x] リポジトリ最適化 (巨大データのGit管理除外と.gitignore設定)
 - [ ] 実装フェーズ
   - [ ] 辞書データ生成スクリプト改修 (Gzip圧縮)
   - [ ] GitHub Pages配信設定
@@ -815,6 +816,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - アプリサイズ軽量化とオフライン利用の両立を目指す
   - GitHub Pagesを利用したデータ配信、アプリ初回起動時のダウンロード方式を採用
   - 実装計画書を作成 (`doc/kumotan-worddb-implementation-proposal.md`)
+  - **リポジトリ最適化**: 100MBを超える辞書データ（.db, .json）のGit追記を廃止し、`.gitignore`に追加。ビルド・配信用の圧縮スクリプト (`scripts/jmdict/compress-dictionary.js`) を導入。
 
 ### v1.18 (2026-01-21)
 

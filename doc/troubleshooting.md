@@ -4116,3 +4116,27 @@ return {
 - **解決済み** (2026年1月23日)
 - **修正内容を確認済み**
 
+
+
+---
+
+## 45. 巨大な辞書データ（.db, .json）がGitHubに含まれない問題
+
+### 発生日
+2026年1月26日
+
+### 症状
+- ローカルで辞書データ（JMdict）を作成したが、Git管理対象に含まれず、GitHubにプッシュされない。
+- 他の環境でクローンした際、辞書ファイルが存在しないため、アプリの辞書機能が動作しない。
+
+### 原因
+- 辞書データは展開時で100MBを超え、GitHubのファイルサイズ制限に抵触するため。
+- アプリのビルドサイズを軽量化するため、巨大なバイナリデータをリポジトリから除外する設計に変更したため。
+
+### 解決策
+1. **.gitignoreの更新**: ssets/jmdict/*.db, ssets/jmdict/*.json, ssets/jmdict/*.gz を除外し、誤ってリポジトリを肥大化させないようにした。
+2. **圧縮スクリプトの導入**: scripts/jmdict/compress-dictionary.js を実行し、ローカルでGZIP圧縮（約30MB程度）を行えるようにした。
+3. **外部配信の準備**: 初回起動時に外部（GitHub Pages等）からダウンロードし、ローカルで解凍配置する仕組み (src/services/dictionary/setup.ts) の実装を開始した。
+
+### 関連ファイル
+- .gitignore`n- scripts/jmdict/compress-dictionary.js`n- src/services/dictionary/setup.ts`n- doc/kumotan-worddb-implementation-proposal.md (詳細設計)
