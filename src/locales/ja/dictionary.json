@@ -1,0 +1,39 @@
+{
+  "setup": {
+    "title": "辞書データの準備",
+    "description": "オフラインで単語を検索するには、辞書データのダウンロードが必要です。Wi-Fi環境でのダウンロードをお勧めします。",
+    "version": "バージョン",
+    "downloadSize": "ダウンロードサイズ",
+    "installedSize": "インストール後サイズ",
+    "downloadButton": "ダウンロード開始",
+    "skipButton": "後で設定する",
+    "retryButton": "再試行",
+    "continueButton": "続ける",
+    "offlineWarning": "インターネット接続がありません。ダウンロードにはネットワーク接続が必要です。",
+    "wifiRecommended": "ファイルサイズが大きいため、Wi-Fi接続でのダウンロードをお勧めします。"
+  },
+  "status": {
+    "notInstalled": "辞書データがインストールされていません",
+    "checking": "確認中...",
+    "downloadingStart": "ダウンロード準備中...",
+    "downloading": "ダウンロード中... {{percentage}}%",
+    "extracting": "解凍中...",
+    "installing": "インストール中...",
+    "installed": "インストール完了",
+    "error": "エラーが発生しました",
+    "updateAvailable": "アップデートがあります"
+  },
+  "management": {
+    "title": "辞書データ管理",
+    "currentVersion": "現在のバージョン",
+    "installedSize": "ファイルサイズ",
+    "notInstalled": "未インストール",
+    "updateButton": "アップデート",
+    "deleteButton": "辞書データを削除",
+    "downloadButton": "辞書をダウンロード",
+    "deleteConfirmTitle": "辞書データの削除",
+    "deleteConfirmMessage": "辞書データを削除しますか？オフラインでの単語検索ができなくなります。",
+    "deleteSuccess": "辞書データを削除しました",
+    "deleteError": "辞書データの削除に失敗しました"
+  }
+}

@@ -4,6 +4,7 @@
     "account": "Account",
     "tips": "Help",
     "apiSettings": "API Settings",
+    "dictionary": "Dictionary Data",
     "dataManagement": "Data Management",
     "support": "Support",
     "feedback": "Feedback",
@@ -21,6 +22,22 @@
     "yahooClientId": "Yahoo JAPAN Client ID",
     "configured": "Configured ✓",
     "notConfigured": "Not configured"
+  },
+  "dictionary": {
+    "title": "Offline Dictionary",
+    "installed": "Installed (v{{version}})",
+    "notInstalled": "Not installed",
+    "download": "Download Dictionary",
+    "downloadSubtitle": "Dictionary for offline search (~30MB)",
+    "update": "Update Dictionary",
+    "updateSubtitle": "New version v{{version}} available",
+    "delete": "Delete Dictionary Data",
+    "deleteConfirmTitle": "Delete Dictionary Data",
+    "deleteConfirmMessage": "Are you sure you want to delete the dictionary data? Offline word search will be unavailable.",
+    "deleteSuccess": "Dictionary data deleted",
+    "deleteError": "Failed to delete dictionary data",
+    "downloading": "Downloading...",
+    "size": "Size: {{size}}"
   },
   "data": {
     "export": "Export Data",

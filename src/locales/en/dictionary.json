@@ -1,0 +1,39 @@
+{
+  "setup": {
+    "title": "Dictionary Setup",
+    "description": "To search words offline, you need to download the dictionary data. We recommend downloading over Wi-Fi.",
+    "version": "Version",
+    "downloadSize": "Download size",
+    "installedSize": "Installed size",
+    "downloadButton": "Start Download",
+    "skipButton": "Set up later",
+    "retryButton": "Retry",
+    "continueButton": "Continue",
+    "offlineWarning": "No internet connection. Network connection is required for download.",
+    "wifiRecommended": "Due to the large file size, we recommend downloading over Wi-Fi."
+  },
+  "status": {
+    "notInstalled": "Dictionary data not installed",
+    "checking": "Checking...",
+    "downloadingStart": "Preparing download...",
+    "downloading": "Downloading... {{percentage}}%",
+    "extracting": "Extracting...",
+    "installing": "Installing...",
+    "installed": "Installation complete",
+    "error": "An error occurred",
+    "updateAvailable": "Update available"
+  },
+  "management": {
+    "title": "Dictionary Management",
+    "currentVersion": "Current version",
+    "installedSize": "File size",
+    "notInstalled": "Not installed",
+    "updateButton": "Update",
+    "deleteButton": "Delete dictionary data",
+    "downloadButton": "Download dictionary",
+    "deleteConfirmTitle": "Delete Dictionary Data",
+    "deleteConfirmMessage": "Are you sure you want to delete the dictionary data? Offline word search will be unavailable.",
+    "deleteSuccess": "Dictionary data deleted",
+    "deleteError": "Failed to delete dictionary data"
+  }
+}

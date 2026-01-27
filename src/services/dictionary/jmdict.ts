@@ -4,6 +4,9 @@
  * オフラインで英語→日本語の辞書検索を提供します。
  * JMdict (Japanese-Multilingual Dictionary) を使用。
  *
+ * 辞書データは外部サーバー（GitHub Pages）からダウンロードして使用します。
+ * 初回起動時にダウンロードが必要です。
+ *
  * ライセンス: Creative Commons Attribution-ShareAlike Licence (V4.0)
  * 帰属表示: This application uses the JMdict/EDICT dictionary files.
  *           These files are the property of the Electronic Dictionary Research
@@ -11,7 +14,6 @@
  */
 
 import * as SQLite from 'expo-sqlite';
-import { importDatabaseFromAssetAsync } from 'expo-sqlite';
 import { Result } from '../../types/result';
 import {
   JMdictResult,
@@ -19,6 +21,7 @@ import {
 } from '../../types/word';
 import { AppError, ErrorCode } from '../../utils/errors';
 import { LRUCache, createCacheKey } from '../../utils/cache';
+import { isDictionaryInstalled } from './ExternalDictionaryService';
 
 /**
  * JMdict検索結果のキャッシュ（200エントリ、30分TTL）
@@ -72,6 +75,10 @@ async function verifyDatabase(db: SQLite.SQLiteDatabase): Promise<boolean> {
 
 /**
  * JMdictデータベースを初期化
+ *
+ * 外部からダウンロードされた辞書データベースを開きます。
+ * 辞書がインストールされていない場合はエラーを返します。
+ *
  * @param onProgress 進捗コールバック（オプション）
  */
 export async function initJMdictDatabase(
@@ -85,50 +92,55 @@ export async function initJMdictDatabase(
   try {
     onProgress?.('checking');
 
+    // 外部辞書がインストールされているか確認
+    const installed = await isDictionaryInstalled();
+    if (!installed) {
+      onProgress?.('error');
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.DATABASE_ERROR,
+          '辞書データがインストールされていません。設定画面から辞書をダウンロードしてください。',
+        ),
+      };
+    }
+
     // 既存のデータベースを開いて整合性を確認
-    let needsCopy = true;
     try {
       const existingDb = await SQLite.openDatabaseAsync(JMDICT_DB_NAME);
       const isValid = await verifyDatabase(existingDb);
       if (isValid) {
-        // 既存のDBが正常なのでそのまま使用
+        // DBが正常なのでそのまま使用
         jmdictDb = existingDb;
-        needsCopy = false;
         if (__DEV__) {
-          console.log('JMdict: Using existing database');
+          console.log('JMdict: Using external dictionary database');
         }
       } else {
-        // 破損しているので閉じる
+        // 破損している
         await existingDb.closeAsync();
-        if (__DEV__) {
-          console.log('JMdict: Existing database is invalid, will copy from assets');
-        }
+        onProgress?.('error');
+        return {
+          success: false,
+          error: new AppError(
+            ErrorCode.DATABASE_ERROR,
+            '辞書データが破損しています。設定画面から再ダウンロードしてください。',
+          ),
+        };
       }
-    } catch {
-      // データベースが存在しない、または開けない
+    } catch (error) {
+      // データベースが開けない
       if (__DEV__) {
-        console.log('JMdict: Database not found, will copy from assets');
+        console.log('JMdict: Failed to open database', error);
       }
-    }
-
-    // 必要な場合のみアセットからコピー
-    if (needsCopy) {
-      onProgress?.('copying');
-      if (__DEV__) {
-        console.log('JMdict: Copying database from assets...');
-      }
-
-      await importDatabaseFromAssetAsync(JMDICT_DB_NAME, {
-        assetId: require('../../../assets/jmdict/jmdict.db'),
-        forceOverwrite: true,
-      });
-
-      // コピー後にデータベースを開く
-      jmdictDb = await SQLite.openDatabaseAsync(JMDICT_DB_NAME);
-
-      if (__DEV__) {
-        console.log('JMdict: Database copy completed');
-      }
+      onProgress?.('error');
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.DATABASE_ERROR,
+          '辞書データベースを開けませんでした。',
+          error
+        ),
+      };
     }
 
     isInitialized = true;
@@ -158,10 +170,18 @@ export async function initJMdictDatabase(
 
 /**
  * JMdictデータベースが利用可能かどうか確認
+ *
+ * 辞書がインストールされていて、正常に開ける場合にtrueを返します。
  */
 export async function isJMdictAvailable(): Promise<boolean> {
   if (isInitialized && jmdictDb) {
     return true;
+  }
+
+  // まず外部辞書がインストールされているか確認
+  const installed = await isDictionaryInstalled();
+  if (!installed) {
+    return false;
   }
 
   // 初期化を試みて成功するか確認

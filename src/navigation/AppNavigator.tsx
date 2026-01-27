@@ -30,6 +30,7 @@ import LicenseScreen from '../screens/LicenseScreen';
 import { DebugLogsScreen } from '../screens/DebugLogsScreen';
 import { TipsScreen } from '../screens/TipsScreen';
 import { ThreadScreen } from '../screens/ThreadScreen';
+import { DictionarySetupScreen } from '../screens/DictionarySetupScreen';
 
 /**
  * Stack Navigator Types
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   DebugLogs: undefined;
   Tips: undefined;
   Thread: { postUri: string };
+  DictionarySetup: undefined;
 };
 
 /**
@@ -253,6 +255,19 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.thread'),
+              headerBackTitle: t('common:buttons.back'),
+              headerTintColor: Colors.primary,
+              headerStyle: {
+                backgroundColor: Colors.background,
+              },
+            }}
+          />
+          <Stack.Screen
+            name="DictionarySetup"
+            component={DictionarySetupScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.dictionarySetup'),
               headerBackTitle: t('common:buttons.back'),
               headerTintColor: Colors.primary,
               headerStyle: {

@@ -10,6 +10,7 @@
     "license": "ライセンス",
     "debugLogs": "デバッグログ",
     "tips": "操作のヒント",
-    "thread": "スレッド"
+    "thread": "スレッド",
+    "dictionarySetup": "辞書データの準備"
   }
 }

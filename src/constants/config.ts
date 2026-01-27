@@ -116,6 +116,27 @@ export const DATABASE = {
 } as const;
 
 /**
+ * External dictionary configuration
+ * GitHub Pagesからダウンロードするオフライン辞書の設定
+ */
+export const DICTIONARY_CONFIG = {
+  /** 辞書データ配信リポジトリのベースURL */
+  BASE_URL: 'https://rietamura.github.io/kumotan-dictionary',
+  /** メタデータファイル名 */
+  METADATA_FILE: 'metadata.json',
+  /** 圧縮辞書ファイル名 */
+  COMPRESSED_FILE: 'jmdict.db.gz',
+  /** 解凍後の辞書ファイル名 */
+  DATABASE_FILE: 'jmdict.db',
+  /** AsyncStorageキー：辞書インストール完了フラグ */
+  STORAGE_KEY_INSTALLED: '@kumotan:dictionary_installed',
+  /** AsyncStorageキー：インストール済みバージョン */
+  STORAGE_KEY_VERSION: '@kumotan:dictionary_version',
+  /** ダウンロードタイムアウト（ms） */
+  DOWNLOAD_TIMEOUT: 5 * 60 * 1000, // 5分
+} as const;
+
+/**
  * Feature flags (can be used for gradual rollout)
  */
 export const FEATURES = {

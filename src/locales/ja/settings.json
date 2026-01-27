@@ -4,6 +4,7 @@
     "account": "アカウント",
     "tips": "ヘルプ",
     "apiSettings": "API設定",
+    "dictionary": "辞書データ",
     "dataManagement": "データ管理",
     "support": "サポート",
     "feedback": "フィードバック",
@@ -21,6 +22,22 @@
     "yahooClientId": "Yahoo JAPAN Client ID",
     "configured": "設定済み ✓",
     "notConfigured": "未設定"
+  },
+  "dictionary": {
+    "title": "オフライン辞書",
+    "installed": "インストール済み (v{{version}})",
+    "notInstalled": "未インストール",
+    "download": "辞書をダウンロード",
+    "downloadSubtitle": "オフライン検索用辞書（約30MB）",
+    "update": "辞書をアップデート",
+    "updateSubtitle": "新しいバージョン v{{version}} が利用可能",
+    "delete": "辞書データを削除",
+    "deleteConfirmTitle": "辞書データを削除",
+    "deleteConfirmMessage": "辞書データを削除しますか？オフラインでの単語検索ができなくなります。",
+    "deleteSuccess": "辞書データを削除しました",
+    "deleteError": "辞書データの削除に失敗しました",
+    "downloading": "ダウンロード中...",
+    "size": "サイズ: {{size}}"
   },
   "data": {
     "export": "データをエクスポート",

@@ -48,7 +48,9 @@
     "wordsFailed": "({{count}} failed)",
     "wordAdded": "Word added!",
     "allWordsFailed": "Failed to add all words",
-    "addFailed": "Failed to add word"
+    "addFailed": "Failed to add word",
+    "dictionaryNotInstalledTitle": "Dictionary Not Installed",
+    "dictionaryNotInstalled": "Dictionary data is not installed. Please download the dictionary from the Settings screen."
   },
   "buttons": {
     "registerWords": "Register Words ({{count}})",

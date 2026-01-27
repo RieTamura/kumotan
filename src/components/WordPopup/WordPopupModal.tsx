@@ -30,6 +30,7 @@ import { SwipeableWordCard } from './components/SwipeableWordCard';
 import { useWordLookup } from './hooks/useWordLookup';
 import { useJapaneseMorphology } from './hooks/useJapaneseMorphology';
 import { useSentenceLookup } from './hooks/useSentenceLookup';
+import { isDictionaryInstalled } from '../../services/dictionary/ExternalDictionaryService';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85;
@@ -92,6 +93,24 @@ export function WordPopupModal({
       ]).start();
     }
   }, [visible, slideAnim, backdropOpacity]);
+
+  /**
+   * Check dictionary installation and show alert if not installed
+   */
+  useEffect(() => {
+    if (visible && word) {
+      const checkDictionary = async () => {
+        const installed = await isDictionaryInstalled();
+        if (!installed) {
+          Alert.alert(
+            t('alerts.dictionaryNotInstalledTitle'),
+            t('alerts.dictionaryNotInstalled')
+          );
+        }
+      };
+      checkDictionary();
+    }
+  }, [visible, word, t]);
 
   /**
    * Fetch word data when popup opens

@@ -713,7 +713,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [ ] App Store申請
 - [ ] 正式リリース
 
-### M5: 軽量化・データ配信基盤 🔄 **進行中**
+### M5: 軽量化・データ配信基盤 ✅ **完了** (2026-01-27)
 
 - [x] 単語データの外部化アーキテクチャ設計
   - [x] 要件定義 (doc/kumotan-worddb-plane.md)
@@ -725,11 +725,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - [x] GitHub Pages配信設定・疎通確認
     - [metadata.json](https://rietamura.github.io/kumotan-dictionary/metadata.json)
     - [jmdict.db.gz](https://rietamura.github.io/kumotan-dictionary/jmdict.db.gz)
-- [ ] アプリ側実装フェーズ
-  - [ ] DICTIONARY_CONFIG定数追加
-  - [ ] ExternalDictionaryService.ts作成（ダウンロード・解凍）
-  - [ ] 初回起動時の辞書準備画面UI
-  - [ ] 設定画面に「辞書データ管理」追加
+- [x] アプリ側実装フェーズ (2026-01-27)
+  - [x] DICTIONARY_CONFIG定数追加（`src/constants/config.ts`）
+  - [x] ExternalDictionaryService.ts作成（ダウンロード・解凍）
+  - [x] jmdict.tsを外部辞書対応に更新
+  - [x] 初回起動時の辞書準備画面UI（`DictionarySetupScreen.tsx`）
+  - [x] 設定画面に「辞書データ管理」追加
+  - [x] 多言語対応（日本語/英語翻訳ファイル）
 
 
 ## 注意事項・制約
@@ -802,11 +804,32 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年1月22日
-**バージョン**: 1.19
+**最終更新日**: 2026年1月27日
+**バージョン**: 1.21
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.21 (2026-01-27)
+
+- **M5: 軽量化・データ配信基盤 完了**
+  - アプリ側実装フェーズ完了
+  - `DICTIONARY_CONFIG`定数を`src/constants/config.ts`に追加
+  - `ExternalDictionaryService.ts`新規作成
+    - GitHub Pagesから辞書データをダウンロード
+    - fflateによるGzip解凍
+    - expo-file-system/legacyによるファイル操作
+    - インストール状態管理（AsyncStorage）
+  - `jmdict.ts`を外部辞書対応に更新
+  - `DictionarySetupScreen.tsx`新規作成（初回起動時の辞書準備画面）
+    - ダウンロード進捗表示
+    - オフライン検出・警告
+    - Wi-Fi推奨メッセージ
+  - 設定画面に「辞書データ管理」セクション追加
+    - インストール状態表示
+    - ダウンロード/削除機能
+  - 多言語対応（日本語/英語翻訳ファイル追加）
+  - 不要なsetup.ts削除（ExternalDictionaryServiceに統合）
 
 ### v1.19 (2026-01-22)
 

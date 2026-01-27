@@ -10,6 +10,7 @@
     "license": "License",
     "debugLogs": "Debug Logs",
     "tips": "Tips",
-    "thread": "Thread"
+    "thread": "Thread",
+    "dictionarySetup": "Dictionary Setup"
   }
 }

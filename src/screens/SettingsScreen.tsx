@@ -27,6 +27,11 @@ import { Button } from '../components/common/Button';
 import { hasApiKey } from '../services/dictionary/deepl';
 import { hasClientId } from '../services/dictionary/yahooJapan';
 import { exportWords, deleteAllWords } from '../services/database/words';
+import {
+  getDictionaryStatus,
+  deleteDictionary,
+  type InstallStatus,
+} from '../services/dictionary/ExternalDictionaryService';
 import { Toast } from '../components/common/Toast';
 import { useToast } from '../hooks/useToast';
 import { changeLanguage, getCurrentLanguage, type Language } from '../locales';
@@ -111,10 +116,14 @@ export function SettingsScreen(): React.JSX.Element {
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentLang, setCurrentLang] = useState<Language>(getCurrentLanguage());
+  const [dictStatus, setDictStatus] = useState<InstallStatus>('not_installed');
+  const [dictVersion, setDictVersion] = useState<string | null>(null);
+  const [dictAvailableVersion, setDictAvailableVersion] = useState<string | undefined>();
+  const [isDeletingDict, setIsDeletingDict] = useState(false);
   const { toastState, showSuccess, showError, hideToast } = useToast();
 
   /**
-   * Check API key status on mount and when screen gains focus
+   * Check API key and dictionary status on mount and when screen gains focus
    */
   useEffect(() => {
     const checkApiKeys = async () => {
@@ -124,10 +133,20 @@ export function SettingsScreen(): React.JSX.Element {
       const hasYahooId = await hasClientId();
       setYahooClientIdSet(hasYahooId);
     };
+
+    const checkDictionary = async () => {
+      const status = await getDictionaryStatus();
+      setDictStatus(status.status);
+      setDictVersion(status.installedVersion);
+      setDictAvailableVersion(status.availableVersion);
+    };
+
     checkApiKeys();
+    checkDictionary();
 
     const unsubscribe = navigation.addListener('focus', () => {
       checkApiKeys();
+      checkDictionary();
     });
 
     return unsubscribe;
@@ -286,6 +305,51 @@ export function SettingsScreen(): React.JSX.Element {
   }, [navigation]);
 
   /**
+   * Handle dictionary download navigation
+   */
+  const handleDictionaryDownload = useCallback(() => {
+    navigation.navigate('DictionarySetup');
+  }, [navigation]);
+
+  /**
+   * Handle dictionary delete
+   */
+  const handleDictionaryDelete = useCallback(() => {
+    Alert.alert(
+      t('dictionary.deleteConfirmTitle'),
+      t('dictionary.deleteConfirmMessage'),
+      [
+        { text: tc('buttons.cancel'), style: 'cancel' },
+        {
+          text: tc('buttons.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeletingDict(true);
+            try {
+              const result = await deleteDictionary();
+
+              if (!result.success) {
+                showError(result.error.message);
+                return;
+              }
+
+              // 状態を更新
+              setDictStatus('not_installed');
+              setDictVersion(null);
+              showSuccess(t('dictionary.deleteSuccess'));
+            } catch (error) {
+              console.error('Dictionary delete error:', error);
+              showError(t('dictionary.deleteError'));
+            } finally {
+              setIsDeletingDict(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [showSuccess, showError, t, tc]);
+
+  /**
    * Open external link
    */
   const openLink = useCallback(async (url: string) => {
@@ -410,6 +474,41 @@ export function SettingsScreen(): React.JSX.Element {
             subtitle={yahooClientIdSet ? t('api.configured') : t('api.notConfigured')}
             onPress={handleYahooApiKeySettings}
           />
+        </SettingsSection>
+
+        {/* Dictionary Section */}
+        <SettingsSection title={t('sections.dictionary')}>
+          {dictStatus === 'installed' || dictStatus === 'update_available' ? (
+            <>
+              <SettingsItem
+                title={t('dictionary.title')}
+                subtitle={
+                  dictStatus === 'update_available' && dictAvailableVersion
+                    ? t('dictionary.updateSubtitle', { version: dictAvailableVersion })
+                    : t('dictionary.installed', { version: dictVersion ?? '?' })
+                }
+                onPress={
+                  dictStatus === 'update_available'
+                    ? handleDictionaryDownload
+                    : () => {}
+                }
+                showArrow={dictStatus === 'update_available'}
+              />
+              <SettingsItem
+                title={t('dictionary.delete')}
+                onPress={handleDictionaryDelete}
+                danger
+                showArrow={false}
+                disabled={isDeletingDict}
+              />
+            </>
+          ) : (
+            <SettingsItem
+              title={t('dictionary.download')}
+              subtitle={t('dictionary.downloadSubtitle')}
+              onPress={handleDictionaryDownload}
+            />
+          )}
         </SettingsSection>
 
         {/* Data Management Section */}

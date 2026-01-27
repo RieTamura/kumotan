@@ -48,7 +48,9 @@
     "wordsFailed": "({{count}}個は失敗)",
     "wordAdded": "単語を追加しました！",
     "allWordsFailed": "すべての単語の追加に失敗しました",
-    "addFailed": "単語の追加に失敗しました"
+    "addFailed": "単語の追加に失敗しました",
+    "dictionaryNotInstalledTitle": "辞書が未設定",
+    "dictionaryNotInstalled": "辞書データがインストールされていません。設定画面から辞書をダウンロードしてください。"
   },
   "buttons": {
     "registerWords": "単語を登録 ({{count}}件)",
