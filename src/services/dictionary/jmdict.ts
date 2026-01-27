@@ -249,45 +249,114 @@ export async function lookupJMdict(
       FROM glosses g
       JOIN entries e ON g.entry_id = e.id
       WHERE g.gloss_normalized = ?
-      ORDER BY e.priority DESC, e.is_common DESC
+      ORDER BY
+        e.priority DESC,
+        e.is_common DESC,
+        CASE WHEN e.kanji IS NOT NULL THEN 0 ELSE 1 END,
+        g.sense_index ASC,
+        LENGTH(e.kana) ASC
       LIMIT 20
       `,
       [normalizedWord]
     );
 
-    // 結果がない場合は前方一致検索
+    // 結果がない場合はFTS5全文検索（単語境界を考慮した検索）
     let results = exactResults;
     if (results.length === 0) {
-      results = await jmdictDb.getAllAsync<{
-        entry_id: number;
-        kanji: string | null;
-        kana: string;
-        is_common: number;
-        priority: number;
-        gloss_id: number;
-        gloss: string;
-        part_of_speech: string;
-        sense_index: number;
-      }>(
-        `
-        SELECT
-          e.id as entry_id,
-          e.kanji,
-          e.kana,
-          e.is_common,
-          e.priority,
-          g.id as gloss_id,
-          g.gloss,
-          g.part_of_speech,
-          g.sense_index
-        FROM glosses g
-        JOIN entries e ON g.entry_id = e.id
-        WHERE g.gloss_normalized LIKE ?
-        ORDER BY e.priority DESC, e.is_common DESC
-        LIMIT 20
-        `,
-        [`${normalizedWord}%`]
-      );
+      try {
+        // FTS5検索: 単語として検索し、rankでソート
+        const ftsResults = await jmdictDb.getAllAsync<{
+          entry_id: number;
+          kanji: string | null;
+          kana: string;
+          is_common: number;
+          priority: number;
+          gloss_id: number;
+          gloss: string;
+          gloss_normalized: string;
+          part_of_speech: string;
+          sense_index: number;
+          rank: number;
+        }>(
+          `
+          SELECT
+            e.id as entry_id,
+            e.kanji,
+            e.kana,
+            e.is_common,
+            e.priority,
+            g.id as gloss_id,
+            g.gloss,
+            g.gloss_normalized,
+            g.part_of_speech,
+            g.sense_index,
+            fts.rank
+          FROM glosses_fts fts
+          JOIN glosses g ON fts.rowid = g.id
+          JOIN entries e ON g.entry_id = e.id
+          WHERE glosses_fts MATCH ?
+          ORDER BY
+            fts.rank,
+            e.priority DESC,
+            e.is_common DESC,
+            CASE WHEN e.kanji IS NOT NULL THEN 0 ELSE 1 END,
+            g.sense_index ASC,
+            LENGTH(e.kana) ASC
+          LIMIT 50
+          `,
+          [normalizedWord]
+        );
+
+        // フィルタリング: 検索語が単語の先頭にあるものを優先
+        // 例: "skills" → "skills" ✓, "skill" ✓, "skills inventory system" ✗
+        const filteredResults = ftsResults.filter((row) => {
+          const firstWord = row.gloss_normalized.split(/\s+/)[0];
+          // 検索語が最初の単語と一致、または最初の単語が検索語で始まる
+          return firstWord === normalizedWord || firstWord.startsWith(normalizedWord);
+        });
+
+        results = filteredResults.length > 0 ? filteredResults.slice(0, 20) : [];
+      } catch (ftsError) {
+        // FTS5が使えない環境（Expo Go等）では前方一致にフォールバック
+        if (__DEV__) {
+          console.log('FTS5 not available, falling back to LIKE search:', ftsError);
+        }
+        results = await jmdictDb.getAllAsync<{
+          entry_id: number;
+          kanji: string | null;
+          kana: string;
+          is_common: number;
+          priority: number;
+          gloss_id: number;
+          gloss: string;
+          part_of_speech: string;
+          sense_index: number;
+        }>(
+          `
+          SELECT
+            e.id as entry_id,
+            e.kanji,
+            e.kana,
+            e.is_common,
+            e.priority,
+            g.id as gloss_id,
+            g.gloss,
+            g.part_of_speech,
+            g.sense_index
+          FROM glosses g
+          JOIN entries e ON g.entry_id = e.id
+          WHERE g.gloss_normalized LIKE ?
+          ORDER BY
+            e.priority DESC,
+            e.is_common DESC,
+            CASE WHEN e.kanji IS NOT NULL THEN 0 ELSE 1 END,
+            g.sense_index ASC,
+            LENGTH(e.kana) ASC
+          LIMIT 20
+          `,
+          [`${normalizedWord}%`]
+        );
+      }
     }
 
     // 結果をエントリごとにグループ化
