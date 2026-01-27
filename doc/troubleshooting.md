@@ -4140,3 +4140,49 @@ return {
 
 ### 関連ファイル
 - .gitignore`n- scripts/jmdict/compress-dictionary.js`n- src/services/dictionary/setup.ts`n- doc/kumotan-worddb-implementation-proposal.md (詳細設計)
+
+---
+
+## 46. 投稿内の画像が縦に引き伸ばされる問題
+
+### 発生日
+2026年1月27日
+
+### 症状
+- タイムラインの投稿に2枚の画像が横並びで表示される際、画像が縦に引き伸ばされて表示される
+- 特にアスペクト比が横長の画像で顕著に発生
+
+### 原因
+`src/components/PostCard.tsx`の`twoImageItem`スタイルに高さの制限がなく、`aspectRatio`が指定されていなかったため、画像が親コンテナの高さに合わせて縦に引き伸ばされていた。
+
+```typescript
+// 変更前
+twoImageItem: {
+  flex: 1,
+  borderRadius: BorderRadius.md,
+  overflow: 'hidden',
+  position: 'relative',
+},
+```
+
+### 解決策
+`twoImageItem`スタイルに`aspectRatio: 1`を追加し、2枚並びの画像が正方形の比率で表示されるように修正：
+
+```typescript
+// 変更後
+twoImageItem: {
+  flex: 1,
+  aspectRatio: 1,  // 追加
+  borderRadius: BorderRadius.md,
+  overflow: 'hidden',
+  position: 'relative',
+},
+```
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+
+### 教訓
+- React Nativeで画像を表示する際、親コンテナに`aspectRatio`を指定しないと画像が意図しないサイズで表示されることがある
+- `flex: 1`だけでは高さが決まらず、子要素の`height: '100%'`が予期しない挙動を起こす可能性がある
+- 画像グリッドを実装する際は、各セルに明示的なアスペクト比を設定することが重要

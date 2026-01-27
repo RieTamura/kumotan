@@ -794,6 +794,7 @@ const styles = StyleSheet.create({
   },
   twoImageItem: {
     flex: 1,
+    aspectRatio: 1,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
     position: 'relative',
