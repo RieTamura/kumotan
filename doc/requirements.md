@@ -207,6 +207,36 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - 無料プランまたは低コストで利用可能な場合
     - DeepL使用量が上限に近いユーザーが一定数発生した場合
 
+### Phase 2.5: 辞書フィードバック機能
+
+- **目的**: JMdict辞書の翻訳精度向上のためのユーザーフィードバック収集
+- **アーキテクチャ**:
+
+  ```text
+  アプリ内フォーム → Google Apps Script → GitHub Issue作成
+                          ↓
+                   スプレッドシート（ログ保存）
+  ```
+
+- **アプリ内フィードバックフォーム**（WordPopup画面）
+  - フィードバックアイコン設置
+  - テンプレートフォーム表示
+    - 検索語（自動入力）
+    - 表示された訳（自動入力）
+    - 正しい訳（ユーザー入力）
+    - コメント（オプション）
+  - 送信ボタン → GAS API呼び出し
+- **Google Apps Script (GAS)**
+  - POSTリクエスト受信
+  - GitHub API経由でkumotan-dictionary Issueを自動作成
+  - Google スプレッドシートにログ追記（バックアップ用）
+- **GitHub Issue自動作成**
+  - リポジトリ: `RieTamura/kumotan-dictionary`
+  - ラベル: `dictionary-feedback`
+  - テンプレート: 検索語、誤訳、正しい訳、コメント
+- **運用コスト**: 無料（GAS + GitHub Actions + Google Sheets）
+- **実装優先度**: 中（辞書精度改善の基盤として重要）
+
 ### Phase 3: プラットフォーム拡張
 - 日本語→英語の学習モード対応
 - Android対応
