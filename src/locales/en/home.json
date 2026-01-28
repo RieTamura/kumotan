@@ -22,5 +22,14 @@
   "tips": "Tips",
   "tipsHint": "View app usage tips",
   "like": "Like",
-  "unlike": "Unlike"
+  "unlike": "Unlike",
+  "createPost": "New Post",
+  "postTitle": "New Post",
+  "postPlaceholder": "What's on your mind?",
+  "postButton": "Post",
+  "postCancel": "Cancel",
+  "hashtags": "Hashtags",
+  "postSuccess": "Posted successfully",
+  "postError": "Failed to post",
+  "posting": "Posting..."
 }

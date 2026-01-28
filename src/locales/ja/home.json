@@ -22,5 +22,14 @@
   "tips": "操作のヒント",
   "tipsHint": "アプリの使い方を見る",
   "like": "いいね",
-  "unlike": "いいねを取り消す"
+  "unlike": "いいねを取り消す",
+  "createPost": "新規投稿",
+  "postTitle": "新規投稿",
+  "postPlaceholder": "何を共有しますか？",
+  "postButton": "投稿する",
+  "postCancel": "キャンセル",
+  "hashtags": "ハッシュタグ",
+  "postSuccess": "投稿しました",
+  "postError": "投稿に失敗しました",
+  "posting": "投稿中..."
 }

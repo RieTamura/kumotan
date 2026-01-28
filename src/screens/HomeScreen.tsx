@@ -18,7 +18,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Lightbulb, ArrowUp } from 'lucide-react-native';
+import { Lightbulb, ArrowUp, Plus } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -32,6 +32,7 @@ import { OfflineBanner } from '../components/OfflineBanner';
 import { Loading } from '../components/common/Loading';
 import { Button } from '../components/common/Button';
 import { WordPopup } from '../components/WordPopup';
+import { PostCreationModal } from '../components/PostCreationModal';
 import { TutorialTooltip } from '../components/Tutorial';
 import { TimelinePost } from '../types/bluesky';
 import { addWord } from '../services/database/words';
@@ -151,6 +152,9 @@ export function HomeScreen(): React.JSX.Element {
 
   // Word popup state
   const [wordPopup, setWordPopup] = useState<WordPopupState>(initialWordPopupState);
+
+  // Post creation modal state
+  const [isPostModalVisible, setIsPostModalVisible] = useState(false);
 
   // Scroll to top button state
   const flatListRef = useRef<FlatList<TimelinePost>>(null);
@@ -484,7 +488,7 @@ export function HomeScreen(): React.JSX.Element {
         windowSize={5}
       />
 
-      {/* Scroll to Top Button */}
+      {/* Scroll to Top Button (Left) */}
       <Animated.View
         style={[
           styles.scrollToTopButton,
@@ -501,6 +505,25 @@ export function HomeScreen(): React.JSX.Element {
           <ArrowUp size={24} color={Colors.background} />
         </Pressable>
       </Animated.View>
+
+      {/* FAB - Create Post Button (Right) */}
+      <Pressable
+        style={styles.fab}
+        onPress={() => setIsPostModalVisible(true)}
+        accessibilityLabel={t('createPost')}
+        accessibilityRole="button"
+      >
+        <Plus size={24} color={Colors.background} />
+      </Pressable>
+
+      <PostCreationModal
+        visible={isPostModalVisible}
+        onClose={() => setIsPostModalVisible(false)}
+        onPostSuccess={() => {
+          setIsPostModalVisible(false);
+          refresh();
+        }}
+      />
 
       <WordPopup
         visible={wordPopup.visible}
@@ -660,7 +683,7 @@ const styles = StyleSheet.create({
   scrollToTopButton: {
     position: 'absolute',
     bottom: Spacing.xl,
-    right: Spacing.lg,
+    left: Spacing.lg,
     ...Shadows.md,
   },
   scrollToTopPressable: {
@@ -670,6 +693,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    right: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.lg,
   },
 });
 
