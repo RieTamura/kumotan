@@ -278,9 +278,24 @@ export function WordPopup({
    */
   useEffect(() => {
     console.log(`WordPopup useEffect: visible=${visible}, word="${word}"`);
-    
+
     if (visible && word) {
       console.log('WordPopup useEffect: Calling fetchWordData');
+      // Reset state before fetching new data
+      setDefinition(null);
+      setTranslation(null);
+      setJapaneseInfo([]);
+      setSentenceTranslation(null);
+      setWordsInfo([]);
+      setEnglishTranslation(null);
+      setDefinitionError(null);
+      setDefinitionNotFound(false);
+      setTranslationError(null);
+      setJapaneseError(null);
+      setSentenceError(null);
+      setEnglishTranslationError(null);
+      setIsAdding(false);
+      // Call fetchWordData
       fetchWordData();
     } else {
       console.log('WordPopup useEffect: Resetting state');
@@ -300,8 +315,7 @@ export function WordPopup({
       setIsAdding(false);
       setIsJapanese(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, word]);
+  }, [visible, word, fetchWordData]);
 
   /**
    * Check Yahoo Client ID availability

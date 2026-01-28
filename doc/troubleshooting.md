@@ -4186,3 +4186,117 @@ twoImageItem: {
 - React Nativeで画像を表示する際、親コンテナに`aspectRatio`を指定しないと画像が意図しないサイズで表示されることがある
 - `flex: 1`だけでは高さが決まらず、子要素の`height: '100%'`が予期しない挙動を起こす可能性がある
 - 画像グリッドを実装する際は、各セルに明示的なアスペクト比を設定することが重要
+
+---
+
+## 47. 日本語投稿で1投稿単語モードを使うと他の投稿で単語モードが使えない問題
+
+### 発生日
+2026年1月28日
+
+### 症状
+- 日本語の投稿で単語をタップして単語モード（WordPopup）を表示する
+- ポップアップを閉じた後、別の日本語投稿で単語をタップしても単語モードが動作しない
+- 2回目以降の単語タップでポップアップが正しくデータを取得しない
+
+### 調査過程
+
+1. **PostCard.tsxの確認** - `handleJapaneseWordPress`は正しく`onWordSelect`を呼び出していた
+
+2. **HomeScreen.tsxの確認** - `handleWordSelect`は正しく`setWordPopup`を呼び出していた
+
+3. **WordPopup.tsxの確認** - useEffectの依存配列に問題があることが判明
+
+### 原因
+`src/components/WordPopup.tsx`のuseEffectで、依存配列に`fetchWordData`が含まれていなかった：
+
+```typescript
+// 変更前
+useEffect(() => {
+  if (visible && word) {
+    fetchWordData();
+  } else {
+    // Reset state when closed
+    setIsJapanese(false);
+    // ...
+  }
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [visible, word]);  // fetchWordDataが依存配列にない
+```
+
+`fetchWordData`は`useCallback`で定義されており、`word`と`isSentenceMode`に依存している。しかし、useEffectの依存配列に含まれていなかったため、古い`fetchWordData`関数が呼ばれる可能性があった。
+
+また、新しい単語でポップアップを開く際に、前回の状態（`isJapanese`など）がリセットされずに残っていた。
+
+### 解決策
+
+**src/components/WordPopup.tsxの修正：**
+
+1. useEffectの依存配列に`fetchWordData`を追加
+2. 新しいデータをフェッチする前に状態をリセットするように変更
+
+```typescript
+// 変更後
+useEffect(() => {
+  console.log(`WordPopup useEffect: visible=${visible}, word="${word}"`);
+
+  if (visible && word) {
+    console.log('WordPopup useEffect: Calling fetchWordData');
+    // Reset state before fetching new data
+    setDefinition(null);
+    setTranslation(null);
+    setJapaneseInfo([]);
+    setSentenceTranslation(null);
+    setWordsInfo([]);
+    setEnglishTranslation(null);
+    setDefinitionError(null);
+    setDefinitionNotFound(false);
+    setTranslationError(null);
+    setJapaneseError(null);
+    setSentenceError(null);
+    setEnglishTranslationError(null);
+    setIsAdding(false);
+    // Call fetchWordData
+    fetchWordData();
+  } else {
+    console.log('WordPopup useEffect: Resetting state');
+    // Reset state when closed
+    setDefinition(null);
+    setTranslation(null);
+    setJapaneseInfo([]);
+    setSentenceTranslation(null);
+    setWordsInfo([]);
+    setEnglishTranslation(null);
+    setDefinitionError(null);
+    setDefinitionNotFound(false);
+    setTranslationError(null);
+    setJapaneseError(null);
+    setSentenceError(null);
+    setEnglishTranslationError(null);
+    setIsAdding(false);
+    setIsJapanese(false);
+  }
+}, [visible, word, fetchWordData]);  // fetchWordDataを依存配列に追加
+```
+
+### 動作確認ログ
+修正後、以下のように正しく動作することを確認：
+```
+LOG WordPopup useEffect: visible=true, word="ひとえに"
+LOG WordPopup useEffect: Calling fetchWordData
+LOG JMdict reverse translated: "ひとえに" → "wholly (due to)"
+LOG WordPopup useEffect: visible=false, word="ひとえに"
+LOG WordPopup useEffect: Resetting state
+LOG WordPopup useEffect: visible=true, word="君への愛だよ"
+LOG WordPopup useEffect: Calling fetchWordData
+LOG Translated (JA→EN): "君への愛だよ" → "My love for you."
+```
+
+### 関連ファイル
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+
+### 教訓
+- `useCallback`で定義した関数をuseEffect内で使用する場合、依存配列に必ずその関数を含める
+- ESLintの`react-hooks/exhaustive-deps`警告を無視（`eslint-disable`）すると、このような問題を引き起こす可能性がある
+- ポップアップやモーダルを再利用する際は、新しいデータを表示する前に必ず前回の状態をリセットする
+- デバッグログを活用して、useEffectの実行タイミングを確認することが問題の特定に有効
