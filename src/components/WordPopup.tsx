@@ -33,6 +33,10 @@ import {
 import { Validators, extractEnglishWords } from '../utils/validators';
 import { Button } from './common/Button';
 import { useWordStore } from '../store/wordStore';
+import {
+  translateToEnglishWithFallback,
+  ExtendedTranslateResult as EnglishTranslateResult,
+} from '../services/dictionary/translate';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
@@ -179,6 +183,7 @@ interface LoadingState {
   sentenceTranslation: boolean;
   wordsInfo: boolean;
   japanese: boolean;
+  englishTranslation: boolean;
 }
 
 /**
@@ -200,6 +205,7 @@ export function WordPopup({
   const [definition, setDefinition] = useState<DictionaryResult | null>(null);
   const [translation, setTranslation] = useState<ExtendedTranslateResult | null>(null);
   const [japaneseInfo, setJapaneseInfo] = useState<JapaneseWordInfo[]>([]);
+  const [englishTranslation, setEnglishTranslation] = useState<EnglishTranslateResult | null>(null);
 
   // Sentence mode states
   const [sentenceTranslation, setSentenceTranslation] = useState<ExtendedTranslateResult | null>(null);
@@ -210,6 +216,7 @@ export function WordPopup({
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [japaneseError, setJapaneseError] = useState<string | null>(null);
   const [sentenceError, setSentenceError] = useState<string | null>(null);
+  const [englishTranslationError, setEnglishTranslationError] = useState<string | null>(null);
   
   const [loading, setLoading] = useState<LoadingState>({
     definition: false,
@@ -217,6 +224,7 @@ export function WordPopup({
     japanese: false,
     sentenceTranslation: false,
     wordsInfo: false,
+    englishTranslation: false,
   });
 
   // Helper to update loading state
@@ -282,11 +290,13 @@ export function WordPopup({
       setJapaneseInfo([]);
       setSentenceTranslation(null);
       setWordsInfo([]);
+      setEnglishTranslation(null);
       setDefinitionError(null);
       setDefinitionNotFound(false);
       setTranslationError(null);
       setJapaneseError(null);
       setSentenceError(null);
+      setEnglishTranslationError(null);
       setIsAdding(false);
       setIsJapanese(false);
     }
@@ -349,7 +359,20 @@ export function WordPopup({
     setIsJapanese(wordIsJapanese);
 
     if (wordIsJapanese) {
-      // Japanese word - use Yahoo! API for morphological analysis
+      // Japanese word - get English translation and optionally morphological analysis
+
+      // 1. Fetch English translation (JMdict + DeepL fallback)
+      updateLoading('englishTranslation', true);
+      const englishResult = await translateToEnglishWithFallback(word);
+      updateLoading('englishTranslation', false);
+
+      if (englishResult.success) {
+        setEnglishTranslation(englishResult.data);
+      } else {
+        setEnglishTranslationError(englishResult.error.message);
+      }
+
+      // 2. Optionally use Yahoo! API for morphological analysis
       const hasYahooId = await hasYahooClientId();
       setYahooClientIdAvailable(hasYahooId);
 
@@ -587,26 +610,27 @@ export function WordPopup({
           Alert.alert(t('alerts.error'), t('alerts.allWordsFailed'));
         }
       } else if (isJapanese) {
-        // Japanese word - use Yahoo! morphology result
-        const mainToken = japaneseInfo.find(
-          (token) =>
-            !token.partOfSpeech.includes('助詞') &&
-            !token.partOfSpeech.includes('記号') &&
-            token.word.trim().length > 0
-        );
+        // Japanese word - use English translation and optionally morphology result
+        const englishText = englishTranslation?.text ?? null;
+        const readings = englishTranslation?.readings ?? null;
 
-        const reading = mainToken?.reading ?? null;
+        // Build definition from English translation and morphology
+        const definitionParts: string[] = [];
 
-        const morphologyResult = japaneseInfo.length > 0
-          ? japaneseInfo.map(token =>
-              `${token.word} (${token.reading})\n品詞: ${token.partOfSpeech}\n基本形: ${token.baseForm}`
-            ).join('\n\n')
-          : null;
+        if (readings && readings.length > 0) {
+          definitionParts.push(`読み: ${readings.join(', ')}`);
+        }
+
+        if (englishTranslation?.partOfSpeech && englishTranslation.partOfSpeech.length > 0) {
+          definitionParts.push(`品詞: ${englishTranslation.partOfSpeech.join(', ')}`);
+        }
+
+        const definitionText = definitionParts.length > 0 ? definitionParts.join('\n') : undefined;
 
         const result = await addWordToStore({
           english: word,
-          japanese: reading ?? undefined,
-          definition: morphologyResult || undefined,
+          japanese: englishText ?? undefined,
+          definition: definitionText,
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
         });
@@ -763,7 +787,40 @@ export function WordPopup({
           {/* Word Mode Content (original) */}
           {!isSentenceMode && (
             <>
-              {/* Japanese Word Info Section */}
+              {/* Japanese Word - English Translation Section */}
+              {isJapanese && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>英語訳</Text>
+                  {loading.englishTranslation ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : englishTranslation ? (
+                    <>
+                      <Text style={styles.translationText}>{englishTranslation.text}</Text>
+                      {englishTranslation.source && (
+                        <Text style={styles.sourceText}>
+                          出典: {englishTranslation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
+                        </Text>
+                      )}
+                      {englishTranslation.readings && englishTranslation.readings.length > 0 && (
+                        <Text style={styles.readingText}>
+                          読み: {englishTranslation.readings.join(', ')}
+                        </Text>
+                      )}
+                      {englishTranslation.partOfSpeech && englishTranslation.partOfSpeech.length > 0 && (
+                        <Text style={styles.posInfoText}>
+                          品詞: {englishTranslation.partOfSpeech.join(', ')}
+                        </Text>
+                      )}
+                    </>
+                  ) : englishTranslationError ? (
+                    <Text style={styles.errorText}>{englishTranslationError}</Text>
+                  ) : (
+                    <Text style={styles.hintText}>英語訳が見つかりませんでした</Text>
+                  )}
+                </View>
+              )}
+
+              {/* Japanese Word Info Section (Morphological Analysis) */}
               {isJapanese && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>形態素解析結果</Text>
@@ -1006,6 +1063,21 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xl,
     fontWeight: '600',
     color: Colors.text,
+  },
+  sourceText: {
+    fontSize: FontSizes.xs,
+    color: Colors.textTertiary,
+    marginTop: Spacing.xs,
+  },
+  readingText: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  posInfoText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   definitionText: {
     fontSize: FontSizes.md,

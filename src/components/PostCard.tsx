@@ -18,6 +18,7 @@ import { TimelinePost, PostImage } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { formatRelativeTime } from '../services/bluesky/feed';
 import { splitIntoSentences } from '../utils/validators';
+import { tokenizeJapanese, isMeaningfulToken } from '../utils/japaneseTokenizer';
 
 /**
  * PostCard props interface
@@ -110,16 +111,34 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
         });
       }
     } else {
-      // Japanese or non-English sentence
+      // Japanese or non-English sentence - tokenize into word units
       const japanesePattern = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/;
-      tokens.push({
-        text: sentence,
-        isEnglishWord: false,
-        isJapaneseWord: japanesePattern.test(sentence),
-        isEnglishSentence: false,
-        isUrl: false,
-        index: index++,
-      });
+      const hasJapanese = japanesePattern.test(sentence);
+
+      if (hasJapanese) {
+        // Tokenize Japanese text into word-like units
+        const japaneseTokens = tokenizeJapanese(sentence);
+        for (const jToken of japaneseTokens) {
+          tokens.push({
+            text: jToken.text,
+            isEnglishWord: false,
+            isJapaneseWord: isMeaningfulToken(jToken),
+            isEnglishSentence: false,
+            isUrl: false,
+            index: index++,
+          });
+        }
+      } else {
+        // Non-Japanese, non-English text
+        tokens.push({
+          text: sentence,
+          isEnglishWord: false,
+          isJapaneseWord: false,
+          isEnglishSentence: false,
+          isUrl: false,
+          index: index++,
+        });
+      }
     }
 
     currentPos = sentenceStart + sentence.length;
@@ -298,7 +317,20 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
   );
 
   /**
-   * Handle Japanese sentence long press
+   * Handle Japanese word press (single tap) - triggers word mode
+   */
+  const handleJapaneseWordPress = useCallback(
+    (word: string) => {
+      if (!onWordSelect) return;
+      setSelectedWord(word);
+      setSelectedSentence(null);
+      onWordSelect(word, post.uri, post.text);
+    },
+    [post.uri, post.text, onWordSelect]
+  );
+
+  /**
+   * Handle Japanese sentence long press - triggers sentence mode
    */
   const handleJapaneseSentenceLongPress = useCallback(
     (sentence: string) => {
@@ -452,17 +484,21 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
           }
 
           if (token.isJapaneseWord) {
-            const isSentenceSelected = selectedSentence === token.text;
+            const isWordSelected = selectedWord === token.text;
+            const isSentenceSelected = selectedSentence && post.text.includes(selectedSentence) && selectedSentence.includes(token.text);
 
             return (
               <Text
                 key={token.index}
                 style={
-                  isSentenceSelected
+                  isWordSelected
+                    ? styles.highlightedWord
+                    : isSentenceSelected
                     ? styles.highlightedSentence
                     : styles.selectableJapanese
                 }
-                onLongPress={() => handleJapaneseSentenceLongPress(token.text)}
+                onPress={() => handleJapaneseWordPress(token.text)}
+                onLongPress={() => handleJapaneseSentenceLongPress(post.text)}
                 suppressHighlighting={false}
               >
                 {token.text}
