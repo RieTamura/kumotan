@@ -170,6 +170,79 @@ export function isJapaneseText(text: string): boolean {
 
 ---
 
+### Phase 2.5: 日本語投稿の単語モード
+
+#### 背景
+
+現在、日本語投稿は「文章モード」のみ対応（ロングプレスで文章全体を形態素解析）。
+英語投稿と同様に、日本語の単語を個別にタップして英語訳を表示する「単語モード」を実装する。
+
+#### 4.2.5.1 日本語テキスト分割ユーティリティ
+
+**ファイル**: `src/utils/japaneseTokenizer.ts`（新規）
+
+```typescript
+/**
+ * 日本語テキストを単語単位のトークンに分割
+ * 漢字・カタカナ・ひらがなの連続ブロックで分割
+ */
+export function tokenizeJapanese(text: string): string[] {
+  // 漢字の連続、カタカナの連続、ひらがなの連続をそれぞれ1トークンとして抽出
+  const pattern = /[\u4E00-\u9FAF]+|[\u30A0-\u30FF]+|[\u3040-\u309F]+/g;
+  return text.match(pattern) || [];
+}
+```
+
+#### 4.2.5.2 PostCard の日本語単語検出
+
+**ファイル**: `src/components/PostCard.tsx`
+
+**変更点**:
+1. `parseTextSegmentIntoTokens()` で日本語を単語単位に分割
+2. 各日本語単語に `onPress`（単語モード）と `onLongPress`（文章モード）を設定
+3. 英語投稿と同じUXを提供
+
+```typescript
+// 現在: 文章全体が1トークン
+tokens.push({ text: sentence, isJapaneseWord: true });
+
+// 変更後: 単語単位で分割
+const japaneseTokens = tokenizeJapanese(sentence);
+for (const token of japaneseTokens) {
+  tokens.push({ text: token, isJapaneseWord: true });
+}
+```
+
+#### 4.2.5.3 WordPopup の日本語単語モード
+
+**ファイル**: `src/components/WordPopup/WordPopup.tsx`
+
+**変更点**:
+1. `fetchSingleJapaneseWordData()` を実装（単語モード用）
+2. 既存の `translateToEnglishWithFallback()` を呼び出し
+3. 英語訳・読み仮名・品詞情報を表示
+
+```typescript
+async function fetchSingleJapaneseWordData() {
+  // 1. JMdict逆引きで英語訳を取得
+  const result = await translateToEnglishWithFallback(word);
+
+  // 2. 結果をUIに反映
+  setEnglishTranslation(result.data.translation);
+  setReading(result.data.reading);
+  setPartOfSpeech(result.data.partOfSpeech);
+}
+```
+
+#### 4.2.5.4 UX設計
+
+| 操作 | 英語投稿 | 日本語投稿 |
+|------|---------|----------|
+| **タップ** | 単語モード（英語定義+日本語訳） | 単語モード（日本語読み+英語訳） |
+| **ロングプレス** | 文章モード（文章翻訳+単語リスト） | 文章モード（形態素解析+単語リスト） |
+
+---
+
 ### Phase 3: 拡張機能（将来）
 
 - **形態素解析統合**: 活用形→基本形変換（kuromoji.js）
@@ -199,6 +272,17 @@ export function isJapaneseText(text: string): boolean {
 | 2-2 | `useWordLookup` フック拡張 | `src/components/WordPopup/hooks/useWordLookup.ts` | 中 |
 | 2-3 | 英語訳表示セクション追加 | `src/components/WordPopup/WordPopupModal.tsx` | 中 |
 | 2-4 | E2Eテスト作成 | - | 中 |
+
+### Phase 2.5 タスク
+
+| # | タスク | ファイル | 工数目安 |
+|---|--------|----------|----------|
+| 2.5-1 | 日本語トークナイザー実装 | `src/utils/japaneseTokenizer.ts`（新規） | 小 |
+| 2.5-2 | `parseTextSegmentIntoTokens()` 修正 | `src/components/PostCard.tsx` | 中 |
+| 2.5-3 | `handleJapaneseWordPress()` 実装 | `src/components/PostCard.tsx` | 小 |
+| 2.5-4 | `fetchSingleJapaneseWordData()` 実装 | `src/components/WordPopup/WordPopup.tsx` | 中 |
+| 2.5-5 | 日本語単語モードUI調整 | `src/components/WordPopup/WordPopup.tsx` | 中 |
+| 2.5-6 | 単体テスト作成 | `__tests__/japaneseTokenizer.test.ts` | 小 |
 
 ---
 
@@ -266,6 +350,14 @@ describe('lookupJMdictReverse', () => {
 - [x] WordPopupで日本語入力時に英語訳を表示
 - [x] 言語自動検出で検索方向を切り替え
 - [x] 単体テスト作成（E2Eテストは将来対応）
+
+### Phase 2.5（日本語投稿の単語モード）
+
+- [ ] 日本語テキストを単語単位でタップ可能
+- [ ] 日本語単語タップで英語訳を表示（JMdict逆引き）
+- [ ] 日本語単語ロングプレスで文章モード（形態素解析）
+- [ ] 英語投稿と同じUX（タップ=単語、ロングプレス=文章）
+- [ ] 単体テスト作成
 
 ---
 
