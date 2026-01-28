@@ -1,6 +1,6 @@
 /**
  * PostCreationModal Component
- * Bottom sheet modal for creating Bluesky posts
+ * Center popup modal for creating Bluesky posts
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -23,8 +23,8 @@ import { Button } from './common/Button';
 import { usePostCreation, PRESET_HASHTAGS } from '../hooks/usePostCreation';
 import { useTranslation } from 'react-i18next';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.6;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const POPUP_WIDTH = Math.min(SCREEN_WIDTH - Spacing.xl * 2, 400);
 const MAX_CHARACTERS = 300;
 
 /**
@@ -78,8 +78,8 @@ export function PostCreationModal({
   onPostSuccess,
 }: PostCreationModalProps): React.JSX.Element {
   const { t } = useTranslation('home');
-  const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
-  const [backdropOpacity] = useState(new Animated.Value(0));
+  const [scaleAnim] = useState(new Animated.Value(0.9));
+  const [opacityAnim] = useState(new Animated.Value(0));
 
   const {
     text,
@@ -103,13 +103,13 @@ export function PostCreationModal({
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
+        Animated.spring(scaleAnim, {
+          toValue: 1,
           useNativeDriver: true,
           damping: 20,
           stiffness: 150,
         }),
-        Animated.timing(backdropOpacity, {
+        Animated.timing(opacityAnim, {
           toValue: 1,
           duration: 200,
           useNativeDriver: true,
@@ -117,19 +117,19 @@ export function PostCreationModal({
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: MAX_POPUP_HEIGHT,
-          duration: 200,
+        Animated.timing(scaleAnim, {
+          toValue: 0.9,
+          duration: 150,
           useNativeDriver: true,
         }),
-        Animated.timing(backdropOpacity, {
+        Animated.timing(opacityAnim, {
           toValue: 0,
-          duration: 200,
+          duration: 150,
           useNativeDriver: true,
         }),
       ]).start();
     }
-  }, [visible, slideAnim, backdropOpacity]);
+  }, [visible, scaleAnim, opacityAnim]);
 
   /**
    * Reset state when modal closes
@@ -195,31 +195,28 @@ export function PostCreationModal({
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         {/* Backdrop */}
         <Animated.View
           style={[
             styles.backdrop,
-            { opacity: backdropOpacity },
+            { opacity: opacityAnim },
           ]}
         >
           <Pressable style={styles.backdropPressable} onPress={handleBackdropPress} />
         </Animated.View>
 
-        {/* Popup */}
+        {/* Center Popup */}
         <Animated.View
           style={[
             styles.popup,
             {
-              transform: [{ translateY: slideAnim }],
+              opacity: opacityAnim,
+              transform: [{ scale: scaleAnim }],
             },
           ]}
         >
-          {/* Handle */}
-          <View style={styles.handleContainer}>
-            <View style={styles.handle} />
-          </View>
-
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>{t('postTitle')}</Text>
@@ -307,6 +304,8 @@ export function PostCreationModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -316,31 +315,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   popup: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    maxHeight: MAX_POPUP_HEIGHT,
+    width: POPUP_WIDTH,
+    maxHeight: SCREEN_HEIGHT * 0.8,
     backgroundColor: Colors.background,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.xl,
     ...Shadows.lg,
-  },
-  handleContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: Colors.border,
-    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
