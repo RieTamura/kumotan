@@ -34,6 +34,15 @@
     "baseForm": "Base Form",
     "yahooHint": "Set Yahoo! Client ID to view detailed information"
   },
+  "japaneseWord": {
+    "englishTranslation": "English Translation",
+    "reading": "Reading",
+    "commonWord": "Common word",
+    "source": "Source",
+    "sourceJMdict": "JMdict Dictionary",
+    "sourceDeepL": "DeepL Translation",
+    "translationHint": "Translation provided by JMdict dictionary or DeepL API"
+  },
   "englishWord": {
     "translationHint": "Set DeepL API Key to view Japanese translation",
     "definitionNotFound": "Definition not found",

@@ -34,6 +34,15 @@
     "baseForm": "基本形",
     "yahooHint": "Yahoo! Client IDを設定すると詳細情報が表示されます"
   },
+  "japaneseWord": {
+    "englishTranslation": "英語訳",
+    "reading": "読み",
+    "commonWord": "一般的な単語",
+    "source": "ソース",
+    "sourceJMdict": "JMdict辞書",
+    "sourceDeepL": "DeepL翻訳",
+    "translationHint": "JMdict辞書またはDeepL APIで翻訳されます"
+  },
   "englishWord": {
     "translationHint": "DeepL API Keyを設定すると日本語訳が表示されます",
     "definitionNotFound": "定義が見つかりませんでした",

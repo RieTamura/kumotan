@@ -29,6 +29,7 @@ import { wordPopupReducer, initialState } from './reducer';
 import { SwipeableWordCard } from './components/SwipeableWordCard';
 import { useWordLookup } from './hooks/useWordLookup';
 import { useJapaneseMorphology } from './hooks/useJapaneseMorphology';
+import { useJapaneseToEnglish } from './hooks/useJapaneseToEnglish';
 import { useSentenceLookup } from './hooks/useSentenceLookup';
 import { isDictionaryInstalled } from '../../services/dictionary/ExternalDictionaryService';
 
@@ -56,6 +57,7 @@ export function WordPopupModal({
   // Hooks for data fetching
   const wordLookup = useWordLookup();
   const japaneseMorphology = useJapaneseMorphology();
+  const japaneseToEnglish = useJapaneseToEnglish();
   const sentenceLookup = useSentenceLookup();
 
   const addWordToStore = useWordStore(state => state.addWord);
@@ -123,6 +125,7 @@ export function WordPopupModal({
       dispatch({ type: 'RESET' });
       wordLookup.reset();
       japaneseMorphology.reset();
+      japaneseToEnglish.reset();
       sentenceLookup.reset();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,8 +164,11 @@ export function WordPopupModal({
       dispatch({ type: 'SET_IS_JAPANESE', isJapanese });
 
       if (isJapanese) {
-        // Japanese word
-        await japaneseMorphology.fetchJapaneseData(word);
+        // Japanese word - fetch morphology and English translation in parallel
+        await Promise.all([
+          japaneseMorphology.fetchJapaneseData(word),
+          japaneseToEnglish.fetchEnglishTranslation(word),
+        ]);
         dispatch({ type: 'SET_JAPANESE_INFO', japaneseInfo: japaneseMorphology.japaneseInfo });
         if (japaneseMorphology.japaneseError) {
           dispatch({ type: 'SET_JAPANESE_ERROR', error: japaneseMorphology.japaneseError });
@@ -183,7 +189,7 @@ export function WordPopupModal({
         }
       }
     }
-  }, [word, isSentenceMode, wordLookup, japaneseMorphology, sentenceLookup]);
+  }, [word, isSentenceMode, wordLookup, japaneseMorphology, japaneseToEnglish, sentenceLookup]);
 
   /**
    * Handle add to word list
@@ -236,16 +242,27 @@ export function WordPopupModal({
         );
 
         const reading = mainToken?.reading ?? null;
-        const morphologyResult = state.japaneseInfo.length > 0
-          ? state.japaneseInfo
-              .map(token => `${token.word} (${token.reading})\n${t('morphology.partOfSpeech')}: ${token.partOfSpeech}\n${t('morphology.baseForm')}: ${token.baseForm}`)
-              .join('\n\n')
-          : null;
+
+        // Get English translation if available
+        const englishTranslation = japaneseToEnglish.englishTranslation?.text ?? null;
+
+        // Build definition with English translation and morphology info
+        const definitionParts: string[] = [];
+        if (englishTranslation) {
+          definitionParts.push(`${t('japaneseWord.englishTranslation')}: ${englishTranslation}`);
+        }
+        if (state.japaneseInfo.length > 0) {
+          const morphologyResult = state.japaneseInfo
+            .map(token => `${token.word} (${token.reading})\n${t('morphology.partOfSpeech')}: ${token.partOfSpeech}\n${t('morphology.baseForm')}: ${token.baseForm}`)
+            .join('\n\n');
+          definitionParts.push(morphologyResult);
+        }
+        const definition = definitionParts.length > 0 ? definitionParts.join('\n\n') : null;
 
         const result = await addWordToStore({
           english: word,
-          japanese: reading ?? undefined,
-          definition: morphologyResult || undefined,
+          japanese: englishTranslation ?? reading ?? undefined,
+          definition: definition || undefined,
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
         });
@@ -279,7 +296,7 @@ export function WordPopupModal({
     } finally {
       dispatch({ type: 'SET_IS_ADDING', isAdding: false });
     }
-  }, [word, isSentenceMode, state, postUri, postText, addWordToStore, onClose]);
+  }, [word, isSentenceMode, state, postUri, postText, addWordToStore, onClose, japaneseToEnglish.englishTranslation, t]);
 
   /**
    * Handle backdrop press
@@ -305,6 +322,7 @@ export function WordPopupModal({
     wordLookup.loading.definition ||
     wordLookup.loading.translation ||
     japaneseMorphology.loading ||
+    japaneseToEnglish.loading ||
     sentenceLookup.loading.sentenceTranslation ||
     sentenceLookup.loading.wordsInfo;
 
@@ -415,6 +433,52 @@ export function WordPopupModal({
                       <Text style={styles.hintText}>{t('morphology.yahooHint')}</Text>
                     ) : (
                       <Text style={styles.hintText}>{t('placeholder')}</Text>
+                    )}
+                  </View>
+                )}
+
+                {/* English Translation (Japanese words) */}
+                {state.isJapanese && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>{t('japaneseWord.englishTranslation')}</Text>
+                    {japaneseToEnglish.loading ? (
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : japaneseToEnglish.englishTranslation ? (
+                      <View>
+                        <Text style={styles.translationText}>
+                          {japaneseToEnglish.englishTranslation.text}
+                        </Text>
+                        {japaneseToEnglish.englishTranslation.readings &&
+                          japaneseToEnglish.englishTranslation.readings.length > 0 && (
+                          <Text style={styles.readingText}>
+                            {t('japaneseWord.reading')}: {japaneseToEnglish.englishTranslation.readings.join(', ')}
+                          </Text>
+                        )}
+                        {japaneseToEnglish.englishTranslation.partOfSpeech &&
+                          japaneseToEnglish.englishTranslation.partOfSpeech.length > 0 && (
+                          <View style={styles.posTagContainer}>
+                            {japaneseToEnglish.englishTranslation.partOfSpeech.map((pos, index) => (
+                              <View key={`pos-${index}`} style={styles.posTag}>
+                                <Text style={styles.posText}>{pos}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                        {japaneseToEnglish.englishTranslation.isCommon && (
+                          <Text style={styles.commonWordText}>{t('japaneseWord.commonWord')}</Text>
+                        )}
+                        <Text style={styles.sourceText}>
+                          {t('japaneseWord.source')}: {
+                            japaneseToEnglish.englishTranslation.source === 'jmdict'
+                              ? t('japaneseWord.sourceJMdict')
+                              : t('japaneseWord.sourceDeepL')
+                          }
+                        </Text>
+                      </View>
+                    ) : japaneseToEnglish.translationError ? (
+                      <Text style={styles.errorText}>{japaneseToEnglish.translationError}</Text>
+                    ) : (
+                      <Text style={styles.hintText}>{t('japaneseWord.translationHint')}</Text>
                     )}
                   </View>
                 )}
@@ -656,6 +720,27 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textTertiary,
     fontStyle: 'italic',
+  },
+  readingText: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  posTagContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  commonWordText: {
+    fontSize: FontSizes.sm,
+    color: Colors.success,
+    marginTop: Spacing.xs,
+  },
+  sourceText: {
+    fontSize: FontSizes.xs,
+    color: Colors.textTertiary,
+    marginTop: Spacing.sm,
   },
   actions: {
     flexDirection: 'row',
