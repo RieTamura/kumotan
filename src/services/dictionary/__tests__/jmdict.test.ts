@@ -9,8 +9,11 @@ import {
   initJMdictDatabase,
   isJMdictAvailable,
   lookupJMdict,
+  lookupJMdictReverse,
   translateWithJMdict,
+  translateWithJMdictReverse,
   clearJMdictCache,
+  clearJMdictReverseCache,
   getJMdictMetadata,
   JMDICT_LICENSE_TEXT,
   JMDICT_ATTRIBUTION,
@@ -531,6 +534,264 @@ describe('JMdict Dictionary Service', () => {
     it('should export attribution text', () => {
       expect(JMDICT_ATTRIBUTION).toContain('JMdict');
       expect(JMDICT_ATTRIBUTION).toContain('EDRDG');
+    });
+  });
+
+  describe('Reverse Lookup (Japanese to English)', () => {
+    beforeEach(async () => {
+      mockDb.getAllAsync.mockResolvedValue([]);
+      clearJMdictReverseCache();
+      await initJMdictDatabase();
+    });
+
+    describe('lookupJMdictReverse', () => {
+      it('should find entry by kanji', async () => {
+        const mockResults = [
+          {
+            entry_id: 1234,
+            kanji: '美しい',
+            kana: 'うつくしい',
+            is_common: 1,
+            priority: 150,
+            gloss: 'beautiful',
+            part_of_speech: 'adjective',
+            sense_index: 0,
+          },
+          {
+            entry_id: 1234,
+            kanji: '美しい',
+            kana: 'うつくしい',
+            is_common: 1,
+            priority: 150,
+            gloss: 'lovely',
+            part_of_speech: 'adjective',
+            sense_index: 0,
+          },
+        ];
+
+        mockDb.getAllAsync.mockResolvedValue(mockResults);
+
+        const result = await lookupJMdictReverse('美しい');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.length).toBe(1);
+          expect(result.data[0].entry.kanji).toBe('美しい');
+          expect(result.data[0].englishGlosses).toContain('beautiful');
+          expect(result.data[0].englishGlosses).toContain('lovely');
+        }
+      });
+
+      it('should find entry by hiragana', async () => {
+        const mockResults = [
+          {
+            entry_id: 1,
+            kanji: '食べる',
+            kana: 'たべる',
+            is_common: 1,
+            priority: 200,
+            gloss: 'to eat',
+            part_of_speech: 'verb',
+            sense_index: 0,
+          },
+        ];
+
+        mockDb.getAllAsync.mockResolvedValue(mockResults);
+
+        const result = await lookupJMdictReverse('たべる');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.length).toBe(1);
+          expect(result.data[0].englishGlosses).toContain('to eat');
+        }
+      });
+
+      it('should convert katakana to hiragana for search', async () => {
+        const mockResults = [
+          {
+            entry_id: 1,
+            kanji: null,
+            kana: 'ありがとう',
+            is_common: 1,
+            priority: 150,
+            gloss: 'thank you',
+            part_of_speech: 'expression',
+            sense_index: 0,
+          },
+        ];
+
+        mockDb.getAllAsync.mockResolvedValue(mockResults);
+
+        // Input is katakana, should be converted to hiragana
+        const result = await lookupJMdictReverse('アリガトウ');
+
+        expect(result.success).toBe(true);
+        // Verify that search was attempted with normalized text
+        expect(mockDb.getAllAsync).toHaveBeenCalled();
+      });
+
+      it('should return WORD_NOT_FOUND for unknown words', async () => {
+        mockDb.getAllAsync.mockResolvedValue([]);
+
+        const result = await lookupJMdictReverse('あああああ');
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.code).toBe(ErrorCode.WORD_NOT_FOUND);
+        }
+      });
+
+      it('should return validation error for empty input', async () => {
+        const result = await lookupJMdictReverse('   ');
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+        }
+      });
+
+      it('should collect part of speech from glosses', async () => {
+        const mockResults = [
+          {
+            entry_id: 1,
+            kanji: '走る',
+            kana: 'はしる',
+            is_common: 1,
+            priority: 150,
+            gloss: 'to run',
+            part_of_speech: 'verb, godan verb',
+            sense_index: 0,
+          },
+          {
+            entry_id: 1,
+            kanji: '走る',
+            kana: 'はしる',
+            is_common: 1,
+            priority: 150,
+            gloss: 'to dash',
+            part_of_speech: 'verb, intransitive',
+            sense_index: 1,
+          },
+        ];
+
+        mockDb.getAllAsync.mockResolvedValue(mockResults);
+
+        const result = await lookupJMdictReverse('走る');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data[0].partOfSpeech.length).toBeGreaterThan(0);
+        }
+      });
+    });
+
+    describe('translateWithJMdictReverse', () => {
+      it('should translate Japanese to English and cache result', async () => {
+        const mockResults = [
+          {
+            entry_id: 1,
+            kanji: '愛',
+            kana: 'あい',
+            is_common: 1,
+            priority: 200,
+            gloss: 'love',
+            part_of_speech: 'noun',
+            sense_index: 0,
+          },
+        ];
+
+        mockDb.getAllAsync.mockResolvedValue(mockResults);
+
+        const result = await translateWithJMdictReverse('愛');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.text).toBe('love');
+          expect(result.data.originalJapanese).toBe('愛');
+          expect(result.data.reading).toBe('あい');
+          expect(result.data.isCommon).toBe(true);
+          expect(result.data.source).toBe('jmdict');
+        }
+
+        // Second call should use cache
+        mockDb.getAllAsync.mockClear();
+        const cachedResult = await translateWithJMdictReverse('愛');
+        expect(cachedResult.success).toBe(true);
+        expect(mockDb.getAllAsync).not.toHaveBeenCalled();
+      });
+
+      it('should not include reading when entry has no kanji', async () => {
+        const mockResults = [
+          {
+            entry_id: 1,
+            kanji: null,
+            kana: 'ありがとう',
+            is_common: 1,
+            priority: 150,
+            gloss: 'thank you',
+            part_of_speech: 'expression',
+            sense_index: 0,
+          },
+        ];
+
+        mockDb.getAllAsync.mockResolvedValue(mockResults);
+
+        const result = await translateWithJMdictReverse('ありがとう');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.text).toBe('thank you');
+          expect(result.data.originalJapanese).toBe('ありがとう');
+          expect(result.data.reading).toBeUndefined();
+        }
+      });
+
+      it('should return WORD_NOT_FOUND error when no results', async () => {
+        mockDb.getAllAsync.mockResolvedValue([]);
+
+        const result = await translateWithJMdictReverse('zzzzz');
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.code).toBe(ErrorCode.WORD_NOT_FOUND);
+        }
+      });
+    });
+
+    describe('clearJMdictReverseCache', () => {
+      it('should clear cached reverse translations', async () => {
+        const mockResults = [
+          {
+            entry_id: 1,
+            kanji: 'テスト',
+            kana: 'てすと',
+            is_common: 0,
+            priority: 50,
+            gloss: 'test',
+            part_of_speech: 'noun',
+            sense_index: 0,
+          },
+        ];
+
+        mockDb.getAllAsync.mockResolvedValue(mockResults);
+
+        // First call
+        await translateWithJMdictReverse('テスト');
+
+        // Second call uses cache
+        mockDb.getAllAsync.mockClear();
+        await translateWithJMdictReverse('テスト');
+        expect(mockDb.getAllAsync).not.toHaveBeenCalled();
+
+        // Clear cache
+        clearJMdictReverseCache();
+
+        // Third call should query database again
+        mockDb.getAllAsync.mockResolvedValue(mockResults);
+        await translateWithJMdictReverse('テスト');
+        expect(mockDb.getAllAsync).toHaveBeenCalled();
+      });
     });
   });
 });

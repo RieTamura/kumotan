@@ -161,3 +161,24 @@ export interface JMdictTranslateResult {
   isCommon: boolean;
   source: 'jmdict';
 }
+
+/**
+ * JMdict逆引き検索結果（日本語→英語）
+ */
+export interface JMdictReverseResult {
+  entry: JMdictEntry;
+  englishGlosses: string[];
+  partOfSpeech: string[];
+}
+
+/**
+ * JMdict逆引き翻訳結果（日本語→英語翻訳用）
+ */
+export interface JMdictReverseTranslateResult {
+  text: string;
+  originalJapanese: string;
+  reading?: string;
+  partOfSpeech: string[];
+  isCommon: boolean;
+  source: 'jmdict';
+}

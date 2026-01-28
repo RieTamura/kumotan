@@ -9,14 +9,20 @@
  */
 
 import { Result } from '../../types/result';
-import { TranslateResult, JMdictTranslateResult } from '../../types/word';
+import { TranslateResult, JMdictTranslateResult, JMdictReverseTranslateResult } from '../../types/word';
 import { AppError, ErrorCode } from '../../utils/errors';
-import { translateToJapanese as translateWithDeepL, hasApiKey as hasDeepLApiKey } from './deepl';
+import {
+  translateToJapanese as translateWithDeepL,
+  translateToEnglish as translateWithDeepLToEnglish,
+  hasApiKey as hasDeepLApiKey,
+} from './deepl';
 import {
   translateWithJMdict,
+  translateWithJMdictReverse,
   isJMdictAvailable,
   initJMdictDatabase,
 } from './jmdict';
+import { containsJapanese } from '../../utils/japanese';
 
 /**
  * 翻訳ソースの種類
@@ -226,4 +232,158 @@ export async function getRecommendedSource(text: string): Promise<TranslationSou
   }
 
   return 'none';
+}
+
+/**
+ * 日本語から英語に翻訳（統合版）
+ *
+ * 1. 単語の場合: JMdict逆引き → DeepL（フォールバック）
+ * 2. 文章の場合: DeepL → JMdictは使用しない
+ *
+ * @param text 翻訳するテキスト（日本語）
+ * @param options 翻訳オプション
+ * @returns 翻訳結果
+ */
+export async function translateToEnglishWithFallback(
+  text: string,
+  options: TranslateOptions = {}
+): Promise<Result<ExtendedTranslateResult, AppError>> {
+  const {
+    preferJMdict = true,
+    fallbackToDeepL = true,
+    isWord = isWordLevel(text),
+  } = options;
+
+  const trimmedText = text.trim();
+
+  if (!trimmedText) {
+    return {
+      success: false,
+      error: new AppError(ErrorCode.VALIDATION_ERROR, '翻訳するテキストを入力してください。'),
+    };
+  }
+
+  // 入力が日本語かどうか確認
+  if (!containsJapanese(trimmedText)) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.VALIDATION_ERROR,
+        '日本語のテキストを入力してください。'
+      ),
+    };
+  }
+
+  // 単語レベルでJMdictを優先する場合
+  if (isWord && preferJMdict) {
+    // JMdict初期化を試みる
+    const jmdictAvailable = await isJMdictAvailable();
+    if (!jmdictAvailable) {
+      await initJMdictDatabase();
+    }
+
+    // JMdict逆引き検索
+    const jmdictResult = await translateWithJMdictReverse(trimmedText);
+
+    if (jmdictResult.success) {
+      return {
+        success: true,
+        data: {
+          text: jmdictResult.data.text,
+          source: 'jmdict',
+          readings: jmdictResult.data.reading ? [jmdictResult.data.reading] : undefined,
+          partOfSpeech: jmdictResult.data.partOfSpeech,
+          isCommon: jmdictResult.data.isCommon,
+        },
+      };
+    }
+
+    // JMdictで見つからない場合、DeepLにフォールバック
+    if (fallbackToDeepL && jmdictResult.error.code === ErrorCode.WORD_NOT_FOUND) {
+      if (__DEV__) {
+        console.log(`JMdict reverse not found, falling back to DeepL: "${trimmedText}"`);
+      }
+      // DeepLへフォールスルー
+    } else if (!fallbackToDeepL) {
+      // フォールバック無効の場合はJMdictのエラーを返す
+      return { success: false, error: jmdictResult.error };
+    } else {
+      // データベースエラーなどの場合もDeepLを試す
+      if (__DEV__) {
+        console.log(`JMdict reverse error, trying DeepL: ${jmdictResult.error.message}`);
+      }
+    }
+  }
+
+  // DeepL APIで翻訳
+  const hasDeepL = await hasDeepLApiKey();
+  if (!hasDeepL) {
+    // DeepLが利用不可で、JMdictも失敗した場合
+    if (isWord && preferJMdict) {
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.WORD_NOT_FOUND,
+          `「${trimmedText}」の翻訳が見つかりませんでした。DeepL API Keyを設定すると、より多くの単語を翻訳できます。`
+        ),
+      };
+    }
+
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.AUTH_FAILED,
+        'DeepL API Keyが設定されていません。設定画面からAPI Keyを登録してください。'
+      ),
+    };
+  }
+
+  const deeplResult = await translateWithDeepLToEnglish(trimmedText);
+
+  if (deeplResult.success) {
+    return {
+      success: true,
+      data: {
+        text: deeplResult.data.text,
+        source: 'deepl',
+        detectedLanguage: deeplResult.data.detectedLanguage,
+      },
+    };
+  }
+
+  return { success: false, error: deeplResult.error };
+}
+
+/**
+ * テキストの言語を検出して適切な翻訳方向を決定
+ *
+ * @param text 翻訳するテキスト
+ * @returns 翻訳方向（'ja-to-en' | 'en-to-ja'）
+ */
+export function detectTranslationDirection(text: string): 'ja-to-en' | 'en-to-ja' {
+  return containsJapanese(text) ? 'ja-to-en' : 'en-to-ja';
+}
+
+/**
+ * テキストを自動検出して翻訳（統合版）
+ *
+ * 入力テキストの言語を自動検出し、適切な方向に翻訳します。
+ * - 日本語 → 英語
+ * - 英語 → 日本語
+ *
+ * @param text 翻訳するテキスト
+ * @param options 翻訳オプション
+ * @returns 翻訳結果
+ */
+export async function translateWithAutoDetect(
+  text: string,
+  options: TranslateOptions = {}
+): Promise<Result<ExtendedTranslateResult, AppError>> {
+  const direction = detectTranslationDirection(text);
+
+  if (direction === 'ja-to-en') {
+    return translateToEnglishWithFallback(text, options);
+  } else {
+    return translateToJapaneseWithFallback(text, options);
+  }
 }

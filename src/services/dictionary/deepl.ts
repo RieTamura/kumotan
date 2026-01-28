@@ -342,6 +342,154 @@ export async function translateToJapanese(
 }
 
 /**
+ * Translate text from Japanese to English
+ */
+export async function translateToEnglish(
+  text: string
+): Promise<Result<TranslateResult, AppError>> {
+  const apiKey = await getApiKey();
+
+  if (!apiKey) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.AUTH_FAILED,
+        'DeepL API Keyが設定されていません。設定画面からAPI Keyを登録してください。'
+      ),
+    };
+  }
+
+  // Validate input
+  if (!text || text.trim().length === 0) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.VALIDATION_ERROR,
+        '翻訳するテキストを入力してください。'
+      ),
+    };
+  }
+
+  // Check text length (DeepL free has limits)
+  if (text.length > 5000) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.VALIDATION_ERROR,
+        'テキストが長すぎます（最大5000文字）。'
+      ),
+    };
+  }
+
+  // Check cache first
+  const cacheKey = createCacheKey('translation-en', text.trim());
+  const cachedResult = translationCache.get(cacheKey);
+  if (cachedResult) {
+    if (__DEV__) {
+      console.log(`Translation cache hit (EN): "${text.substring(0, 30)}..."`);
+    }
+    return { success: true, data: cachedResult };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT.TRANSLATION);
+
+    const response = await fetch(API.DEEPL.TRANSLATE, {
+      method: 'POST',
+      headers: {
+        'Authorization': `DeepL-Auth-Key ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: [text],
+        target_lang: 'EN',
+        source_lang: 'JA',
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        return {
+          success: false,
+          error: new AppError(
+            ErrorCode.AUTH_FAILED,
+            'API Keyが無効です。設定を確認してください。'
+          ),
+        };
+      }
+      if (response.status === 456) {
+        return {
+          success: false,
+          error: new AppError(
+            ErrorCode.QUOTA_EXCEEDED,
+            '月間の翻訳文字数上限に達しました。来月まで翻訳機能は利用できません。'
+          ),
+        };
+      }
+      if (response.status === 429) {
+        return {
+          success: false,
+          error: new AppError(
+            ErrorCode.RATE_LIMIT,
+            'リクエスト制限に達しました。しばらく待ってから再試行してください。'
+          ),
+        };
+      }
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.API_ERROR,
+          `翻訳APIエラー (${response.status})`
+        ),
+      };
+    }
+
+    const data: DeepLTranslateResponse = await response.json();
+
+    if (!data.translations || data.translations.length === 0) {
+      return {
+        success: false,
+        error: new AppError(ErrorCode.API_ERROR, '翻訳結果が取得できませんでした。'),
+      };
+    }
+
+    const translation = data.translations[0];
+    const result: TranslateResult = {
+      text: translation.text,
+      detectedLanguage: translation.detected_source_language,
+    };
+
+    // Cache the result
+    translationCache.set(cacheKey, result);
+
+    if (__DEV__) {
+      console.log(`Translated (JA→EN): "${text}" → "${result.text}"`);
+    }
+
+    return { success: true, data: result };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        success: false,
+        error: new AppError(ErrorCode.TIMEOUT, '翻訳リクエストがタイムアウトしました。'),
+      };
+    }
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.NETWORK_ERROR,
+        'ネットワーク接続を確認してください。',
+        error
+      ),
+    };
+  }
+}
+
+/**
  * Check if usage is near limit
  */
 export function isUsageWarning(usage: DeepLUsage): boolean {

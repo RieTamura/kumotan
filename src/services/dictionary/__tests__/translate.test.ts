@@ -5,8 +5,11 @@
 
 import {
   translateToJapaneseWithFallback,
+  translateToEnglishWithFallback,
   getTranslationServiceStatus,
   getRecommendedSource,
+  detectTranslationDirection,
+  translateWithAutoDetect,
 } from '../translate';
 import * as jmdict from '../jmdict';
 import * as deepl from '../deepl';
@@ -15,6 +18,7 @@ import { ErrorCode } from '../../../utils/errors';
 // Mock JMdict service
 jest.mock('../jmdict', () => ({
   translateWithJMdict: jest.fn(),
+  translateWithJMdictReverse: jest.fn(),
   isJMdictAvailable: jest.fn(),
   initJMdictDatabase: jest.fn(),
 }));
@@ -22,6 +26,7 @@ jest.mock('../jmdict', () => ({
 // Mock DeepL service
 jest.mock('../deepl', () => ({
   translateToJapanese: jest.fn(),
+  translateToEnglish: jest.fn(),
   hasApiKey: jest.fn(),
 }));
 
@@ -352,6 +357,208 @@ describe('Integrated Translation Service', () => {
       const source = await getRecommendedSource('hello');
 
       expect(source).toBe('none');
+    });
+  });
+
+  describe('translateToEnglishWithFallback (Japanese to English)', () => {
+    describe('Word-level translation (JMdict priority)', () => {
+      it('should use JMdict reverse for Japanese word when available', async () => {
+        (jmdict.isJMdictAvailable as jest.Mock).mockResolvedValue(true);
+        (jmdict.translateWithJMdictReverse as jest.Mock).mockResolvedValue({
+          success: true,
+          data: {
+            text: 'beautiful',
+            originalJapanese: '美しい',
+            reading: 'うつくしい',
+            partOfSpeech: ['adjective'],
+            isCommon: true,
+            source: 'jmdict',
+          },
+        });
+
+        const result = await translateToEnglishWithFallback('美しい');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.text).toBe('beautiful');
+          expect(result.data.source).toBe('jmdict');
+          expect(result.data.readings).toContain('うつくしい');
+        }
+
+        expect(jmdict.translateWithJMdictReverse).toHaveBeenCalledWith('美しい');
+        expect(deepl.translateToEnglish).not.toHaveBeenCalled();
+      });
+
+      it('should fallback to DeepL when JMdict returns WORD_NOT_FOUND', async () => {
+        (jmdict.isJMdictAvailable as jest.Mock).mockResolvedValue(true);
+        (jmdict.translateWithJMdictReverse as jest.Mock).mockResolvedValue({
+          success: false,
+          error: {
+            code: ErrorCode.WORD_NOT_FOUND,
+            message: '辞書に見つかりませんでした',
+          },
+        });
+        (deepl.hasApiKey as jest.Mock).mockResolvedValue(true);
+        (deepl.translateToEnglish as jest.Mock).mockResolvedValue({
+          success: true,
+          data: {
+            text: 'slang word',
+            detectedLanguage: 'JA',
+          },
+        });
+
+        const result = await translateToEnglishWithFallback('スラング語');
+
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.text).toBe('slang word');
+          expect(result.data.source).toBe('deepl');
+        }
+
+        expect(jmdict.translateWithJMdictReverse).toHaveBeenCalled();
+        expect(deepl.translateToEnglish).toHaveBeenCalled();
+      });
+
+      it('should return error when JMdict fails and DeepL not configured', async () => {
+        (jmdict.isJMdictAvailable as jest.Mock).mockResolvedValue(true);
+        (jmdict.translateWithJMdictReverse as jest.Mock).mockResolvedValue({
+          success: false,
+          error: {
+            code: ErrorCode.WORD_NOT_FOUND,
+            message: '辞書に見つかりませんでした',
+          },
+        });
+        (deepl.hasApiKey as jest.Mock).mockResolvedValue(false);
+
+        const result = await translateToEnglishWithFallback('不明な単語');
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.code).toBe(ErrorCode.WORD_NOT_FOUND);
+          expect(result.error.message).toContain('DeepL');
+        }
+      });
+    });
+
+    describe('Input validation', () => {
+      it('should return validation error for empty text', async () => {
+        const result = await translateToEnglishWithFallback('   ');
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+        }
+      });
+
+      it('should return validation error for non-Japanese text', async () => {
+        const result = await translateToEnglishWithFallback('hello world');
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.code).toBe(ErrorCode.VALIDATION_ERROR);
+          expect(result.error.message).toContain('日本語');
+        }
+      });
+    });
+
+    describe('Options handling', () => {
+      it('should respect preferJMdict=false option', async () => {
+        (deepl.hasApiKey as jest.Mock).mockResolvedValue(true);
+        (deepl.translateToEnglish as jest.Mock).mockResolvedValue({
+          success: true,
+          data: {
+            text: 'love',
+            detectedLanguage: 'JA',
+          },
+        });
+
+        await translateToEnglishWithFallback('愛', { preferJMdict: false });
+
+        expect(jmdict.translateWithJMdictReverse).not.toHaveBeenCalled();
+        expect(deepl.translateToEnglish).toHaveBeenCalled();
+      });
+
+      it('should respect fallbackToDeepL=false option', async () => {
+        (jmdict.isJMdictAvailable as jest.Mock).mockResolvedValue(true);
+        (jmdict.translateWithJMdictReverse as jest.Mock).mockResolvedValue({
+          success: false,
+          error: {
+            code: ErrorCode.WORD_NOT_FOUND,
+            message: '見つかりませんでした',
+          },
+        });
+
+        const result = await translateToEnglishWithFallback('珍しい単語', {
+          fallbackToDeepL: false,
+        });
+
+        expect(result.success).toBe(false);
+        expect(deepl.translateToEnglish).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('detectTranslationDirection', () => {
+    it('should detect Japanese to English direction', () => {
+      expect(detectTranslationDirection('こんにちは')).toBe('ja-to-en');
+      expect(detectTranslationDirection('日本語')).toBe('ja-to-en');
+      expect(detectTranslationDirection('カタカナ')).toBe('ja-to-en');
+    });
+
+    it('should detect English to Japanese direction', () => {
+      expect(detectTranslationDirection('hello')).toBe('en-to-ja');
+      expect(detectTranslationDirection('world')).toBe('en-to-ja');
+    });
+
+    it('should treat mixed text as Japanese to English if contains Japanese', () => {
+      expect(detectTranslationDirection('hello あ')).toBe('ja-to-en');
+    });
+  });
+
+  describe('translateWithAutoDetect', () => {
+    it('should translate Japanese to English', async () => {
+      (jmdict.isJMdictAvailable as jest.Mock).mockResolvedValue(true);
+      (jmdict.translateWithJMdictReverse as jest.Mock).mockResolvedValue({
+        success: true,
+        data: {
+          text: 'love',
+          originalJapanese: '愛',
+          reading: 'あい',
+          partOfSpeech: ['noun'],
+          isCommon: true,
+          source: 'jmdict',
+        },
+      });
+
+      const result = await translateWithAutoDetect('愛');
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.text).toBe('love');
+      }
+      expect(jmdict.translateWithJMdictReverse).toHaveBeenCalled();
+    });
+
+    it('should translate English to Japanese', async () => {
+      (jmdict.isJMdictAvailable as jest.Mock).mockResolvedValue(true);
+      (jmdict.translateWithJMdict as jest.Mock).mockResolvedValue({
+        success: true,
+        data: {
+          text: '愛',
+          readings: ['あい'],
+          partOfSpeech: ['noun'],
+          isCommon: true,
+          source: 'jmdict',
+        },
+      });
+
+      const result = await translateWithAutoDetect('love');
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.text).toBe('愛');
+      }
+      expect(jmdict.translateWithJMdict).toHaveBeenCalled();
     });
   });
 });

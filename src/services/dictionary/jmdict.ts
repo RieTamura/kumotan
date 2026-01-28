@@ -18,7 +18,10 @@ import { Result } from '../../types/result';
 import {
   JMdictResult,
   JMdictTranslateResult,
+  JMdictReverseResult,
+  JMdictReverseTranslateResult,
 } from '../../types/word';
+import { normalizeJapanese } from '../../utils/japanese';
 import { AppError, ErrorCode } from '../../utils/errors';
 import { LRUCache, createCacheKey } from '../../utils/cache';
 import { isDictionaryInstalled } from './ExternalDictionaryService';
@@ -27,6 +30,11 @@ import { isDictionaryInstalled } from './ExternalDictionaryService';
  * JMdict検索結果のキャッシュ（200エントリ、30分TTL）
  */
 const jmdictCache = new LRUCache<JMdictTranslateResult>(200, 30 * 60 * 1000);
+
+/**
+ * JMdict逆引き検索結果のキャッシュ（200エントリ、30分TTL）
+ */
+const jmdictReverseCache = new LRUCache<JMdictReverseTranslateResult>(200, 30 * 60 * 1000);
 
 /**
  * データベースインスタンス
@@ -539,3 +547,204 @@ For more information, see: https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dic
  * JMdictの帰属表示（短縮版）
  */
 export const JMDICT_ATTRIBUTION = 'JMdict by EDRDG (CC BY-SA 4.0)';
+
+/**
+ * 日本語からJMdictエントリを検索（逆引き）
+ *
+ * 漢字、ひらがな、カタカナで検索し、英語訳を取得します。
+ * カタカナはひらがなに変換して検索します。
+ */
+export async function lookupJMdictReverse(
+  japaneseText: string
+): Promise<Result<JMdictReverseResult[], AppError>> {
+  // データベース初期化確認
+  if (!isInitialized || !jmdictDb) {
+    const initResult = await initJMdictDatabase();
+    if (!initResult.success) {
+      return { success: false, error: initResult.error };
+    }
+  }
+
+  if (!jmdictDb) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.DATABASE_ERROR,
+        'JMdict辞書が初期化されていません。'
+      ),
+    };
+  }
+
+  const trimmedText = japaneseText.trim();
+  if (!trimmedText) {
+    return {
+      success: false,
+      error: new AppError(ErrorCode.VALIDATION_ERROR, '検索語を入力してください。'),
+    };
+  }
+
+  // 日本語テキストを正規化（カタカナ→ひらがな変換含む）
+  const normalizedText = normalizeJapanese(trimmedText);
+
+  try {
+    // 漢字またはかなで検索
+    // 1. 完全一致検索（漢字 OR かな）
+    const results = await jmdictDb.getAllAsync<{
+      entry_id: number;
+      kanji: string | null;
+      kana: string;
+      is_common: number;
+      priority: number;
+      gloss: string;
+      part_of_speech: string;
+      sense_index: number;
+    }>(
+      `
+      SELECT
+        e.id as entry_id,
+        e.kanji,
+        e.kana,
+        e.is_common,
+        e.priority,
+        g.gloss,
+        g.part_of_speech,
+        g.sense_index
+      FROM entries e
+      JOIN glosses g ON e.id = g.entry_id
+      WHERE e.kanji = ? OR e.kana = ?
+      ORDER BY
+        e.priority DESC,
+        e.is_common DESC,
+        g.sense_index ASC
+      LIMIT 50
+      `,
+      [trimmedText, normalizedText]
+    );
+
+    if (results.length === 0) {
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.WORD_NOT_FOUND,
+          `「${japaneseText}」は辞書に見つかりませんでした。`
+        ),
+      };
+    }
+
+    // 結果をエントリごとにグループ化
+    const entriesMap = new Map<number, JMdictReverseResult>();
+
+    for (const row of results) {
+      if (!entriesMap.has(row.entry_id)) {
+        entriesMap.set(row.entry_id, {
+          entry: {
+            id: row.entry_id,
+            kanji: row.kanji,
+            kana: row.kana,
+            isCommon: row.is_common === 1,
+            priority: row.priority,
+          },
+          englishGlosses: [],
+          partOfSpeech: [],
+        });
+      }
+
+      const entry = entriesMap.get(row.entry_id)!;
+
+      // 英語訳を追加（重複排除）
+      if (!entry.englishGlosses.includes(row.gloss)) {
+        entry.englishGlosses.push(row.gloss);
+      }
+
+      // 品詞を追加（重複排除）
+      if (row.part_of_speech) {
+        const posList = row.part_of_speech.split(', ');
+        for (const pos of posList) {
+          if (!entry.partOfSpeech.includes(pos)) {
+            entry.partOfSpeech.push(pos);
+          }
+        }
+      }
+    }
+
+    return { success: true, data: Array.from(entriesMap.values()) };
+  } catch (error) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.DATABASE_ERROR,
+        'JMdict逆引き検索でエラーが発生しました。',
+        error
+      ),
+    };
+  }
+}
+
+/**
+ * 日本語を英語に翻訳（JMdict使用）
+ *
+ * 日本語（漢字/ひらがな/カタカナ）から英語訳を取得します。
+ */
+export async function translateWithJMdictReverse(
+  japaneseText: string
+): Promise<Result<JMdictReverseTranslateResult, AppError>> {
+  const normalizedText = normalizeJapanese(japaneseText.trim());
+
+  // キャッシュ確認
+  const cacheKey = createCacheKey('jmdict-reverse', normalizedText);
+  const cachedResult = jmdictReverseCache.get(cacheKey);
+  if (cachedResult) {
+    if (__DEV__) {
+      console.log(`JMdict reverse cache hit: "${japaneseText}"`);
+    }
+    return { success: true, data: cachedResult };
+  }
+
+  // JMdict逆引き検索
+  const lookupResult = await lookupJMdictReverse(japaneseText);
+  if (!lookupResult.success) {
+    return { success: false, error: lookupResult.error };
+  }
+
+  if (lookupResult.data.length === 0) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.WORD_NOT_FOUND,
+        `「${japaneseText}」は辞書に見つかりませんでした。`
+      ),
+    };
+  }
+
+  // 最も適切な結果を選択（優先度とcommonフラグで判断）
+  const bestMatch = lookupResult.data[0];
+  const entry = bestMatch.entry;
+
+  // 英語テキストを構築（最初の訳を使用）
+  const englishText = bestMatch.englishGlosses[0] || '';
+
+  const result: JMdictReverseTranslateResult = {
+    text: englishText,
+    originalJapanese: entry.kanji || entry.kana,
+    reading: entry.kanji ? entry.kana : undefined,
+    partOfSpeech: bestMatch.partOfSpeech,
+    isCommon: entry.isCommon,
+    source: 'jmdict',
+  };
+
+  // キャッシュに保存
+  jmdictReverseCache.set(cacheKey, result);
+
+  if (__DEV__) {
+    console.log(`JMdict reverse translated: "${japaneseText}" → "${englishText}"`);
+  }
+
+  return { success: true, data: result };
+}
+
+/**
+ * JMdict逆引きキャッシュをクリア
+ */
+export function clearJMdictReverseCache(): void {
+  jmdictReverseCache.clear();
+}
