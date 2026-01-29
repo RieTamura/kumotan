@@ -295,7 +295,7 @@ const PRESET_HASHTAGS = ['英語学習', 'くもたん', 'Bluesky'];
 
 ---
 
-## 11. 追加機能：ハッシュタグ自動抽出
+## 11. 追加機能：ハッシュタグ自動抽出 ✅ 実装完了
 
 ### 11.1 概要
 
@@ -309,6 +309,20 @@ const PRESET_HASHTAGS = ['英語学習', 'くもたん', 'Bluesky'];
 
 ### 11.3 実装詳細
 
+**`extractHashtagsFromText`関数（新規追加）:**
+
+```typescript
+/**
+ * Extract hashtags from text using regex
+ * Supports Unicode characters (Japanese, English, etc.)
+ */
+const extractHashtagsFromText = useCallback((text: string): string[] => {
+  const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
+  const matches = text.match(hashtagRegex);
+  return matches?.map((tag) => tag.slice(1)) ?? [];
+}, []);
+```
+
 **`submitPost`関数の変更:**
 
 ```typescript
@@ -319,20 +333,19 @@ const submitPost = useCallback(async (): Promise<boolean> => {
   const result = await createPost(postText);
 
   if (result.success) {
-    // テキストからハッシュタグを抽出して履歴に保存
-    const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
-    const matches = postText.match(hashtagRegex);
-    const extractedTags = matches?.map(tag => tag.slice(1)) ?? [];
+    // Extract hashtags from post text and combine with selected hashtags
+    const extractedTags = extractHashtagsFromText(postText);
+    const allTags = [...new Set([...state.hashtags, ...extractedTags])];
 
-    if (extractedTags.length > 0) {
-      await saveHashtagsToHistory(extractedTags);
+    if (allTags.length > 0) {
+      await saveHashtagsToHistory(allTags);
     }
 
     setState(initialState);
     return true;
   }
   // ...
-}, [/* deps */]);
+}, [isValid, state.isPosting, state.hashtags, buildPostText, extractHashtagsFromText, saveHashtagsToHistory]);
 ```
 
 ### 11.4 動作フロー

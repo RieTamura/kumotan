@@ -194,6 +194,16 @@ export function usePostCreation(): UsePostCreationReturn {
   }, []);
 
   /**
+   * Extract hashtags from text using regex
+   * Supports Unicode characters (Japanese, English, etc.)
+   */
+  const extractHashtagsFromText = useCallback((text: string): string[] => {
+    const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
+    const matches = text.match(hashtagRegex);
+    return matches?.map((tag) => tag.slice(1)) ?? [];
+  }, []);
+
+  /**
    * Submit the post to Bluesky
    */
   const submitPost = useCallback(async (): Promise<boolean> => {
@@ -205,9 +215,12 @@ export function usePostCreation(): UsePostCreationReturn {
     const result = await createPost(postText);
 
     if (result.success) {
-      // Save used hashtags to history
-      if (state.hashtags.length > 0) {
-        await saveHashtagsToHistory(state.hashtags);
+      // Extract hashtags from post text and combine with selected hashtags
+      const extractedTags = extractHashtagsFromText(postText);
+      const allTags = [...new Set([...state.hashtags, ...extractedTags])];
+
+      if (allTags.length > 0) {
+        await saveHashtagsToHistory(allTags);
       }
       setState(initialState);
       return true;
@@ -219,7 +232,7 @@ export function usePostCreation(): UsePostCreationReturn {
       }));
       return false;
     }
-  }, [isValid, state.isPosting, state.hashtags, buildPostText, saveHashtagsToHistory]);
+  }, [isValid, state.isPosting, state.hashtags, buildPostText, extractHashtagsFromText, saveHashtagsToHistory]);
 
   /**
    * Reset the state to initial values
