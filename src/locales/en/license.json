@@ -22,6 +22,11 @@
       "license": "CC BY-SA 3.0",
       "description": "Free English dictionary API. Used to get word definitions, pronunciations, and examples."
     },
+    "jmdict": {
+      "name": "JMdict (Japanese-Multilingual Dictionary)",
+      "license": "CC BY-SA 4.0",
+      "description": "Japanese-English dictionary data managed by Electronic Dictionary Research and Development Group (EDRDG). Used for English-Japanese and Japanese-English translation."
+    },
     "bluesky": {
       "name": "Bluesky AT Protocol API",
       "license": "MIT / Apache-2.0",

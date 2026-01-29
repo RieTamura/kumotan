@@ -34,6 +34,7 @@ const API_URLS: Record<string, string> = {
   deepl: 'https://www.deepl.com/pro-api',
   yahoo: 'https://developer.yahoo.co.jp/webapi/jlp/',
   dictionary: 'https://dictionaryapi.dev/',
+  jmdict: 'https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project',
   bluesky: 'https://atproto.com/',
 };
 
@@ -257,6 +258,12 @@ export function LicenseScreen(): React.JSX.Element {
       license: t('apis.dictionary.license'),
       url: API_URLS.dictionary,
       description: t('apis.dictionary.description'),
+    },
+    {
+      name: t('apis.jmdict.name'),
+      license: t('apis.jmdict.license'),
+      url: API_URLS.jmdict,
+      description: t('apis.jmdict.description'),
     },
     {
       name: t('apis.bluesky.name'),

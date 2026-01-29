@@ -22,6 +22,11 @@
       "license": "CC BY-SA 3.0",
       "description": "無料の英語辞書API。英単語の定義・発音・例文の取得に使用。"
     },
+    "jmdict": {
+      "name": "JMdict（和英辞書）",
+      "license": "CC BY-SA 4.0",
+      "description": "Electronic Dictionary Research and Development Group (EDRDG) が管理する日英辞書データ。英語→日本語、日本語→英語の翻訳に使用。"
+    },
     "bluesky": {
       "name": "Bluesky AT Protocol API",
       "license": "MIT / Apache-2.0",
