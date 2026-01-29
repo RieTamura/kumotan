@@ -12,9 +12,10 @@ import {
   Pressable,
   Linking,
 } from 'react-native';
-import { MessageCircle, Repeat2, Heart, BookSearch } from 'lucide-react-native';
+import ImageViewing from 'react-native-image-viewing';
+import { MessageCircle, Repeat2, Heart, BookSearch, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { TimelinePost, PostImage } from '../types/bluesky';
+import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { formatRelativeTime } from '../services/bluesky/feed';
 import { splitIntoSentences } from '../utils/validators';
@@ -312,6 +313,10 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
   const [isLiked, setIsLiked] = useState(!!post.viewer?.like);
   const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  // Image viewer state
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
 
   // Sync like state with post prop changes
   useEffect(() => {
@@ -613,17 +618,23 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
   };
 
   /**
-   * Handle image press - open full size image
+   * Handle image press - open image viewer
    */
-  const handleImagePress = useCallback((image: PostImage) => {
-    if (image.fullsize) {
-      Linking.openURL(image.fullsize).catch((err) => {
-        if (__DEV__) {
-          console.error('Failed to open image:', err);
-        }
-      });
-    }
+  const handleImagePress = useCallback((index: number) => {
+    setImageViewerIndex(index);
+    setImageViewerVisible(true);
   }, []);
+
+  /**
+   * Prepare images for the image viewer
+   */
+  const imageViewerImages = useMemo(() => {
+    const images = post.embed?.images;
+    if (!images || images.length === 0) return [];
+    return images.map((image) => ({
+      uri: image.fullsize || image.thumb,
+    }));
+  }, [post.embed?.images]);
 
   /**
    * Render embedded images
@@ -640,7 +651,7 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
       return (
         <Pressable
           style={styles.singleImageContainer}
-          onPress={() => handleImagePress(image)}
+          onPress={() => handleImagePress(0)}
           accessible={true}
           accessibilityLabel={image.alt || '投稿画像'}
           accessibilityRole="image"
@@ -667,7 +678,7 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
             <Pressable
               key={index}
               style={styles.twoImageItem}
-              onPress={() => handleImagePress(image)}
+              onPress={() => handleImagePress(index)}
               accessible={true}
               accessibilityLabel={image.alt || `投稿画像 ${index + 1}`}
               accessibilityRole="image"
@@ -698,7 +709,7 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
               styles.gridItem,
               imageCount === 3 && index === 0 && styles.gridItemLarge,
             ]}
-            onPress={() => handleImagePress(image)}
+            onPress={() => handleImagePress(index)}
             accessible={true}
             accessibilityLabel={image.alt || `投稿画像 ${index + 1}`}
             accessibilityRole="image"
@@ -804,6 +815,30 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
           </View>
         </View>
       </View>
+
+      {/* Image Viewer Modal */}
+      <ImageViewing
+        images={imageViewerImages}
+        imageIndex={imageViewerIndex}
+        visible={imageViewerVisible}
+        onRequestClose={() => setImageViewerVisible(false)}
+        backgroundColor="rgba(0, 0, 0, 0.85)"
+        HeaderComponent={({ imageIndex }) => (
+          <View style={styles.imageViewerHeader}>
+            <Text style={styles.imageViewerTitle}>
+              {t('home:imagePreview', '画像プレビュー')}
+              {imageViewerImages.length > 1 && ` (${imageIndex + 1}/${imageViewerImages.length})`}
+            </Text>
+            <Pressable
+              onPress={() => setImageViewerVisible(false)}
+              style={styles.imageViewerCloseButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X size={24} color="#fff" />
+            </Pressable>
+          </View>
+        )}
+      />
     </Pressable>
   );
 }
@@ -973,6 +1008,26 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
     fontSize: FontSizes.xs,
     fontWeight: '600',
+  },
+  // Image viewer header styles
+  imageViewerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  imageViewerTitle: {
+    color: '#fff',
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+  },
+  imageViewerCloseButton: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 });
 
