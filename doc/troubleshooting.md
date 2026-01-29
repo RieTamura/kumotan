@@ -4522,3 +4522,141 @@ imageViewerCloseButton: {
 - 言語によって操作方法が異なると、ユーザーが混乱する原因になる
 - 長押しは誤タップを防ぐ効果があり、重要な操作（登録など）に適している
 - 不要になったコードは速やかに削除して、コードベースをクリーンに保つ
+
+---
+
+## 50. 英語→日本語翻訳で出典（JMdict/DeepL）が表示されない問題
+
+### 発生日
+2026年1月29日
+
+### 症状
+- 日本語→英語翻訳では「ソース: JMdict辞書」または「ソース: DeepL翻訳」と出典が表示される
+- しかし、英語→日本語翻訳では出典が表示されておらず、どのAPIで翻訳されたか分からない
+- API設定画面でDeepL APIの使用状況を確認しても、実際の翻訳がJMdictで行われたかDeepLで行われたか判断できない
+
+### 原因
+翻訳表示のコードが2つのコンポーネントに分かれていた：
+
+1. **WordPopupModal.tsx** - 日本語→英語翻訳では出典表示が実装済み
+2. **WordPopup.tsx** - 英語→日本語翻訳では出典表示が未実装
+
+英語→日本語翻訳セクションでは `translation.text` のみを表示しており、`translation.source`、`translation.readings`、`translation.partOfSpeech` などの追加情報が表示されていなかった。
+
+```typescript
+// 変更前（WordPopup.tsx 870-888行目）
+{!isJapanese && (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>日本語訳</Text>
+    {loading.translation ? (
+      <ActivityIndicator size="small" color={Colors.primary} />
+    ) : translation ? (
+      <Text style={styles.translationText}>{translation.text}</Text>  // 出典表示なし
+    ) : ...
+  </View>
+)}
+```
+
+### 解決策
+
+**1. WordPopup.tsxの修正（英語→日本語翻訳セクション）：**
+
+出典、読み、品詞の表示を追加：
+
+```typescript
+// 変更後
+{!isJapanese && (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>日本語訳</Text>
+    {loading.translation ? (
+      <ActivityIndicator size="small" color={Colors.primary} />
+    ) : translation ? (
+      <>
+        <Text style={styles.translationText}>{translation.text}</Text>
+        {translation.source && (
+          <Text style={styles.sourceText}>
+            出典: {translation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
+          </Text>
+        )}
+        {translation.readings && translation.readings.length > 0 && (
+          <Text style={styles.readingText}>
+            読み: {translation.readings.join(', ')}
+          </Text>
+        )}
+        {translation.partOfSpeech && translation.partOfSpeech.length > 0 && (
+          <Text style={styles.posInfoText}>
+            品詞: {translation.partOfSpeech.join(', ')}
+          </Text>
+        )}
+      </>
+    ) : ...
+  </View>
+)}
+```
+
+**2. WordPopupModal.tsxの修正（英語→日本語翻訳セクション）：**
+
+同様に出典と追加情報の表示を追加：
+
+```typescript
+// 変更後
+{!state.isJapanese && (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>{t('translation')}</Text>
+    {wordLookup.loading.translation ? (
+      <ActivityIndicator size="small" color={Colors.primary} />
+    ) : state.translation ? (
+      <>
+        <Text style={styles.translationText}>{state.translation.text}</Text>
+        {state.translation.source && (
+          <Text style={styles.sourceText}>
+            {t('japaneseWord.source')}: {
+              state.translation.source === 'jmdict'
+                ? t('japaneseWord.sourceJMdict')
+                : t('japaneseWord.sourceDeepL')
+            }
+          </Text>
+        )}
+        {state.translation.readings && state.translation.readings.length > 0 && (
+          <Text style={styles.readingText}>
+            {t('japaneseWord.reading')}: {state.translation.readings.join(', ')}
+          </Text>
+        )}
+        {state.translation.partOfSpeech && state.translation.partOfSpeech.length > 0 && (
+          <Text style={styles.posInfoText}>
+            {t('partOfSpeech')}: {state.translation.partOfSpeech.join(', ')}
+          </Text>
+        )}
+      </>
+    ) : ...
+  </View>
+)}
+```
+
+**3. WordPopupModal.tsxにposInfoTextスタイルを追加：**
+
+```typescript
+posInfoText: {
+  fontSize: FontSizes.sm,
+  color: Colors.textSecondary,
+  marginTop: Spacing.xs,
+},
+```
+
+### 変更後の統一された表示
+
+| 翻訳方向     | 出典表示 | 読み表示 | 品詞表示 |
+| ------------ | -------- | -------- | -------- |
+| 日本語→英語 | ✅       | ✅       | ✅       |
+| 英語→日本語 | ✅       | ✅       | ✅       |
+
+### 関連ファイル
+
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント（旧版）
+- `src/components/WordPopup/WordPopupModal.tsx` - 単語ポップアップモーダル（新版）
+
+### 学んだこと
+
+- 同じ機能（翻訳表示）は言語方向に関わらず一貫した情報を提供するべき
+- 複数のコンポーネントに同様の機能がある場合、全てを同期して更新する必要がある
+- 出典表示はユーザーがAPIの使用状況を把握するために重要な情報

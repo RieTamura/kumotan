@@ -490,7 +490,28 @@ export function WordPopupModal({
                     {wordLookup.loading.translation ? (
                       <ActivityIndicator size="small" color={Colors.primary} />
                     ) : state.translation ? (
-                      <Text style={styles.translationText}>{state.translation.text}</Text>
+                      <>
+                        <Text style={styles.translationText}>{state.translation.text}</Text>
+                        {state.translation.source && (
+                          <Text style={styles.sourceText}>
+                            {t('japaneseWord.source')}: {
+                              state.translation.source === 'jmdict'
+                                ? t('japaneseWord.sourceJMdict')
+                                : t('japaneseWord.sourceDeepL')
+                            }
+                          </Text>
+                        )}
+                        {state.translation.readings && state.translation.readings.length > 0 && (
+                          <Text style={styles.readingText}>
+                            {t('japaneseWord.reading')}: {state.translation.readings.join(', ')}
+                          </Text>
+                        )}
+                        {state.translation.partOfSpeech && state.translation.partOfSpeech.length > 0 && (
+                          <Text style={styles.posInfoText}>
+                            {t('partOfSpeech')}: {state.translation.partOfSpeech.join(', ')}
+                          </Text>
+                        )}
+                      </>
                     ) : state.translationError ? (
                       <Text style={styles.errorText}>{state.translationError}</Text>
                     ) : !wordLookup.translationAvailable ? (
@@ -741,6 +762,11 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.textTertiary,
     marginTop: Spacing.sm,
+  },
+  posInfoText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
   },
   actions: {
     flexDirection: 'row',

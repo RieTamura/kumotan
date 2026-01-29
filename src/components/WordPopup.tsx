@@ -874,7 +874,24 @@ export function WordPopup({
               {loading.translation ? (
                 <ActivityIndicator size="small" color={Colors.primary} />
               ) : translation ? (
-                <Text style={styles.translationText}>{translation.text}</Text>
+                <>
+                  <Text style={styles.translationText}>{translation.text}</Text>
+                  {translation.source && (
+                    <Text style={styles.sourceText}>
+                      出典: {translation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
+                    </Text>
+                  )}
+                  {translation.readings && translation.readings.length > 0 && (
+                    <Text style={styles.readingText}>
+                      読み: {translation.readings.join(', ')}
+                    </Text>
+                  )}
+                  {translation.partOfSpeech && translation.partOfSpeech.length > 0 && (
+                    <Text style={styles.posInfoText}>
+                      品詞: {translation.partOfSpeech.join(', ')}
+                    </Text>
+                  )}
+                </>
               ) : translationError ? (
                 <Text style={styles.errorText}>{translationError}</Text>
               ) : !translationAvailable ? (
