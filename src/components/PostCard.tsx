@@ -67,8 +67,9 @@ const HASHTAG_REGEX = /#[\p{L}\p{N}_]+/gu;
 /**
  * Mention regex pattern for detecting @handle mentions in text
  * Handles patterns like @handle.domain.tld
+ * Pattern: @ followed by word chars, dots, and hyphens, ending with a word char
  */
-const MENTION_REGEX = /@[\w][\w.-]*[\w]/g;
+const MENTION_REGEX = /@[\w](?:[\w.-]*[\w])?/g;
 
 /**
  * Parse text segment into tokens (words, Japanese text, etc.)
@@ -518,6 +519,10 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
    */
   const handleHashtagPress = useCallback((tag: string) => {
     const searchUrl = `https://bsky.app/search?q=%23${encodeURIComponent(tag)}`;
+    if (__DEV__) {
+      console.log('handleHashtagPress called with tag:', tag);
+      console.log('Opening URL:', searchUrl);
+    }
     Linking.openURL(searchUrl).catch((err) => {
       if (__DEV__) {
         console.error('Failed to open hashtag search:', err);
@@ -530,6 +535,10 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
    */
   const handleMentionPress = useCallback((handle: string) => {
     const profileUrl = `https://bsky.app/profile/${encodeURIComponent(handle)}`;
+    if (__DEV__) {
+      console.log('handleMentionPress called with handle:', handle);
+      console.log('Opening URL:', profileUrl);
+    }
     Linking.openURL(profileUrl).catch((err) => {
       if (__DEV__) {
         console.error('Failed to open profile:', err);
@@ -559,7 +568,18 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
   /**
    * Memoize parsed tokens to avoid re-parsing on every render
    */
-  const tokens = useMemo(() => parseTextIntoTokens(post.text), [post.text]);
+  const tokens = useMemo(() => {
+    const result = parseTextIntoTokens(post.text);
+    if (__DEV__) {
+      const mentionTokens = result.filter(t => t.isMention);
+      const hashtagTokens = result.filter(t => t.isHashtag);
+      if (mentionTokens.length > 0 || hashtagTokens.length > 0) {
+        console.log('Parsed tokens - mentions:', mentionTokens.map(t => ({ text: t.text, handle: t.mentionHandle })));
+        console.log('Parsed tokens - hashtags:', hashtagTokens.map(t => ({ text: t.text, value: t.hashtagValue })));
+      }
+    }
+    return result;
+  }, [post.text]);
 
   /**
    * Render post text with touchable words
