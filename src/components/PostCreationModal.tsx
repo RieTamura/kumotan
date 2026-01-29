@@ -20,7 +20,7 @@ import {
 import { X } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { Button } from './common/Button';
-import { usePostCreation, PRESET_HASHTAGS } from '../hooks/usePostCreation';
+import { usePostCreation } from '../hooks/usePostCreation';
 import { useTranslation } from 'react-i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -84,6 +84,7 @@ export function PostCreationModal({
   const {
     text,
     hashtags,
+    hashtagHistory,
     isPosting,
     error,
     characterCount,
@@ -265,7 +266,7 @@ export function PostCreationModal({
             <View style={styles.hashtagSection}>
               <Text style={styles.sectionLabel}>{t('hashtags')}</Text>
               <View style={styles.hashtagsContainer}>
-                {PRESET_HASHTAGS.map((tag) => (
+                {hashtagHistory.map((tag) => (
                   <HashtagChip
                     key={tag}
                     tag={tag}

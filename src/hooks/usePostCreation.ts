@@ -3,7 +3,8 @@
  * Manages state and logic for creating Bluesky posts
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createPost } from '../services/bluesky/feed';
 import { AppError } from '../utils/errors';
 
@@ -13,9 +14,24 @@ import { AppError } from '../utils/errors';
 const MAX_CHARACTERS = 300;
 
 /**
- * Preset hashtags for quick selection
+ * Maximum number of hashtag history entries
  */
-export const PRESET_HASHTAGS = ['英語学習', 'くもたん', 'Bluesky'];
+const MAX_HASHTAG_HISTORY = 5;
+
+/**
+ * Storage key for hashtag history
+ */
+const HASHTAG_HISTORY_KEY = '@kumotan/hashtag_history';
+
+/**
+ * Default hashtags shown when no history exists
+ */
+export const DEFAULT_HASHTAGS = ['英語学習', 'くもたん', 'Bluesky'];
+
+/**
+ * @deprecated Use DEFAULT_HASHTAGS instead
+ */
+export const PRESET_HASHTAGS = DEFAULT_HASHTAGS;
 
 /**
  * Post creation state interface
@@ -34,6 +50,7 @@ interface UsePostCreationReturn {
   // State
   text: string;
   hashtags: string[];
+  hashtagHistory: string[];
   isPosting: boolean;
   error: AppError | null;
   characterCount: number;
@@ -64,6 +81,46 @@ const initialState: PostCreationState = {
  */
 export function usePostCreation(): UsePostCreationReturn {
   const [state, setState] = useState<PostCreationState>(initialState);
+  const [hashtagHistory, setHashtagHistory] = useState<string[]>(DEFAULT_HASHTAGS);
+
+  /**
+   * Load hashtag history from storage on mount
+   */
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(HASHTAG_HISTORY_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as string[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setHashtagHistory(parsed);
+          }
+        }
+      } catch {
+        // Use default hashtags on error
+      }
+    };
+    loadHistory();
+  }, []);
+
+  /**
+   * Save hashtags to history
+   */
+  const saveHashtagsToHistory = useCallback(async (tags: string[]) => {
+    if (tags.length === 0) return;
+
+    try {
+      // Add new tags to the front, remove duplicates, limit to MAX_HASHTAG_HISTORY
+      const newHistory = [...tags, ...hashtagHistory]
+        .filter((tag, index, self) => self.indexOf(tag) === index)
+        .slice(0, MAX_HASHTAG_HISTORY);
+
+      await AsyncStorage.setItem(HASHTAG_HISTORY_KEY, JSON.stringify(newHistory));
+      setHashtagHistory(newHistory);
+    } catch {
+      // Silently fail on storage error
+    }
+  }, [hashtagHistory]);
 
   /**
    * Build the final post text with hashtags
@@ -148,6 +205,10 @@ export function usePostCreation(): UsePostCreationReturn {
     const result = await createPost(postText);
 
     if (result.success) {
+      // Save used hashtags to history
+      if (state.hashtags.length > 0) {
+        await saveHashtagsToHistory(state.hashtags);
+      }
       setState(initialState);
       return true;
     } else {
@@ -158,7 +219,7 @@ export function usePostCreation(): UsePostCreationReturn {
       }));
       return false;
     }
-  }, [isValid, state.isPosting, buildPostText]);
+  }, [isValid, state.isPosting, state.hashtags, buildPostText, saveHashtagsToHistory]);
 
   /**
    * Reset the state to initial values
@@ -178,6 +239,7 @@ export function usePostCreation(): UsePostCreationReturn {
     // State
     text: state.text,
     hashtags: state.hashtags,
+    hashtagHistory,
     isPosting: state.isPosting,
     error: state.error,
     characterCount,

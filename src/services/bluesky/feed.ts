@@ -207,6 +207,63 @@ export async function getTimeline(
 }
 
 /**
+ * Facet interface for rich text features
+ */
+interface Facet {
+  index: {
+    byteStart: number;
+    byteEnd: number;
+  };
+  features: Array<{
+    $type: string;
+    tag?: string;
+  }>;
+}
+
+/**
+ * Get byte length of a string (UTF-8)
+ */
+function getByteLength(str: string): number {
+  return new TextEncoder().encode(str).length;
+}
+
+/**
+ * Detect hashtags in text and generate facets
+ */
+function detectHashtagFacets(text: string): Facet[] {
+  const facets: Facet[] = [];
+  // Match hashtags: # followed by word characters (including Unicode)
+  const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
+  let match;
+
+  while ((match = hashtagRegex.exec(text)) !== null) {
+    const hashtag = match[0];
+    const tag = hashtag.slice(1); // Remove # prefix
+    const startIndex = match.index;
+
+    // Calculate byte positions
+    const textBefore = text.slice(0, startIndex);
+    const byteStart = getByteLength(textBefore);
+    const byteEnd = byteStart + getByteLength(hashtag);
+
+    facets.push({
+      index: {
+        byteStart,
+        byteEnd,
+      },
+      features: [
+        {
+          $type: 'app.bsky.richtext.facet#tag',
+          tag,
+        },
+      ],
+    });
+  }
+
+  return facets;
+}
+
+/**
  * Create a post on Bluesky
  */
 export async function createPost(
@@ -226,14 +283,26 @@ export async function createPost(
     // Apply rate limiting
     await rateLimiter.throttle();
 
-    // Create post
-    const response = await agent.post({
+    // Detect hashtags and generate facets
+    const facets = detectHashtagFacets(text);
+
+    // Create post with facets for hashtag links
+    const postRecord: Record<string, unknown> = {
       text,
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    if (facets.length > 0) {
+      postRecord.facets = facets;
+    }
+
+    const response = await agent.post(postRecord);
 
     if (__DEV__) {
       console.log('Post created successfully:', response.uri);
+      if (facets.length > 0) {
+        console.log(`Added ${facets.length} hashtag facets`);
+      }
     }
 
     return {
