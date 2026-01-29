@@ -4300,3 +4300,152 @@ LOG Translated (JA→EN): "君への愛だよ" → "My love for you."
 - ESLintの`react-hooks/exhaustive-deps`警告を無視（`eslint-disable`）すると、このような問題を引き起こす可能性がある
 - ポップアップやモーダルを再利用する際は、新しいデータを表示する前に必ず前回の状態をリセットする
 - デバッグログを活用して、useEffectの実行タイミングを確認することが問題の特定に有効
+
+---
+
+## 48. 投稿フィードの画像をタップするとダウンロードしようとする問題
+
+### 発生日
+2026年1月29日
+
+### 症状
+- 投稿フィードの画像をタップすると、ブラウザでフルサイズ画像URLが開かれる
+- iOSではファイルをダウンロードしようとする挙動になる
+- アプリ内で画像をプレビューできず、画面遷移したのかと勘違いされる
+
+### 原因
+`src/components/PostCard.tsx`の`handleImagePress`関数で、`Linking.openURL(image.fullsize)`を使用して画像URLをブラウザで開いていた：
+
+```typescript
+// 変更前
+const handleImagePress = useCallback((image: PostImage) => {
+  if (image.fullsize) {
+    Linking.openURL(image.fullsize).catch((err) => {
+      if (__DEV__) {
+        console.error('Failed to open image:', err);
+      }
+    });
+  }
+}, []);
+```
+
+この実装では、画像URLがそのままブラウザに渡されるため、ダウンロードダイアログが表示されることがあった。
+
+### 解決策
+
+**1. react-native-image-viewingライブラリをインストール：**
+
+```bash
+npm install react-native-image-viewing
+```
+
+**2. PostCard.tsxの修正：**
+
+a) インポートを追加：
+```typescript
+import ImageViewing from 'react-native-image-viewing';
+import { X } from 'lucide-react-native';
+```
+
+b) 画像ビューアー用のstateを追加：
+```typescript
+// Image viewer state
+const [imageViewerVisible, setImageViewerVisible] = useState(false);
+const [imageViewerIndex, setImageViewerIndex] = useState(0);
+```
+
+c) handleImagePressをビューアー表示に変更：
+```typescript
+// 変更後
+const handleImagePress = useCallback((index: number) => {
+  setImageViewerIndex(index);
+  setImageViewerVisible(true);
+}, []);
+```
+
+d) 画像データを準備する関数を追加：
+```typescript
+const imageViewerImages = useMemo(() => {
+  const images = post.embed?.images;
+  if (!images || images.length === 0) return [];
+  return images.map((image) => ({
+    uri: image.fullsize || image.thumb,
+  }));
+}, [post.embed?.images]);
+```
+
+e) ImageViewingコンポーネントを追加（ヘッダー付き）：
+```typescript
+<ImageViewing
+  images={imageViewerImages}
+  imageIndex={imageViewerIndex}
+  visible={imageViewerVisible}
+  onRequestClose={() => setImageViewerVisible(false)}
+  backgroundColor="rgba(0, 0, 0, 0.85)"
+  HeaderComponent={({ imageIndex }) => (
+    <View style={styles.imageViewerHeader}>
+      <Text style={styles.imageViewerTitle}>
+        {t('home:imagePreview', '画像プレビュー')}
+        {imageViewerImages.length > 1 && ` (${imageIndex + 1}/${imageViewerImages.length})`}
+      </Text>
+      <Pressable
+        onPress={() => setImageViewerVisible(false)}
+        style={styles.imageViewerCloseButton}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <X size={24} color="#fff" />
+      </Pressable>
+    </View>
+  )}
+/>
+```
+
+f) スタイルを追加：
+```typescript
+imageViewerHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingHorizontal: Spacing.lg,
+  paddingTop: Spacing.xl,
+  paddingBottom: Spacing.md,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+},
+imageViewerTitle: {
+  color: '#fff',
+  fontSize: FontSizes.lg,
+  fontWeight: '600',
+},
+imageViewerCloseButton: {
+  padding: Spacing.sm,
+  borderRadius: BorderRadius.full,
+  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+},
+```
+
+### 実装のポイント
+
+**背景色の調整について：**
+- 最初は`rgba(0, 0, 0, 0.7)`で半透明にしたが、`react-native-image-viewing`は内部でModalを使用しているため、下の投稿フィードのコンテンツは透けて見えない
+- Modalの背景色が半透明でも、その下に見えるのはアプリの背景色のみ
+- 代わりにヘッダーを追加して「画像プレビュー」タイトルと閉じるボタンを表示することで、ポップアップであることを明示
+
+**ヘッダーの機能：**
+- 「画像プレビュー」タイトルを表示
+- 複数画像の場合は「(1/3)」のように現在位置を表示
+- 右上に×ボタンを配置して閉じる操作を明確化
+
+**画像ビューアーの機能：**
+- ピンチでズームイン/アウト
+- スワイプで複数画像を切り替え
+- 下スワイプまたは背景タップで閉じる
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+- `package.json` - react-native-image-viewing依存関係
+
+### 教訓
+- 画像表示には専用のビューアーライブラリを使用することで、ズームやスワイプなどの標準的なUXを提供できる
+- `Linking.openURL()`で画像URLを開くと、プラットフォームによってダウンロード挙動になる場合がある
+- Modalベースのビューアーでは背景を半透明にしても元のコンテンツは透けて見えないため、ヘッダーなどで明確にポップアップであることを示す
+- ヘッダーにタイトルと閉じるボタンを追加することで、ユーザーが画面遷移と勘違いすることを防げる
