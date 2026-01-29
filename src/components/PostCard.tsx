@@ -396,32 +396,6 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
   );
 
   /**
-   * Handle Japanese word press (single tap) - triggers word mode
-   */
-  const handleJapaneseWordPress = useCallback(
-    (word: string) => {
-      if (!onWordSelect) return;
-      setSelectedWord(word);
-      setSelectedSentence(null);
-      onWordSelect(word, post.uri, post.text);
-    },
-    [post.uri, post.text, onWordSelect]
-  );
-
-  /**
-   * Handle Japanese sentence long press - triggers sentence mode
-   */
-  const handleJapaneseSentenceLongPress = useCallback(
-    (sentence: string) => {
-      if (!onSentenceSelect) return;
-      setSelectedSentence(sentence);
-      setSelectedWord(null);
-      onSentenceSelect(sentence, post.uri, post.text);
-    },
-    [post.uri, post.text, onSentenceSelect]
-  );
-
-  /**
    * Handle BookSearch button press - select entire post as sentence
    */
   const handleBookSearchPress = useCallback(() => {
@@ -602,8 +576,8 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
                     ? styles.highlightedSentence
                     : styles.selectableJapanese
                 }
-                onPress={() => handleJapaneseWordPress(token.text)}
-                onLongPress={() => handleJapaneseSentenceLongPress(post.text)}
+                onPress={() => handleWordPress(token.text)}
+                onLongPress={() => handleWordLongPress(token.text)}
                 suppressHighlighting={false}
               >
                 {token.text}

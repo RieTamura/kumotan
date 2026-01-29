@@ -4449,3 +4449,76 @@ imageViewerCloseButton: {
 - `Linking.openURL()`で画像URLを開くと、プラットフォームによってダウンロード挙動になる場合がある
 - Modalベースのビューアーでは背景を半透明にしても元のコンテンツは透けて見えないため、ヘッダーなどで明確にポップアップであることを示す
 - ヘッダーにタイトルと閉じるボタンを追加することで、ユーザーが画面遷移と勘違いすることを防げる
+
+---
+
+## 49. 英単語と日本語単語の登録操作が異なる問題
+
+### 発生日
+2026年1月29日
+
+### 症状
+- 英単語は長押しで登録ポップアップが起動する
+- 日本語単語はタップで登録ポップアップが起動する
+- 同じ「単語を登録する」という操作なのに、言語によって操作方法が異なり一貫性がない
+
+### 原因
+`src/components/PostCard.tsx`で英単語と日本語単語に異なるイベントハンドラが設定されていた：
+
+**英単語（567-589行目付近）：**
+
+```typescript
+<Text
+  onLongPress={() => handleWordLongPress(token.text)}  // 長押しで単語登録
+  onPress={() => handleWordPress(token.text)}          // タップはダブルタップ検出用
+>
+```
+
+**日本語単語（591-612行目付近）：**
+
+```typescript
+<Text
+  onPress={() => handleJapaneseWordPress(token.text)}           // タップで単語登録
+  onLongPress={() => handleJapaneseSentenceLongPress(post.text)} // 長押しで文章登録
+>
+```
+
+### 解決策
+
+**1. 日本語単語のイベントハンドラを英単語と同じにする：**
+
+```typescript
+// 変更前
+<Text
+  onPress={() => handleJapaneseWordPress(token.text)}
+  onLongPress={() => handleJapaneseSentenceLongPress(post.text)}
+>
+
+// 変更後
+<Text
+  onPress={() => handleWordPress(token.text)}
+  onLongPress={() => handleWordLongPress(token.text)}
+>
+```
+
+**2. 不要になった関数を削除：**
+
+以下の2つの関数は使用されなくなったため削除：
+- `handleJapaneseWordPress` - 日本語単語のタップ処理
+- `handleJapaneseSentenceLongPress` - 日本語文章の長押し処理
+
+### 変更後の統一された操作
+
+| 操作 | 英単語 | 日本語単語 |
+|------|--------|------------|
+| 長押し | 単語登録ポップアップ | 単語登録ポップアップ |
+| ダブルタップ | 文選択 | 文選択 |
+
+### 関連ファイル
+- `src/components/PostCard.tsx` - 投稿カードコンポーネント
+
+### 教訓
+- 同じ機能に対しては一貫した操作方法を提供することが重要
+- 言語によって操作方法が異なると、ユーザーが混乱する原因になる
+- 長押しは誤タップを防ぐ効果があり、重要な操作（登録など）に適している
+- 不要になったコードは速やかに削除して、コードベースをクリーンに保つ
