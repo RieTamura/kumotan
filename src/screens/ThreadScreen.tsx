@@ -10,6 +10,7 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,8 +18,11 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
 import { Loading } from '../components/common/Loading';
 import { PostCard } from '../components/PostCard';
+import { WordPopup } from '../components/WordPopup';
 import { TimelinePost, PostEmbed, PostImage } from '../types/bluesky';
 import { getAgent, hasActiveSession, refreshSession } from '../services/bluesky/auth';
+import { likePost, unlikePost } from '../services/bluesky/feed';
+import { addWord } from '../services/database/words';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type ThreadScreenProps = NativeStackScreenProps<RootStackParamList, 'Thread'>;
@@ -28,6 +32,28 @@ interface ThreadData {
   replies: TimelinePost[];
   parent?: TimelinePost;
 }
+
+/**
+ * Word popup state interface
+ */
+interface WordPopupState {
+  visible: boolean;
+  word: string;
+  isSentenceMode: boolean;
+  postUri: string;
+  postText: string;
+}
+
+/**
+ * Initial word popup state
+ */
+const initialWordPopupState: WordPopupState = {
+  visible: false,
+  word: '',
+  isSentenceMode: false,
+  postUri: '',
+  postText: '',
+};
 
 /**
  * Extract embed from raw post data
@@ -117,10 +143,15 @@ function toTimelinePost(post: {
 export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
   const { postUri } = route.params;
   const { t } = useTranslation(['thread', 'common']);
+  const { t: tc } = useTranslation('common');
+  const { t: th } = useTranslation('home');
   const [threadData, setThreadData] = useState<ThreadData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Word popup state
+  const [wordPopup, setWordPopup] = useState<WordPopupState>(initialWordPopupState);
 
   /**
    * Fetch thread data
@@ -239,6 +270,111 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
     fetchThread(false);
   }, [fetchThread]);
 
+  /**
+   * Handle word selection from a post
+   */
+  const handleWordSelect = useCallback(
+    (word: string, uri: string, postText: string) => {
+      setWordPopup({
+        visible: true,
+        word: word.toLowerCase(),
+        isSentenceMode: false,
+        postUri: uri,
+        postText,
+      });
+    },
+    []
+  );
+
+  /**
+   * Handle sentence selection from a post
+   */
+  const handleSentenceSelect = useCallback(
+    (sentence: string, uri: string, postText: string) => {
+      setWordPopup({
+        visible: true,
+        word: sentence,
+        isSentenceMode: true,
+        postUri: uri,
+        postText,
+      });
+    },
+    []
+  );
+
+  /**
+   * Close word popup
+   */
+  const closeWordPopup = useCallback(() => {
+    setWordPopup(prev => ({ ...prev, visible: false }));
+    setTimeout(() => {
+      setWordPopup(initialWordPopupState);
+    }, 100);
+  }, []);
+
+  /**
+   * Handle add word to vocabulary
+   */
+  const handleAddWord = useCallback(
+    async (
+      word: string,
+      japanese: string | null,
+      definition: string | null,
+      uri: string | null,
+      postText: string | null
+    ) => {
+      try {
+        const result = await addWord(
+          word,
+          japanese ?? undefined,
+          definition ?? undefined,
+          uri ?? undefined,
+          postText ?? undefined
+        );
+
+        if (result.success) {
+          Alert.alert(tc('status.success'), th('wordAdded'));
+        } else {
+          Alert.alert(tc('status.error'), result.error.message);
+        }
+      } catch (err) {
+        Alert.alert(tc('status.error'), th('wordAddError'));
+        if (__DEV__) {
+          console.error('Failed to add word:', err);
+        }
+      }
+    },
+    [tc, th]
+  );
+
+  /**
+   * Handle like press
+   */
+  const handleLikePress = useCallback(
+    async (post: TimelinePost, shouldLike: boolean) => {
+      try {
+        if (shouldLike) {
+          const result = await likePost(post.uri, post.cid);
+          if (!result.success && __DEV__) {
+            console.error('Failed to like post:', result.error);
+          }
+        } else {
+          if (post.viewer?.like) {
+            const result = await unlikePost(post.viewer.like);
+            if (!result.success && __DEV__) {
+              console.error('Failed to unlike post:', result.error);
+            }
+          }
+        }
+      } catch (err) {
+        if (__DEV__) {
+          console.error('Like operation failed:', err);
+        }
+      }
+    },
+    []
+  );
+
   // Fetch thread on mount
   useEffect(() => {
     fetchThread();
@@ -250,19 +386,34 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
   const renderHeader = useCallback(() => {
     if (!threadData) return null;
 
+    const shouldClearParentSelection = !wordPopup.visible && wordPopup.postUri === threadData.parent?.uri && wordPopup.postUri !== '';
+    const shouldClearMainSelection = !wordPopup.visible && wordPopup.postUri === threadData.post.uri && wordPopup.postUri !== '';
+
     return (
       <View>
         {/* Parent post if exists */}
         {threadData.parent && (
           <View style={styles.parentContainer}>
             <View style={styles.threadLine} />
-            <PostCard post={threadData.parent} />
+            <PostCard
+              post={threadData.parent}
+              onWordSelect={handleWordSelect}
+              onSentenceSelect={handleSentenceSelect}
+              onLikePress={handleLikePress}
+              clearSelection={shouldClearParentSelection}
+            />
           </View>
         )}
 
         {/* Main post */}
         <View style={styles.mainPostContainer}>
-          <PostCard post={threadData.post} />
+          <PostCard
+            post={threadData.post}
+            onWordSelect={handleWordSelect}
+            onSentenceSelect={handleSentenceSelect}
+            onLikePress={handleLikePress}
+            clearSelection={shouldClearMainSelection}
+          />
         </View>
 
         {/* Replies header */}
@@ -275,18 +426,25 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
         )}
       </View>
     );
-  }, [threadData, t]);
+  }, [threadData, t, handleWordSelect, handleSentenceSelect, handleLikePress, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Render reply item
    */
   const renderReply = useCallback(({ item }: { item: TimelinePost }) => {
+    const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri && wordPopup.postUri !== '';
     return (
       <View style={styles.replyContainer}>
-        <PostCard post={item} />
+        <PostCard
+          post={item}
+          onWordSelect={handleWordSelect}
+          onSentenceSelect={handleSentenceSelect}
+          onLikePress={handleLikePress}
+          clearSelection={shouldClearSelection}
+        />
       </View>
     );
-  }, []);
+  }, [handleWordSelect, handleSentenceSelect, handleLikePress, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Key extractor
@@ -341,6 +499,16 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
           />
         }
         showsVerticalScrollIndicator={false}
+      />
+
+      <WordPopup
+        visible={wordPopup.visible}
+        word={wordPopup.word}
+        isSentenceMode={wordPopup.isSentenceMode}
+        postUri={wordPopup.postUri}
+        postText={wordPopup.postText}
+        onClose={closeWordPopup}
+        onAddToWordList={handleAddWord}
       />
     </SafeAreaView>
   );

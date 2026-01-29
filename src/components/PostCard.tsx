@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
-import { MessageCircle, Repeat2, Heart, BookSearch, X } from 'lucide-react-native';
+import { MessageCircle, Repeat2, Heart, BookSearch, X, ExternalLink } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
@@ -48,7 +48,9 @@ interface TextToken {
   isEnglishSentence: boolean;
   isUrl: boolean;
   isHashtag: boolean;
+  isMention: boolean;
   hashtagValue?: string; // The hashtag without the # prefix
+  mentionHandle?: string; // The handle without the @ prefix
   index: number;
 }
 
@@ -61,6 +63,12 @@ const URL_REGEX = /https?:\/\/[^\s<>"\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E
  * Hashtag regex pattern for detecting hashtags in text
  */
 const HASHTAG_REGEX = /#[\p{L}\p{N}_]+/gu;
+
+/**
+ * Mention regex pattern for detecting @handle mentions in text
+ * Handles patterns like @handle.domain.tld
+ */
+const MENTION_REGEX = /@[\w][\w.-]*[\w]/g;
 
 /**
  * Parse text segment into tokens (words, Japanese text, etc.)
@@ -80,6 +88,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
         isEnglishSentence: false,
         isUrl: false,
         isHashtag: false,
+        isMention: false,
         index: startIndex,
       });
       return { tokens, nextIndex: startIndex + 1 };
@@ -104,6 +113,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
           isEnglishSentence: false,
           isUrl: false,
           isHashtag: false,
+          isMention: false,
           index: index++,
         });
       }
@@ -130,6 +140,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
           isEnglishSentence: false,
           isUrl: false,
           isHashtag: false,
+          isMention: false,
           index: index++,
         });
       }
@@ -149,6 +160,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
             isEnglishSentence: false,
             isUrl: false,
             isHashtag: false,
+            isMention: false,
             index: index++,
           });
         }
@@ -161,6 +173,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
           isEnglishSentence: false,
           isUrl: false,
           isHashtag: false,
+          isMention: false,
           index: index++,
         });
       }
@@ -180,6 +193,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
         isEnglishSentence: false,
         isUrl: false,
         isHashtag: false,
+        isMention: false,
         index: index++,
       });
     }
@@ -189,14 +203,14 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
 }
 
 /**
- * Special match type for URLs and hashtags
+ * Special match type for URLs, hashtags, and mentions
  */
 interface SpecialMatch {
   text: string;
   start: number;
   end: number;
-  type: 'url' | 'hashtag';
-  value?: string; // For hashtags, the tag without #
+  type: 'url' | 'hashtag' | 'mention';
+  value?: string; // For hashtags, the tag without #; for mentions, the handle without @
 }
 
 /**
@@ -241,6 +255,25 @@ function parseTextIntoTokens(text: string): TextToken[] {
     }
   }
 
+  // Find mentions
+  const mentionRegex = new RegExp(MENTION_REGEX.source, 'g');
+  let mentionMatch: RegExpExecArray | null;
+  while ((mentionMatch = mentionRegex.exec(text)) !== null) {
+    // Don't add if it overlaps with a URL or hashtag
+    const overlapsWithOther = specialMatches.some(
+      (m) => mentionMatch!.index >= m.start && mentionMatch!.index < m.end
+    );
+    if (!overlapsWithOther) {
+      specialMatches.push({
+        text: mentionMatch[0],
+        start: mentionMatch.index,
+        end: mentionMatch.index + mentionMatch[0].length,
+        type: 'mention',
+        value: mentionMatch[0].slice(1), // Remove @ prefix
+      });
+    }
+  }
+
   // If no special matches, parse the entire text as before
   if (specialMatches.length === 0) {
     const result = parseTextSegmentIntoTokens(text, 0);
@@ -271,9 +304,10 @@ function parseTextIntoTokens(text: string): TextToken[] {
         isEnglishSentence: false,
         isUrl: true,
         isHashtag: false,
+        isMention: false,
         index: index++,
       });
-    } else {
+    } else if (specialMatch.type === 'hashtag') {
       tokens.push({
         text: specialMatch.text,
         isEnglishWord: false,
@@ -281,7 +315,20 @@ function parseTextIntoTokens(text: string): TextToken[] {
         isEnglishSentence: false,
         isUrl: false,
         isHashtag: true,
+        isMention: false,
         hashtagValue: specialMatch.value,
+        index: index++,
+      });
+    } else if (specialMatch.type === 'mention') {
+      tokens.push({
+        text: specialMatch.text,
+        isEnglishWord: false,
+        isJapaneseWord: false,
+        isEnglishSentence: false,
+        isUrl: false,
+        isHashtag: false,
+        isMention: true,
+        mentionHandle: specialMatch.value,
         index: index++,
       });
     }
@@ -479,6 +526,18 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
   }, []);
 
   /**
+   * Handle mention press - open Bluesky profile
+   */
+  const handleMentionPress = useCallback((handle: string) => {
+    const profileUrl = `https://bsky.app/profile/${encodeURIComponent(handle)}`;
+    Linking.openURL(profileUrl).catch((err) => {
+      if (__DEV__) {
+        console.error('Failed to open profile:', err);
+      }
+    });
+  }, []);
+
+  /**
    * Handle like button press
    */
   const handleLikePress = useCallback(() => {
@@ -531,6 +590,20 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
                 key={token.index}
                 style={styles.hashtagText}
                 onPress={() => handleHashtagPress(token.hashtagValue!)}
+                suppressHighlighting={false}
+              >
+                {token.text}
+              </Text>
+            );
+          }
+
+          // Mention tokens - make them tappable links to profile
+          if (token.isMention && token.mentionHandle) {
+            return (
+              <Text
+                key={token.index}
+                style={styles.mentionText}
+                onPress={() => handleMentionPress(token.mentionHandle!)}
                 suppressHighlighting={false}
               >
                 {token.text}
@@ -704,6 +777,50 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
     );
   };
 
+  /**
+   * Render external link embed (link card)
+   */
+  const renderExternalEmbed = () => {
+    const external = post.embed?.external;
+    if (!external?.uri) return null;
+
+    return (
+      <Pressable
+        style={styles.externalEmbedContainer}
+        onPress={() => handleUrlPress(external.uri)}
+        accessible={true}
+        accessibilityLabel={`リンク: ${external.title || external.uri}`}
+        accessibilityRole="link"
+      >
+        {external.thumb && (
+          <Image
+            source={{ uri: external.thumb }}
+            style={styles.externalEmbedThumb}
+            resizeMode="cover"
+          />
+        )}
+        <View style={styles.externalEmbedContent}>
+          <View style={styles.externalEmbedHeader}>
+            <ExternalLink size={14} color={Colors.textTertiary} />
+            <Text style={styles.externalEmbedDomain} numberOfLines={1}>
+              {new URL(external.uri).hostname.replace(/^www\./, '')}
+            </Text>
+          </View>
+          {external.title ? (
+            <Text style={styles.externalEmbedTitle} numberOfLines={2}>
+              {external.title}
+            </Text>
+          ) : null}
+          {external.description ? (
+            <Text style={styles.externalEmbedDescription} numberOfLines={2}>
+              {external.description}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
+    );
+  };
+
   return (
     <Pressable
       style={styles.container}
@@ -745,6 +862,9 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
 
           {/* Embedded images */}
           {renderImages()}
+
+          {/* External link embed */}
+          {renderExternalEmbed()}
 
           {/* Engagement metrics */}
           <View style={styles.metricsRow}>
@@ -894,6 +1014,9 @@ const styles = StyleSheet.create({
   hashtagText: {
     color: Colors.primary,
   },
+  mentionText: {
+    color: Colors.primary,
+  },
   metricsRow: {
     flexDirection: 'row',
     paddingTop: Spacing.sm,
@@ -1002,6 +1125,45 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: BorderRadius.full,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  // External embed styles (link card)
+  externalEmbedContainer: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    overflow: 'hidden',
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  externalEmbedThumb: {
+    width: '100%',
+    height: 120,
+  },
+  externalEmbedContent: {
+    padding: Spacing.md,
+  },
+  externalEmbedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  externalEmbedDomain: {
+    fontSize: FontSizes.xs,
+    color: Colors.textTertiary,
+    flex: 1,
+  },
+  externalEmbedTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  externalEmbedDescription: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
 });
 
