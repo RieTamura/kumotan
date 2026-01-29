@@ -292,3 +292,60 @@ const PRESET_HASHTAGS = ['英語学習', 'くもたん', 'Bluesky'];
 │  [   キャンセル   ]         │ ← Outline Button
 └─────────────────────────────┘
 ```
+
+---
+
+## 11. 追加機能：ハッシュタグ自動抽出
+
+### 11.1 概要
+
+投稿テキストに直接入力されたハッシュタグ（例：`#テスト投稿`）を自動検出し、履歴に保存する機能。
+
+### 11.2 変更ファイル
+
+| ファイルパス                   | 変更内容                                       |
+|-------------------------------|-----------------------------------------------|
+| `src/hooks/usePostCreation.ts` | `submitPost`内でテキストからハッシュタグを抽出 |
+
+### 11.3 実装詳細
+
+**`submitPost`関数の変更:**
+
+```typescript
+const submitPost = useCallback(async (): Promise<boolean> => {
+  // ... 既存コード ...
+
+  const postText = buildPostText();
+  const result = await createPost(postText);
+
+  if (result.success) {
+    // テキストからハッシュタグを抽出して履歴に保存
+    const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
+    const matches = postText.match(hashtagRegex);
+    const extractedTags = matches?.map(tag => tag.slice(1)) ?? [];
+
+    if (extractedTags.length > 0) {
+      await saveHashtagsToHistory(extractedTags);
+    }
+
+    setState(initialState);
+    return true;
+  }
+  // ...
+}, [/* deps */]);
+```
+
+### 11.4 動作フロー
+
+1. ユーザーがテキストに `#タグ名` を入力
+2. 投稿ボタンを押す
+3. 投稿成功後、テキストから `#` で始まる文字列を正規表現で抽出
+4. 抽出したタグを履歴に保存（最大5件、重複排除）
+5. 次回モーダル表示時に履歴として表示される
+
+### 11.5 パフォーマンス
+
+- 正規表現マッチは数ミリ秒以下
+- 投稿時に1回のみ実行
+- AsyncStorageは非同期なのでUIをブロックしない
+- 投稿テキストは最大300文字なので負荷は無視できるレベル

@@ -46,6 +46,8 @@ interface TextToken {
   isJapaneseWord: boolean;
   isEnglishSentence: boolean;
   isUrl: boolean;
+  isHashtag: boolean;
+  hashtagValue?: string; // The hashtag without the # prefix
   index: number;
 }
 
@@ -55,6 +57,11 @@ interface TextToken {
 const URL_REGEX = /https?:\/\/[^\s<>"\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+/g;
 
 /**
+ * Hashtag regex pattern for detecting hashtags in text
+ */
+const HASHTAG_REGEX = /#[\p{L}\p{N}_]+/gu;
+
+/**
  * Parse text segment into tokens (words, Japanese text, etc.)
  * Used for non-URL text segments
  */
@@ -62,7 +69,20 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
   const tokens: TextToken[] = [];
   const sentences = splitIntoSentences(text);
 
+  // If no sentences found but text exists (e.g., only whitespace/newlines), preserve it
   if (sentences.length === 0) {
+    if (text.length > 0) {
+      tokens.push({
+        text,
+        isEnglishWord: false,
+        isJapaneseWord: false,
+        isEnglishSentence: false,
+        isUrl: false,
+        isHashtag: false,
+        index: startIndex,
+      });
+      return { tokens, nextIndex: startIndex + 1 };
+    }
     return { tokens, nextIndex: startIndex };
   }
 
@@ -72,16 +92,17 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
   for (const sentence of sentences) {
     const sentenceStart = text.indexOf(sentence, currentPos);
 
-    // Add any text before this sentence
+    // Add any text before this sentence (including whitespace/newlines)
     if (sentenceStart > currentPos) {
       const beforeText = text.substring(currentPos, sentenceStart);
-      if (beforeText.trim()) {
+      if (beforeText.length > 0) {
         tokens.push({
           text: beforeText,
           isEnglishWord: false,
           isJapaneseWord: false,
           isEnglishSentence: false,
           isUrl: false,
+          isHashtag: false,
           index: index++,
         });
       }
@@ -107,6 +128,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
           isJapaneseWord: false,
           isEnglishSentence: false,
           isUrl: false,
+          isHashtag: false,
           index: index++,
         });
       }
@@ -125,6 +147,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
             isJapaneseWord: isMeaningfulToken(jToken),
             isEnglishSentence: false,
             isUrl: false,
+            isHashtag: false,
             index: index++,
           });
         }
@@ -136,6 +159,7 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
           isJapaneseWord: false,
           isEnglishSentence: false,
           isUrl: false,
+          isHashtag: false,
           index: index++,
         });
       }
@@ -144,16 +168,17 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
     currentPos = sentenceStart + sentence.length;
   }
 
-  // Add any remaining text
+  // Add any remaining text (including whitespace/newlines)
   if (currentPos < text.length) {
     const remaining = text.substring(currentPos);
-    if (remaining.trim()) {
+    if (remaining.length > 0) {
       tokens.push({
         text: remaining,
         isEnglishWord: false,
         isJapaneseWord: false,
         isEnglishSentence: false,
         isUrl: false,
+        isHashtag: false,
         index: index++,
       });
     }
@@ -163,58 +188,107 @@ function parseTextSegmentIntoTokens(text: string, startIndex: number): { tokens:
 }
 
 /**
- * Parse text into tokens (sentences, words, and URLs)
- * URLs are extracted first and then remaining text is parsed
+ * Special match type for URLs and hashtags
+ */
+interface SpecialMatch {
+  text: string;
+  start: number;
+  end: number;
+  type: 'url' | 'hashtag';
+  value?: string; // For hashtags, the tag without #
+}
+
+/**
+ * Parse text into tokens (sentences, words, URLs, and hashtags)
+ * URLs and hashtags are extracted first and then remaining text is parsed
  */
 function parseTextIntoTokens(text: string): TextToken[] {
   const tokens: TextToken[] = [];
   let index = 0;
 
-  // Find all URLs in the text
-  const urlMatches: { url: string; start: number; end: number }[] = [];
-  let match;
-  const urlRegex = new RegExp(URL_REGEX.source, 'g');
+  // Find all URLs and hashtags in the text
+  const specialMatches: SpecialMatch[] = [];
+  let urlMatch: RegExpExecArray | null;
+  let hashtagMatch: RegExpExecArray | null;
 
-  while ((match = urlRegex.exec(text)) !== null) {
-    urlMatches.push({
-      url: match[0],
-      start: match.index,
-      end: match.index + match[0].length,
+  // Find URLs
+  const urlRegex = new RegExp(URL_REGEX.source, 'g');
+  while ((urlMatch = urlRegex.exec(text)) !== null) {
+    specialMatches.push({
+      text: urlMatch[0],
+      start: urlMatch.index,
+      end: urlMatch.index + urlMatch[0].length,
+      type: 'url',
     });
   }
 
-  // If no URLs, parse the entire text as before
-  if (urlMatches.length === 0) {
+  // Find hashtags
+  const hashtagRegex = new RegExp(HASHTAG_REGEX.source, 'gu');
+  while ((hashtagMatch = hashtagRegex.exec(text)) !== null) {
+    // Don't add if it overlaps with a URL
+    const overlapsWithUrl = specialMatches.some(
+      (m) => m.type === 'url' && hashtagMatch!.index >= m.start && hashtagMatch!.index < m.end
+    );
+    if (!overlapsWithUrl) {
+      specialMatches.push({
+        text: hashtagMatch[0],
+        start: hashtagMatch.index,
+        end: hashtagMatch.index + hashtagMatch[0].length,
+        type: 'hashtag',
+        value: hashtagMatch[0].slice(1), // Remove # prefix
+      });
+    }
+  }
+
+  // If no special matches, parse the entire text as before
+  if (specialMatches.length === 0) {
     const result = parseTextSegmentIntoTokens(text, 0);
     return result.tokens;
   }
 
-  // Process text with URLs
+  // Sort by start position
+  specialMatches.sort((a, b) => a.start - b.start);
+
+  // Process text with special matches
   let currentPos = 0;
 
-  for (const urlMatch of urlMatches) {
-    // Process text before this URL
-    if (urlMatch.start > currentPos) {
-      const beforeText = text.substring(currentPos, urlMatch.start);
+  for (const specialMatch of specialMatches) {
+    // Process text before this match
+    if (specialMatch.start > currentPos) {
+      const beforeText = text.substring(currentPos, specialMatch.start);
       const result = parseTextSegmentIntoTokens(beforeText, index);
       tokens.push(...result.tokens);
       index = result.nextIndex;
     }
 
-    // Add URL token
-    tokens.push({
-      text: urlMatch.url,
-      isEnglishWord: false,
-      isJapaneseWord: false,
-      isEnglishSentence: false,
-      isUrl: true,
-      index: index++,
-    });
+    // Add special token
+    if (specialMatch.type === 'url') {
+      tokens.push({
+        text: specialMatch.text,
+        isEnglishWord: false,
+        isJapaneseWord: false,
+        isEnglishSentence: false,
+        isUrl: true,
+        isHashtag: false,
+        index: index++,
+      });
+    } else {
+      tokens.push({
+        text: specialMatch.text,
+        isEnglishWord: false,
+        isJapaneseWord: false,
+        isEnglishSentence: false,
+        isUrl: false,
+        isHashtag: true,
+        hashtagValue: specialMatch.value,
+        index: index++,
+      });
+    }
 
-    currentPos = urlMatch.end;
+    currentPos = specialMatch.end;
   }
 
-  // Process text after the last URL
+  // Process text after the last match
   if (currentPos < text.length) {
     const afterText = text.substring(currentPos);
     const result = parseTextSegmentIntoTokens(afterText, index);
@@ -414,6 +488,18 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
   }, []);
 
   /**
+   * Handle hashtag press - open Bluesky search
+   */
+  const handleHashtagPress = useCallback((tag: string) => {
+    const searchUrl = `https://bsky.app/search?q=%23${encodeURIComponent(tag)}`;
+    Linking.openURL(searchUrl).catch((err) => {
+      if (__DEV__) {
+        console.error('Failed to open hashtag search:', err);
+      }
+    });
+  }, []);
+
+  /**
    * Handle like button press
    */
   const handleLikePress = useCallback(() => {
@@ -452,6 +538,20 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
                 key={token.index}
                 style={styles.urlText}
                 onPress={() => handleUrlPress(token.text)}
+                suppressHighlighting={false}
+              >
+                {token.text}
+              </Text>
+            );
+          }
+
+          // Hashtag tokens - make them tappable links
+          if (token.isHashtag && token.hashtagValue) {
+            return (
+              <Text
+                key={token.index}
+                style={styles.hashtagText}
+                onPress={() => handleHashtagPress(token.hashtagValue!)}
                 suppressHighlighting={false}
               >
                 {token.text}
@@ -781,6 +881,9 @@ const styles = StyleSheet.create({
   urlText: {
     color: Colors.primary,
     textDecorationLine: 'underline',
+  },
+  hashtagText: {
+    color: Colors.primary,
   },
   metricsRow: {
     flexDirection: 'row',
