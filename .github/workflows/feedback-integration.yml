@@ -49,7 +49,7 @@ jobs:
         run: |
           # Issueの本文から行番号を抽出
           BODY="${{ github.event.issue.body }}"
-          ROW_INDEX=$(echo "$BODY" | grep -oP '<!-- row_index: \KD\d+' || echo "")
+          ROW_INDEX=$(echo "$BODY" | grep -oP '<!-- row_index: \K\d+' || echo "")
           
           if [ -n "$ROW_INDEX" ]; then
             echo "Updating row $ROW_INDEX to Resolved..."
