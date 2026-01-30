@@ -37,6 +37,9 @@ import {
   translateToEnglishWithFallback,
   ExtendedTranslateResult as EnglishTranslateResult,
 } from '../services/dictionary/translate';
+import { MessageSquareShare } from 'lucide-react-native';
+import { FeedbackModal } from './FeedbackModal';
+import { API } from '../constants/config';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
@@ -93,14 +96,14 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
             <Text style={styles.registeredBadgeText}>登録済み</Text>
           </View>
         </View>
-        
+
         {wordInfo.japanese && (
           <View style={styles.wordCardRow}>
             <Text style={styles.wordCardLabel}>日本語訳:</Text>
             <Text style={styles.wordCardJapanese}>{wordInfo.japanese}</Text>
           </View>
         )}
-        
+
         {wordInfo.definition && (
           <View style={styles.wordCardRow}>
             <Text style={styles.wordCardLabel}>定義:</Text>
@@ -109,7 +112,7 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
             </Text>
           </View>
         )}
-        
+
         <Text style={styles.wordItemHint}>この単語は既に登録されています</Text>
       </View>
     );
@@ -129,7 +132,7 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
         <View style={styles.wordCardHeader}>
           <Text style={styles.wordCardWord}>{wordInfo.word}</Text>
         </View>
-        
+
         {/* 日本語訳 */}
         {wordInfo.japanese && (
           <View style={styles.wordCardRow}>
@@ -137,7 +140,7 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
             <Text style={styles.wordCardJapanese}>{wordInfo.japanese}</Text>
           </View>
         )}
-        
+
         {/* 定義 */}
         {wordInfo.definition && (
           <View style={styles.wordCardRow}>
@@ -147,7 +150,7 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
             </Text>
           </View>
         )}
-        
+
         {/* スワイプヒント */}
         <Text style={styles.swipeHint}>← スワイプで除外</Text>
       </View>
@@ -201,7 +204,7 @@ export function WordPopup({
   const { t } = useTranslation('wordPopup');
   const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
   const [backdropOpacity] = useState(new Animated.Value(0));
-  
+
   const [definition, setDefinition] = useState<DictionaryResult | null>(null);
   const [translation, setTranslation] = useState<ExtendedTranslateResult | null>(null);
   const [japaneseInfo, setJapaneseInfo] = useState<JapaneseWordInfo[]>([]);
@@ -210,14 +213,14 @@ export function WordPopup({
   // Sentence mode states
   const [sentenceTranslation, setSentenceTranslation] = useState<ExtendedTranslateResult | null>(null);
   const [wordsInfo, setWordsInfo] = useState<WordInfo[]>([]);
-  
+
   const [definitionError, setDefinitionError] = useState<string | null>(null);
   const [definitionNotFound, setDefinitionNotFound] = useState<boolean>(false);
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [japaneseError, setJapaneseError] = useState<string | null>(null);
   const [sentenceError, setSentenceError] = useState<string | null>(null);
   const [englishTranslationError, setEnglishTranslationError] = useState<string | null>(null);
-  
+
   const [loading, setLoading] = useState<LoadingState>({
     definition: false,
     translation: false,
@@ -235,7 +238,8 @@ export function WordPopup({
   const [yahooClientIdAvailable, setYahooClientIdAvailable] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isJapanese, setIsJapanese] = useState(false);
-  
+  const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
+
   // Get addWord from word store
   const addWordToStore = useWordStore(state => state.addWord);
 
@@ -274,57 +278,6 @@ export function WordPopup({
   }, [visible, slideAnim, backdropOpacity]);
 
   /**
-   * Fetch word data when popup opens
-   */
-  useEffect(() => {
-    console.log(`WordPopup useEffect: visible=${visible}, word="${word}"`);
-
-    if (visible && word) {
-      console.log('WordPopup useEffect: Calling fetchWordData');
-      // Reset state before fetching new data
-      setDefinition(null);
-      setTranslation(null);
-      setJapaneseInfo([]);
-      setSentenceTranslation(null);
-      setWordsInfo([]);
-      setEnglishTranslation(null);
-      setDefinitionError(null);
-      setDefinitionNotFound(false);
-      setTranslationError(null);
-      setJapaneseError(null);
-      setSentenceError(null);
-      setEnglishTranslationError(null);
-      setIsAdding(false);
-      // Call fetchWordData
-      fetchWordData();
-    } else {
-      console.log('WordPopup useEffect: Resetting state');
-      // Reset state when closed
-      setDefinition(null);
-      setTranslation(null);
-      setJapaneseInfo([]);
-      setSentenceTranslation(null);
-      setWordsInfo([]);
-      setEnglishTranslation(null);
-      setDefinitionError(null);
-      setDefinitionNotFound(false);
-      setTranslationError(null);
-      setJapaneseError(null);
-      setSentenceError(null);
-      setEnglishTranslationError(null);
-      setIsAdding(false);
-      setIsJapanese(false);
-    }
-  }, [visible, word, fetchWordData]);
-
-  /**
-   * Check Yahoo Client ID availability
-   */
-  useEffect(() => {
-    hasYahooClientId().then(setYahooClientIdAvailable);
-  }, []);
-
-  /**
    * Convert JapaneseWordInfo to WordInfo for sentence mode
    */
   const convertJapaneseInfoToWordInfo = useCallback((tokens: JapaneseWordInfo[]): WordInfo[] => {
@@ -338,31 +291,11 @@ export function WordPopup({
   }, []);
 
   /**
-   * Fetch definition and translation
+   * Check Yahoo Client ID availability
    */
-  const fetchWordData = useCallback(async () => {
-    if (!word) {
-      console.log('WordPopup: No word provided');
-      return;
-    }
-
-    console.log(`WordPopup: Fetching data for ${isSentenceMode ? 'sentence' : 'word'} "${word}"`);
-
-    // Reset errors
-    setDefinitionError(null);
-    setDefinitionNotFound(false);
-    setTranslationError(null);
-    setJapaneseError(null);
-    setSentenceError(null);
-
-    if (isSentenceMode) {
-      // Sentence mode - translate sentence and get info for all words
-      await fetchSentenceData();
-    } else {
-      // Word mode - existing logic
-      await fetchSingleWordData();
-    }
-  }, [word, isSentenceMode]);
+  useEffect(() => {
+    hasYahooClientId().then(setYahooClientIdAvailable);
+  }, []);
 
   /**
    * Fetch data for single word (original logic)
@@ -405,11 +338,11 @@ export function WordPopup({
       // English word - use existing logic
       console.log(`WordPopup: Starting dictionary lookup for "${word}"`);
       updateLoading('definition', true);
-      
+
       try {
         const defResult = await lookupWord(word);
         updateLoading('definition', false);
-        
+
         console.log(`WordPopup: Dictionary result:`, defResult);
 
         if (defResult.success) {
@@ -579,16 +512,87 @@ export function WordPopup({
   }, [word, fetchJapaneseSentenceData, fetchEnglishSentenceData]);
 
   /**
+   * Fetch definition and translation
+   */
+  const fetchWordData = useCallback(async () => {
+    if (!word) {
+      console.log('WordPopup: No word provided');
+      return;
+    }
+
+    console.log(`WordPopup: Fetching data for ${isSentenceMode ? 'sentence' : 'word'} "${word}"`);
+
+    // Reset errors
+    setDefinitionError(null);
+    setDefinitionNotFound(false);
+    setTranslationError(null);
+    setJapaneseError(null);
+    setSentenceError(null);
+
+    if (isSentenceMode) {
+      // Sentence mode - translate sentence and get info for all words
+      await fetchSentenceData();
+    } else {
+      // Word mode - existing logic
+      await fetchSingleWordData();
+    }
+  }, [word, isSentenceMode, fetchSentenceData, fetchSingleWordData]);
+
+  /**
+   * Fetch word data when popup opens
+   */
+  useEffect(() => {
+    console.log(`WordPopup useEffect: visible=${visible}, word="${word}"`);
+
+    if (visible && word) {
+      console.log('WordPopup useEffect: Calling fetchWordData');
+      // Reset state before fetching new data
+      setDefinition(null);
+      setTranslation(null);
+      setJapaneseInfo([]);
+      setSentenceTranslation(null);
+      setWordsInfo([]);
+      setEnglishTranslation(null);
+      setDefinitionError(null);
+      setDefinitionNotFound(false);
+      setTranslationError(null);
+      setJapaneseError(null);
+      setSentenceError(null);
+      setEnglishTranslationError(null);
+      setIsAdding(false);
+      // Call fetchWordData
+      fetchWordData();
+    } else {
+      console.log('WordPopup useEffect: Resetting state');
+      // Reset state when closed
+      setDefinition(null);
+      setTranslation(null);
+      setJapaneseInfo([]);
+      setSentenceTranslation(null);
+      setWordsInfo([]);
+      setEnglishTranslation(null);
+      setDefinitionError(null);
+      setDefinitionNotFound(false);
+      setTranslationError(null);
+      setJapaneseError(null);
+      setSentenceError(null);
+      setEnglishTranslationError(null);
+      setIsAdding(false);
+      setIsJapanese(false);
+    }
+  }, [visible, word, fetchWordData]);
+
+  /**
    * Handle add to word list
    */
   const handleAddToWordList = useCallback(async () => {
     setIsAdding(true);
-    
+
     try {
       if (isSentenceMode) {
         // Sentence mode - add all remaining words (not swiped away)
         const wordsToAdd = wordsInfo.filter(w => !w.isRegistered);
-        
+
         if (wordsToAdd.length === 0) {
           Alert.alert(t('alerts.info'), t('alerts.noWordsToRegister'));
           setIsAdding(false);
@@ -648,7 +652,7 @@ export function WordPopup({
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
         });
-        
+
         if (result.success) {
           Alert.alert(t('alerts.success'), t('alerts.wordAdded'));
           setTimeout(() => {
@@ -727,240 +731,259 @@ export function WordPopup({
 
           {/* Word/Sentence Header */}
           <View style={styles.header}>
-            <Text style={isSentenceMode ? styles.sentence : styles.word}>
-              {word}
-            </Text>
-            {!isJapanese && !isSentenceMode && definition?.phonetic && (
-              <Text style={styles.phonetic}>{definition.phonetic}</Text>
-            )}
-            {!isJapanese && !isSentenceMode && definition?.partOfSpeech && (
-              <View style={styles.posTag}>
-              <Text style={styles.posText}>{definition.partOfSpeech}</Text>
-            </View>
-          )}
-          {isSentenceMode && (
-            <View style={styles.modeTag}>
-              <Text style={styles.modeText}>文章モード</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Scrollable Content */}
-        <ScrollView 
-          style={styles.scrollContent}
-          contentContainerStyle={styles.scrollContentContainer}
-        >
-          {/* Sentence Mode Content */}
-          {isSentenceMode && (
-            <>
-              {/* Sentence Translation */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>文章の日本語訳</Text>
-                {loading.sentenceTranslation ? (
-                  <ActivityIndicator size="small" color={Colors.primary} />
-                ) : sentenceTranslation ? (
-                  <Text style={styles.translationText}>{sentenceTranslation.text}</Text>
-                ) : sentenceError ? (
-                  <Text style={styles.errorText}>{sentenceError}</Text>
-                ) : !translationAvailable ? (
-                  <Text style={styles.hintText}>
-                    翻訳が利用できません
-                  </Text>
-                ) : (
-                  <Text style={styles.hintText}>-</Text>
-                )}
-              </View>
-
-              {/* Words List */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>含まれる単語</Text>
-                <Text style={styles.swipeInstruction}>
-                  登録しない単語は左にスワイプして除外
-                </Text>
-                {loading.wordsInfo ? (
-                  <ActivityIndicator size="small" color={Colors.primary} />
-                ) : wordsInfo.length > 0 ? (
-                  <View style={styles.wordsListContainer}>
-                    {wordsInfo.map((wordInfo, index) => (
-                      <SwipeableWordCard
-                        key={`word-${index}-${wordInfo.word}`}
-                        wordInfo={wordInfo}
-                        onRemove={() => {
-                          setWordsInfo(prev => prev.filter((_, i) => i !== index));
-                        }}
-                      />
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={styles.hintText}>単語が見つかりませんでした</Text>
-                )}
-              </View>
-            </>
-          )}
-
-          {/* Word Mode Content (original) */}
-          {!isSentenceMode && (
-            <>
-              {/* Japanese Word - English Translation Section */}
-              {isJapanese && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>英語訳</Text>
-                  {loading.englishTranslation ? (
-                    <ActivityIndicator size="small" color={Colors.primary} />
-                  ) : englishTranslation ? (
-                    <>
-                      <Text style={styles.translationText}>{englishTranslation.text}</Text>
-                      {englishTranslation.source && (
-                        <Text style={styles.sourceText}>
-                          出典: {englishTranslation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
-                        </Text>
-                      )}
-                      {englishTranslation.readings && englishTranslation.readings.length > 0 && (
-                        <Text style={styles.readingText}>
-                          読み: {englishTranslation.readings.join(', ')}
-                        </Text>
-                      )}
-                      {englishTranslation.partOfSpeech && englishTranslation.partOfSpeech.length > 0 && (
-                        <Text style={styles.posInfoText}>
-                          品詞: {englishTranslation.partOfSpeech.join(', ')}
-                        </Text>
-                      )}
-                    </>
-                  ) : englishTranslationError ? (
-                    <Text style={styles.errorText}>{englishTranslationError}</Text>
-                  ) : (
-                    <Text style={styles.hintText}>英語訳が見つかりませんでした</Text>
-                  )}
+            <View style={styles.headerContent}>
+              <Text style={isSentenceMode ? styles.sentence : styles.word} numberOfLines={2}>
+                {word}
+              </Text>
+              {!isJapanese && !isSentenceMode && definition?.phonetic && (
+                <Text style={styles.phonetic}>{definition.phonetic}</Text>
+              )}
+              {!isJapanese && !isSentenceMode && definition?.partOfSpeech && (
+                <View style={styles.posTag}>
+                  <Text style={styles.posText}>{definition.partOfSpeech}</Text>
                 </View>
               )}
+              {isSentenceMode && (
+                <View style={styles.modeTag}>
+                  <Text style={styles.modeText}>文章モード</Text>
+                </View>
+              )}
+            </View>
 
-              {/* Japanese Word Info Section (Morphological Analysis) */}
-              {isJapanese && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>形態素解析結果</Text>
-              {loading.japanese ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
-              ) : japaneseInfo.length > 0 ? (
-                <>
-                  {japaneseInfo.map((token, index) => (
-                    <View key={`token-${index}-${token.word}-${token.reading}`} style={styles.tokenCard}>
-                      <View style={styles.tokenHeader}>
-                        <Text style={styles.tokenWord}>{token.word}</Text>
-                        <Text style={styles.tokenReading}>({token.reading})</Text>
-                      </View>
-                      <View style={styles.tokenDetails}>
-                        <Text style={styles.tokenDetailText}>品詞: {token.partOfSpeech}</Text>
-                        <Text style={styles.tokenDetailText}>基本形: {token.baseForm}</Text>
-                      </View>
+            {/* Feedback Icon */}
+            {!isSentenceMode && (
+              <Pressable
+                onPress={() => setIsFeedbackVisible(true)}
+                style={styles.feedbackButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MessageSquareShare size={22} color={Colors.primary} />
+              </Pressable>
+            )}
+          </View>
+
+          {/* Scrollable Content */}
+          <ScrollView
+            style={styles.scrollContent}
+            contentContainerStyle={styles.scrollContentContainer}
+          >
+            {/* Sentence Mode Content */}
+            {isSentenceMode && (
+              <>
+                {/* Sentence Translation */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>文章の日本語訳</Text>
+                  {loading.sentenceTranslation ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : sentenceTranslation ? (
+                    <Text style={styles.translationText}>{sentenceTranslation.text}</Text>
+                  ) : sentenceError ? (
+                    <Text style={styles.errorText}>{sentenceError}</Text>
+                  ) : !translationAvailable ? (
+                    <Text style={styles.hintText}>
+                      翻訳が利用できません
+                    </Text>
+                  ) : (
+                    <Text style={styles.hintText}>-</Text>
+                  )}
+                </View>
+
+                {/* Words List */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>含まれる単語</Text>
+                  <Text style={styles.swipeInstruction}>
+                    登録しない単語は左にスワイプして除外
+                  </Text>
+                  {loading.wordsInfo ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : wordsInfo.length > 0 ? (
+                    <View style={styles.wordsListContainer}>
+                      {wordsInfo.map((wordInfo, index) => (
+                        <SwipeableWordCard
+                          key={`word-${index}-${wordInfo.word}`}
+                          wordInfo={wordInfo}
+                          onRemove={() => {
+                            setWordsInfo(prev => prev.filter((_, i) => i !== index));
+                          }}
+                        />
+                      ))}
                     </View>
-                  ))}
-                </>
-              ) : japaneseError ? (
-                <Text style={styles.errorText}>{japaneseError}</Text>
-              ) : !yahooClientIdAvailable ? (
-                <Text style={styles.hintText}>
-                  Yahoo! Client IDを設定すると詳細情報が表示されます
-                </Text>
-              ) : (
-                <Text style={styles.hintText}>-</Text>
-              )}
-            </View>
-          )}
+                  ) : (
+                    <Text style={styles.hintText}>単語が見つかりませんでした</Text>
+                  )}
+                </View>
+              </>
+            )}
 
-          {/* Translation Section (English words only) */}
-          {!isJapanese && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>日本語訳</Text>
-              {loading.translation ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
-              ) : translation ? (
-                <>
-                  <Text style={styles.translationText}>{translation.text}</Text>
-                  {translation.source && (
-                    <Text style={styles.sourceText}>
-                      出典: {translation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
-                    </Text>
-                  )}
-                  {translation.readings && translation.readings.length > 0 && (
-                    <Text style={styles.readingText}>
-                      読み: {translation.readings.join(', ')}
-                    </Text>
-                  )}
-                  {translation.partOfSpeech && translation.partOfSpeech.length > 0 && (
-                    <Text style={styles.posInfoText}>
-                      品詞: {translation.partOfSpeech.join(', ')}
-                    </Text>
-                  )}
-                </>
-              ) : translationError ? (
-                <Text style={styles.errorText}>{translationError}</Text>
-              ) : !translationAvailable ? (
-                <Text style={styles.hintText}>
-                  翻訳が利用できません
-                </Text>
-              ) : (
-                <Text style={styles.hintText}>-</Text>
-              )}
-            </View>
-          )}
+            {/* Word Mode Content (original) */}
+            {!isSentenceMode && (
+              <>
+                {/* Japanese Word - English Translation Section */}
+                {isJapanese && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>英語訳</Text>
+                    {loading.englishTranslation ? (
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : englishTranslation ? (
+                      <>
+                        <Text style={styles.translationText}>{englishTranslation.text}</Text>
+                        {englishTranslation.source && (
+                          <Text style={styles.sourceText}>
+                            出典: {englishTranslation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
+                          </Text>
+                        )}
+                        {englishTranslation.readings && englishTranslation.readings.length > 0 && (
+                          <Text style={styles.readingText}>
+                            読み: {englishTranslation.readings.join(', ')}
+                          </Text>
+                        )}
+                        {englishTranslation.partOfSpeech && englishTranslation.partOfSpeech.length > 0 && (
+                          <Text style={styles.posInfoText}>
+                            品詞: {englishTranslation.partOfSpeech.join(', ')}
+                          </Text>
+                        )}
+                      </>
+                    ) : englishTranslationError ? (
+                      <Text style={styles.errorText}>{englishTranslationError}</Text>
+                    ) : (
+                      <Text style={styles.hintText}>英語訳が見つかりませんでした</Text>
+                    )}
+                  </View>
+                )}
 
-          {/* Definition Section (English words only) */}
-          {!isJapanese && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>英語の定義</Text>
-              {loading.definition ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
-              ) : definition ? (
-                <>
-                  <Text style={styles.definitionText}>{definition.definition}</Text>
-                  {definition.example && (
-                    <Text style={styles.exampleText}>
-                      例: "{definition.example}"
-                    </Text>
-                  )}
-                </>
-              ) : definitionNotFound ? (
-                <Text style={styles.notFoundText}>定義が見つかりませんでした</Text>
-              ) : definitionError ? (
-                <Text style={styles.errorText}>{definitionError}</Text>
-              ) : (
-                <Text style={styles.hintText}>-</Text>
-              )}
-            </View>
-          )}
-          </>
-          )}
-        </ScrollView>
+                {/* Japanese Word Info Section (Morphological Analysis) */}
+                {isJapanese && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>形態素解析結果</Text>
+                    {loading.japanese ? (
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : japaneseInfo.length > 0 ? (
+                      <>
+                        {japaneseInfo.map((token, index) => (
+                          <View key={`token-${index}-${token.word}-${token.reading}`} style={styles.tokenCard}>
+                            <View style={styles.tokenHeader}>
+                              <Text style={styles.tokenWord}>{token.word}</Text>
+                              <Text style={styles.tokenReading}>({token.reading})</Text>
+                            </View>
+                            <View style={styles.tokenDetails}>
+                              <Text style={styles.tokenDetailText}>品詞: {token.partOfSpeech}</Text>
+                              <Text style={styles.tokenDetailText}>基本形: {token.baseForm}</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </>
+                    ) : japaneseError ? (
+                      <Text style={styles.errorText}>{japaneseError}</Text>
+                    ) : !yahooClientIdAvailable ? (
+                      <Text style={styles.hintText}>
+                        Yahoo! Client IDを設定すると詳細情報が表示されます
+                      </Text>
+                    ) : (
+                      <Text style={styles.hintText}>-</Text>
+                    )}
+                  </View>
+                )}
 
-        {/* Action Buttons */}
-        <View style={styles.actions}>
-          <Button
-            title={isSentenceMode 
-              ? `単語を登録 (${wordsInfo.filter(w => !w.isRegistered).length}件)`
-              : '単語帳に追加'}
-            onPress={handleAddToWordList}
-            variant="primary"
-            loading={isAdding}
-            disabled={
-              loading.definition || 
-              loading.translation || 
-              loading.japanese || 
-              loading.sentenceTranslation || 
-              loading.wordsInfo ||
-              (isSentenceMode && wordsInfo.filter(w => !w.isRegistered).length === 0)
-            }
-            style={styles.addButton}
-          />
-          <Button
-            title="キャンセル"
-            onPress={handleBackdropPress}
-            variant="outline"
-            disabled={isAdding}
-            style={styles.cancelButton}
-          />
-        </View>
-      </Animated.View>
+                {/* Translation Section (English words only) */}
+                {!isJapanese && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>日本語訳</Text>
+                    {loading.translation ? (
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : translation ? (
+                      <>
+                        <Text style={styles.translationText}>{translation.text}</Text>
+                        {translation.source && (
+                          <Text style={styles.sourceText}>
+                            出典: {translation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
+                          </Text>
+                        )}
+                        {translation.readings && translation.readings.length > 0 && (
+                          <Text style={styles.readingText}>
+                            読み: {translation.readings.join(', ')}
+                          </Text>
+                        )}
+                        {translation.partOfSpeech && translation.partOfSpeech.length > 0 && (
+                          <Text style={styles.posInfoText}>
+                            品詞: {translation.partOfSpeech.join(', ')}
+                          </Text>
+                        )}
+                      </>
+                    ) : translationError ? (
+                      <Text style={styles.errorText}>{translationError}</Text>
+                    ) : !translationAvailable ? (
+                      <Text style={styles.hintText}>
+                        翻訳が利用できません
+                      </Text>
+                    ) : (
+                      <Text style={styles.hintText}>-</Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Definition Section (English words only) */}
+                {!isJapanese && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>英語の定義</Text>
+                    {loading.definition ? (
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : definition ? (
+                      <>
+                        <Text style={styles.definitionText}>{definition.definition}</Text>
+                        {definition.example && (
+                          <Text style={styles.exampleText}>
+                            例: "{definition.example}"
+                          </Text>
+                        )}
+                      </>
+                    ) : definitionNotFound ? (
+                      <Text style={styles.notFoundText}>定義が見つかりませんでした</Text>
+                    ) : definitionError ? (
+                      <Text style={styles.errorText}>{definitionError}</Text>
+                    ) : (
+                      <Text style={styles.hintText}>-</Text>
+                    )}
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+
+          {/* Action Buttons */}
+          <View style={styles.actions}>
+            <Button
+              title={isSentenceMode
+                ? `単語を登録 (${wordsInfo.filter(w => !w.isRegistered).length}件)`
+                : '単語帳に追加'}
+              onPress={handleAddToWordList}
+              variant="primary"
+              loading={isAdding}
+              disabled={
+                loading.definition ||
+                loading.translation ||
+                loading.japanese ||
+                loading.sentenceTranslation ||
+                loading.wordsInfo ||
+                (isSentenceMode && wordsInfo.filter(w => !w.isRegistered).length === 0)
+              }
+              style={styles.addButton}
+            />
+            <Button
+              title="キャンセル"
+              onPress={handleBackdropPress}
+              variant="outline"
+              disabled={isAdding}
+              style={styles.cancelButton}
+            />
+          </View>
+        </Animated.View>
       </GestureHandlerRootView>
+
+      <FeedbackModal
+        visible={isFeedbackVisible}
+        word={word}
+        onClose={() => setIsFeedbackVisible(false)}
+      />
     </Modal>
   );
 }
@@ -999,6 +1022,13 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  headerContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
@@ -1252,6 +1282,9 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
+  },
+  feedbackButton: {
+    padding: Spacing.xs,
   },
 });
 

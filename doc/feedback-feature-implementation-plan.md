@@ -33,8 +33,8 @@ graph TD
 ## 3. 実装詳細
 
 ### 3.1. フロントエンドの変更
-- **ファイル**: `src/components/WordPopup/WordPopupModal.tsx`
-- **アイコン**: 検索結果が見つからない、または内容が不十分な箇所に配置（例: `info-outline` 或いは独自の不具合報告アイコン）。
+- **ファイル**: `src/components/WordPopup.tsx`（旧 `WordPopupModal.tsx` より統合）
+- **アイコン**: 検索結果が表示されるヘッダー部分に `MessageSquareShare` アイコンを配置。
 - **フォーム内容**:
     - 検索した単語（自動入力）
     - 期待していた意味（任意）
@@ -45,27 +45,29 @@ graph TD
     - `doPost(e)` による受信。
     - `SpreadsheetApp` を使ったデータ追記。
     - `UrlFetchApp` を使った GitHub API への POSTリクエスト（`repository_dispatch`）。
+    - GitHub Actions からのステータス更新リクエスト受信と反映。
 - **認証**:
     - GitHub の Personal Access Token (PAT) を GAS のプロパティに保持。
 
 ### 3.3. GitHub Actions の設定
-- **ワークフロー定義**: `.github/workflows/create-feedback-issue.yml`
+- **ワークフロー定義**: `.github/workflows/feedback-integration.yml`
 - **トリガー**: `repository_dispatch` (event_type: `feedback-received`)
 - **ジョブ**:
-    - `actions/github-script` 等を使用して Issue を作成。
+    - `actions/github-script` を使用して Issue を作成。
+    - Issue クローズ時に GAS 経由でスプレッドシートのステータスを「解決済み」に更新。
 
 ## 4. セキュリティ
 - GitHub PAT はアプリに含めず、GAS側で安全に保持する。
-- GAS の Webアプリケーション URL は、必要に応じて簡易的な認証（API Key等）を検討する。
+- GAS の Webアプリケーション URL は、`src/constants/config.ts` で管理。
 
-## 5. ステップ・バイ・ステップの作業予定
+## 5. ステップ・バイ・ステップの作業予定 ✅ 全工程完了
 
-1.  **[GAS]** Googleスプレッドシートの作成およびGASの実装。
-2.  **[GitHub Actions]** Issue作成用ワークフローの作成。
-3.  **[GAS]** GASからGitHub Actionsを叩くテスト。
-4.  **[Frontend]** `WordPopupModal` へのアイコン配置と基本UI作成。
-5.  **[Frontend]** フィードバック送信ロジックの実装（GASへの通信）。
-6.  **[Test]** 結合テスト（アプリから送信してIssueが立つか確認）。
+1.  **[GAS]** ✅ Googleスプレッドシートの作成およびGASの実装。
+2.  **[GitHub Actions]** ✅ Issue作成・ステータス連携用ワークフローの作成。
+3.  **[GAS]** ✅ GASからGitHub Actionsを叩くテスト。
+4.  **[Frontend]** ✅ `WordPopup.tsx` へのアイコン配置と `FeedbackModal.tsx` の作成。
+5.  **[Frontend]** ✅ フィードバック送信ロジックの実装（GASへの通信）。
+6.  **[Test]** ✅ 結合テスト（アプリから送信してIssueが立ち、クローズでスプレッドシートが更新されることを確認）。
 
 ## 6. 備考
 - GitHub Actions を介さず GAS から直接 Issue を作成することも可能だが、Issue テンプレートの適用や複雑な加工を行う場合は Actions を介す方が柔軟性が高い。今回は要望通り Actions 構成とする。

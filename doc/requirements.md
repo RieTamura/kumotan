@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - 無料プランまたは低コストで利用可能な場合
     - DeepL使用量が上限に近いユーザーが一定数発生した場合
 
-### Phase 2.5: 辞書フィードバック機能
+### Phase 2.5: 辞書フィードバック機能 ✅ 完了 (2026-01-30)
 
 - **目的**: JMdict辞書の翻訳精度向上のためのユーザーフィードバック収集
 - **アーキテクチャ**:
@@ -762,6 +762,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - [x] 初回起動時の辞書準備画面UI（`DictionarySetupScreen.tsx`）
   - [x] 設定画面に「辞書データ管理」追加
   - [x] 多言語対応（日本語/英語翻訳ファイル）
+
+### M6: 辞書フィードバック機能 ✅ 完了 (2026-01-30)
+
+- [x] `FeedbackModal.tsx` 実装（UIおよび送信ロジック）
+- [x] GAS 中継サーバー構築（スプレッドシート保存＋GitHub Dispatch）
+- [x] GitHub Actions 自動 Issue 作成ワークフロー構築 (`feedback-integration.yml`)
+- [x] Issue クローズ時のスプレッドシート自動ステータス更新機能の構築
 
 
 ## 注意事項・制約

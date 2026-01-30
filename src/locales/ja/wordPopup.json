@@ -65,5 +65,16 @@
     "registerWords": "単語を登録 ({{count}}件)",
     "cancel": "キャンセル"
   },
+  "feedback": {
+    "title": "不具合報告",
+    "description": "単語の検索が上手くできなかった場合や、意味が間違っている場合は教えてください。",
+    "wordLabel": "対象の単語",
+    "expectationLabel": "期待していた意味（任意）",
+    "commentLabel": "追加のコメント（任意）",
+    "send": "送信する",
+    "sending": "送信中...",
+    "success": "報告を送信しました。ありがとうございます！",
+    "error": "送信に失敗しました。時間をおいて再度お試しください。"
+  },
   "placeholder": "-"
 }

@@ -65,5 +65,16 @@
     "registerWords": "Register Words ({{count}})",
     "cancel": "Cancel"
   },
+  "feedback": {
+    "title": "Feedback",
+    "description": "Please let us know if the word search was unsuccessful or if the meaning is incorrect.",
+    "wordLabel": "Target Word",
+    "expectationLabel": "Expected Meaning (Optional)",
+    "commentLabel": "Additional Comment (Optional)",
+    "send": "Send",
+    "sending": "Sending...",
+    "success": "Feedback sent. Thank you!",
+    "error": "Failed to send. Please try again later."
+  },
   "placeholder": "-"
 }
