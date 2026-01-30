@@ -1,0 +1,61 @@
+name: Feedback Integration
+
+on:
+  repository_dispatch:
+    types: [feedback-received]
+  issues:
+    types: [closed]
+
+jobs:
+  create-issue:
+    if: github.event_name == 'repository_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create Feedback Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { word, expectation, comment, row_index } = github.event.client_payload;
+            const title = `【検索不具合】${word}`;
+            const body = `
+            ### 報告内容
+            - **対象単語**: ${word}
+            - **期待していた意味**: ${expectation || '未入力'}
+            - **コメント**: ${comment || 'なし'}
+
+            ---
+            **ID (自動管理用)**: row_${row_index}
+            <!-- row_index: ${row_index} -->
+            `;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['feedback']
+            });
+
+  update-spreadsheet:
+    if: github.event_name == 'issues' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Spreadsheet Status
+        shell: bash
+        env:
+          GAS_URL: ${{ secrets.FEEDBACK_GAS_URL }}
+        run: |
+          # Issueの本文から行番号を抽出
+          BODY="${{ github.event.issue.body }}"
+          ROW_INDEX=$(echo "$BODY" | grep -oP '<!-- row_index: \KD\d+' || echo "")
+          
+          if [ -n "$ROW_INDEX" ]; then
+            echo "Updating row $ROW_INDEX to Resolved..."
+            curl -X POST -L "$GAS_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"action\": \"update_status\", \"row_index\": $ROW_INDEX}"
+          else
+            echo "No row_index found in issue body."
+          fi

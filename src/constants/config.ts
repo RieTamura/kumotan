@@ -25,6 +25,9 @@ export const API = {
   DICTIONARY: {
     BASE_URL: 'https://api.dictionaryapi.dev/api/v2/entries/en',
   },
+  FEEDBACK: {
+    GAS_URL: 'https://script.google.com/macros/s/AKfycbyTxnbO7VTj6WawopEknkuFzcqhkyJULGIPLJsMHdmbLUq09NRZ9PpOoBeMBT_gPIob/exec', // 手動で置き換えてください
+  },
 } as const;
 
 /**
