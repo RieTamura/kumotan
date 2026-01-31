@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,20 +17,69 @@ import { Input } from './common/Input';
 import { Button } from './common/Button';
 import { API } from '../constants/config';
 
+export type FeedbackType = 'word_search' | 'bug' | 'feature';
+
 interface FeedbackModalProps {
   visible: boolean;
-  word: string;
+  type?: FeedbackType;
+  word?: string; // or title/subject
   onClose: () => void;
 }
 
-export function FeedbackModal({ visible, word, onClose }: FeedbackModalProps) {
+export function FeedbackModal({ visible, type = 'word_search', word: initialWord = '', onClose }: FeedbackModalProps) {
   const { t } = useTranslation('wordPopup');
-  const [expectation, setExpectation] = useState('');
+  const [subject, setSubject] = useState(initialWord);
+  const [description, setDescription] = useState('');
   const [comment, setComment] = useState('');
   const [isSending, setIsSending] = useState(false);
 
+  // Reset local state when initialWord changes (important for different entry points)
+  React.useEffect(() => {
+    setSubject(initialWord);
+    setDescription('');
+    setComment('');
+  }, [initialWord, visible]);
+
+  const config = useMemo(() => {
+    switch (type) {
+      case 'bug':
+        return {
+          title: t('feedback.types.bug'),
+          description: t('feedback.descriptions.bug'),
+          subjectLabel: t('feedback.labels.bugTitle'),
+          subjectPlaceholder: '例: ログインできない、画面が真っ白になる',
+          descLabel: t('feedback.labels.reproSteps'),
+          descPlaceholder: '例: 1. アプリを起動する 2. ログインボタンを押す...',
+        };
+      case 'feature':
+        return {
+          title: t('feedback.types.feature'),
+          description: t('feedback.descriptions.feature'),
+          subjectLabel: t('feedback.labels.featureTitle'),
+          subjectPlaceholder: '例: ダークモードの実装、単語の音声再生機能',
+          descLabel: t('feedback.labels.featureDetail'),
+          descPlaceholder: '例: 目の疲れを軽減するためにダークモードが欲しいです',
+        };
+      case 'word_search':
+      default:
+        return {
+          title: t('feedback.types.word_search'),
+          description: t('feedback.descriptions.word_search'),
+          subjectLabel: t('feedback.labels.word'),
+          subjectPlaceholder: '',
+          descLabel: t('feedback.labels.expectation'),
+          descPlaceholder: '例: 会議、打ち合わせ',
+        };
+    }
+  }, [type, t]);
+
   const handleSend = async () => {
-    if (API.FEEDBACK.GAS_URL === 'YOUR_GAS_URL_HERE') {
+    if (!subject.trim()) {
+      Alert.alert(t('alerts.error'), '件名または単語を入力してください。');
+      return;
+    }
+
+    if (API.FEEDBACK.GAS_URL.includes('YOUR_GAS_URL_HERE')) {
       Alert.alert(t('alerts.error'), 'Feedback API URL is not configured.');
       return;
     }
@@ -40,11 +89,14 @@ export function FeedbackModal({ visible, word, onClose }: FeedbackModalProps) {
       const response = await fetch(API.FEEDBACK.GAS_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'text/plain', // GAS doPost requires this or just no content-type for simple POST
+          'Content-Type': 'text/plain',
         },
         body: JSON.stringify({
-          word,
-          expectation,
+          type,
+          word: subject,          // For backward compatibility on GAS or mapping to word
+          title: subject,         // Preferred for bug/feature
+          expectation: description, // For backward compatibility
+          description: description, // Preferred for bug/feature
           comment,
         }),
       });
@@ -53,7 +105,8 @@ export function FeedbackModal({ visible, word, onClose }: FeedbackModalProps) {
 
       if (result.status === 'success') {
         Alert.alert(t('alerts.success'), t('feedback.success'));
-        setExpectation('');
+        setSubject('');
+        setDescription('');
         setComment('');
         onClose();
       } else {
@@ -81,35 +134,40 @@ export function FeedbackModal({ visible, word, onClose }: FeedbackModalProps) {
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>{t('feedback.title')}</Text>
+            <Text style={styles.title}>{config.title}</Text>
             <Pressable onPress={onClose} style={styles.closeButton}>
               <X size={24} color={Colors.textSecondary} />
             </Pressable>
           </View>
 
           <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-            <Text style={styles.description}>{t('feedback.description')}</Text>
+            <Text style={styles.descriptionText}>{config.description}</Text>
 
             <Input
-              label={t('feedback.wordLabel')}
-              value={word}
-              editable={false}
+              label={config.subjectLabel}
+              value={subject}
+              onChangeText={setSubject}
+              editable={type !== 'word_search'} // Keep fixed for word lookup feedback
+              placeholder={config.subjectPlaceholder}
               containerStyle={styles.input}
             />
 
             <Input
-              label={t('feedback.expectationLabel')}
-              value={expectation}
-              onChangeText={setExpectation}
-              placeholder="例: 会議、打ち合わせ"
+              label={config.descLabel}
+              value={description}
+              onChangeText={setDescription}
+              placeholder={config.descPlaceholder}
+              multiline
+              numberOfLines={3}
+              style={styles.textAreaSmall}
               containerStyle={styles.input}
             />
 
             <Input
-              label={t('feedback.commentLabel')}
+              label={t('feedback.labels.comment')}
               value={comment}
               onChangeText={setComment}
-              placeholder="例: この単語はBlueskyでよく見かけるスラングです"
+              placeholder="例: このアプリはとても使いやすいです！"
               multiline
               numberOfLines={4}
               style={styles.textArea}
@@ -169,7 +227,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     maxHeight: 500,
   },
-  description: {
+  descriptionText: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     marginBottom: Spacing.lg,
@@ -177,6 +235,10 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: Spacing.md,
+  },
+  textAreaSmall: {
+    minHeight: 60,
+    textAlignVertical: 'top',
   },
   textArea: {
     minHeight: 100,

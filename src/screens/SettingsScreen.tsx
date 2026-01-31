@@ -36,6 +36,7 @@ import { Toast } from '../components/common/Toast';
 import { useToast } from '../hooks/useToast';
 import { changeLanguage, getCurrentLanguage, type Language } from '../locales';
 import type { RootStackParamList } from '../navigation/AppNavigator';
+import { FeedbackModal, type FeedbackType } from '../components/FeedbackModal';
 
 /**
  * Settings item component props
@@ -120,6 +121,8 @@ export function SettingsScreen(): React.JSX.Element {
   const [dictVersion, setDictVersion] = useState<string | null>(null);
   const [dictAvailableVersion, setDictAvailableVersion] = useState<string | undefined>();
   const [isDeletingDict, setIsDeletingDict] = useState(false);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<FeedbackType>('bug');
   const { toastState, showSuccess, showError, hideToast } = useToast();
 
   /**
@@ -365,6 +368,14 @@ export function SettingsScreen(): React.JSX.Element {
     }
   }, [t, tc]);
 
+  /**
+   * Handle feedback modal
+   */
+  const openFeedback = useCallback((type: FeedbackType) => {
+    setFeedbackType(type);
+    setFeedbackVisible(true);
+  }, []);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header */}
@@ -490,7 +501,7 @@ export function SettingsScreen(): React.JSX.Element {
                 onPress={
                   dictStatus === 'update_available'
                     ? handleDictionaryDownload
-                    : () => {}
+                    : () => { }
                 }
                 showArrow={dictStatus === 'update_available'}
               />
@@ -547,12 +558,12 @@ export function SettingsScreen(): React.JSX.Element {
           <SettingsItem
             title={t('feedbackItems.reportBug')}
             subtitle={t('feedbackItems.reportBugSubtitle')}
-            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_ISSUES)}
+            onPress={() => openFeedback('bug')}
           />
           <SettingsItem
             title={t('feedbackItems.suggest')}
             subtitle={t('feedbackItems.suggestSubtitle')}
-            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_ISSUES)}
+            onPress={() => openFeedback('feature')}
           />
           <SettingsItem
             title={t('feedbackItems.blueskyContact')}
@@ -610,6 +621,13 @@ export function SettingsScreen(): React.JSX.Element {
           <Text style={styles.appTagline}>{APP_INFO.DESCRIPTION}</Text>
         </View>
       </ScrollView>
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        visible={feedbackVisible}
+        type={feedbackType}
+        onClose={() => setFeedbackVisible(false)}
+      />
 
       {/* Toast Notification */}
       <Toast

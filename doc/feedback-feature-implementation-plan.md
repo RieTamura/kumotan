@@ -1,73 +1,71 @@
-# 検索不具合フィードバック機能 実装計画書
+# フィードバック・機能提案・バグ報告 統合実装計画書
 
 ## 1. 目的
-ユーザーが単語検索で期待した結果が得られなかった場合に、簡単に不具合を報告できる仕組みを導入する。これにより、辞書データの拡充や検索ロジックの改善を効率化する。
+ユーザーが「検索不具合」「バグ報告」「機能の提案」をアプリ内からシームレスに行える仕組みを導入する。
+既存の検索不具合報告の仕組みを拡張し、スプレッドシート経由で GitHub Issue に集約することで、開発管理を効率化する。
 
 ## 2. システム構成
 以下のフローで、ユーザーのフィードバックを GitHub Issue に統合する。
 
 ```mermaid
 graph TD
-    A[WordPopupModal] -->|タップ| B[FeedbackModal]
-    B -->|送信| C[Google Apps Script]
+    A[Settings / WordPopup] -->|タップ| B[FeedbackModal]
+    B -->|送信 {type, ...}| C[Google Apps Script]
     C -->|追記| D[Googleスプレッドシート]
-    C -->|Webhook/Dispatch| E[GitHub Actions]
-    E -->|作成| F[GitHub Issue]
-    F -->|手動| G[不具合解決・辞書修正]
+    C -->|Dispatch with type| E[GitHub Actions]
+    E -->|作成 with Label=type| F[GitHub Issue]
+    F -->|手動| G[不具合解決・機能実装]
 ```
 
 ### 構成要素
 1.  **Frontend (React Native / Expo)**:
-    - 既存の「単語登録ポップアップ」にフィードバックアイコンを追加。
-    - フィードバック用入力フォーム（モーダル）の実装。
+    - 汎用化された `FeedbackModal` を使用し、`type` を指定して各種報告を送信。
+    - 設定ページ（`SettingsScreen`）から「バグ報告」「機能を提案」の導線を追加。
 2.  **Middleman (Google Apps Script - GAS)**:
-    - アプリからのデータを受信。
-    - スプレッドシートへのログ保存。
-    - GitHub Actions を起動（`repository_dispatch` イベントを送信）。
+    - アプリからのデータ（`type` を含む）を受信。
+    - スプレッドシートへのログ保存（種別列の追加）。
+    - GitHub Actions を起動（`repository_dispatch`）。
 3.  **Automation (GitHub Actions)**:
-    - GASからの通知をトリガーに起動。
-    - 届いたデータを整形し、自動的に GitHub Issue を作成。
+    - 届いたデータの `type` をそのまま GitHub Issue のラベルとして適用。
+    - タイトルや本文を種別に応じて動的に整形。
 4.  **Backend (GitHub Issues)**:
-    - 開発者が確認・管理するためのタスク。
+    - ラベル（`bug`, `feature`, `word_search`）によって自動分類された課題の管理。
 
 ## 3. 実装詳細
 
 ### 3.1. フロントエンドの変更
-- **ファイル**: `src/components/WordPopup.tsx`（旧 `WordPopupModal.tsx` より統合）
-- **アイコン**: 検索結果が表示されるヘッダー部分に `MessageSquareShare` アイコンを配置。
-- **フォーム内容**:
-    - 検索した単語（自動入力）
-    - 期待していた意味（任意）
-    - 追加コメント（任意）
+- **ファイル**: `src/components/FeedbackModal.tsx`
+- **種別 (Type)**:
+    - `word_search`: 検索不具合報告（既存）
+    - `bug`: バグ報告（新規）
+    - `feature`: 機能を提案（新規）
+- **UI**: `type` にに応じてタイトルやラベル、プレースホルダーを切り替える。
+- **設定画面**: `src/screens/SettingsScreen.tsx` から GitHub への直リンクを廃止し、モダルを起動するように変更。
 
 ### 3.2. GAS の設定
 - **機能**:
-    - `doPost(e)` による受信。
-    - `SpreadsheetApp` を使ったデータ追記。
-    - `UrlFetchApp` を使った GitHub API への POSTリクエスト（`repository_dispatch`）。
-    - GitHub Actions からのステータス更新リクエスト受信と反映。
-- **認証**:
-    - GitHub の Personal Access Token (PAT) を GAS のプロパティに保持。
+    - スプレッドシートに「タイプ（Type）」列を追加。
+    - アプリから `type` を受け取り、スプレッドシートに記録。
+    - GitHub Actions へのペイロードに `type` を含める。
 
 ### 3.3. GitHub Actions の設定
 - **ワークフロー定義**: `.github/workflows/feedback-integration.yml`
-- **トリガー**: `repository_dispatch` (event_type: `feedback-received`)
-- **ジョブ**:
-    - `actions/github-script` を使用して Issue を作成。
-    - Issue クローズ時に GAS 経由でスプレッドシートのステータスを「解決済み」に更新。
+- **変更点**:
+    - `client_payload.type` を `labels` に適用。
+    - `type` に応じて Issue タイトルの接頭辞（`【バグ報告】` など）を切り替える。
 
 ## 4. セキュリティ
-- GitHub PAT はアプリに含めず、GAS側で安全に保持する。
-- GAS の Webアプリケーション URL は、`src/constants/config.ts` で管理。
+- GitHub PAT は GAS 側で安全に保持。
+- アプリ側は公開された外部リポジトリへの直接的な書き込み権限を持たない。
 
-## 5. ステップ・バイ・ステップの作業予定 ✅ 全工程完了
+## 5. ステップ・バイ・ステップの作業予定
 
-1.  **[GAS]** ✅ Googleスプレッドシートの作成およびGASの実装。
-2.  **[GitHub Actions]** ✅ Issue作成・ステータス連携用ワークフローの作成。
-3.  **[GAS]** ✅ GASからGitHub Actionsを叩くテスト。
-4.  **[Frontend]** ✅ `WordPopup.tsx` へのアイコン配置と `FeedbackModal.tsx` の作成。
-5.  **[Frontend]** ✅ フィードバック送信ロジックの実装（GASへの通信）。
-6.  **[Test]** ✅ 結合テスト（アプリから送信してIssueが立ち、クローズでスプレッドシートが更新されることを確認）。
+1.  **[Frontend]** `FeedbackModal.tsx` を拡張し、`type` プロパティでの表示切り替えを実装。
+2.  **[Frontend]** `SettingsScreen.tsx` のリンクをモダル起動に差し替え。
+3.  **[GAS]** `type` 列の追加と、GitHub Actions へのペイロード拡張。
+4.  **[GitHub Actions]** `type` に基づくラベル付与と、タイトルの動的生成の実装。
+5.  **[Test]** 各種報告（バグ、提案、検索不具合）が適切なラベルで Issue 化されることを確認。
 
 ## 6. 備考
-- GitHub Actions を介さず GAS から直接 Issue を作成することも可能だが、Issue テンプレートの適用や複雑な加工を行う場合は Actions を介す方が柔軟性が高い。今回は要望通り Actions 構成とする。
+- フロントエンドの `type` 名と GitHub のラベル名を統一することで、開発フローの透明性を確保する。
+- 既存の「検索不具合報告（全工程完了）」をベースに拡張するため、迅速な導入が可能。

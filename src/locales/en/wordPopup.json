@@ -74,7 +74,26 @@
     "send": "Send",
     "sending": "Sending...",
     "success": "Feedback sent. Thank you!",
-    "error": "Failed to send. Please try again later."
+    "error": "Failed to send. Please try again later.",
+    "types": {
+      "word_search": "Search Issue",
+      "bug": "Report Bug",
+      "feature": "Suggest Feature"
+    },
+    "labels": {
+      "word": "Target Word",
+      "bugTitle": "Bug Summary",
+      "featureTitle": "Proposed Feature",
+      "expectation": "Expected Behavior",
+      "reproSteps": "Reproduction Steps (Optional)",
+      "featureDetail": "Feature Details",
+      "comment": "Additional Comment (Optional)"
+    },
+    "descriptions": {
+      "word_search": "Please let us know if the search result was unexpected or incorrect.",
+      "bug": "If you found a bug in the app, please let us know the details.",
+      "feature": "If you have an idea for a new feature, we'd love to hear it!"
+    }
   },
   "placeholder": "-"
 }

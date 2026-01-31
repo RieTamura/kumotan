@@ -17,12 +17,21 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { word, expectation, comment, row_index } = context.payload.client_payload;
-            const title = `【検索不具合】${word}`;
+            const { type, word, expectation, comment, row_index } = context.payload.client_payload;
+            
+            // タイプに応じたタイトル接頭辞
+            const prefixes = {
+              'bug': '【バグ報告】',
+              'feature': '【機能提案】',
+              'word_search': '【検索不具合】'
+            };
+            const prefix = prefixes[type] || '【フィードバック】';
+            
+            const title = `${prefix}${word}`;
             const body = `
-            ### 報告内容
-            - **対象単語**: ${word}
-            - **期待していた意味**: ${expectation || '未入力'}
+            ### 報告内容 (${type})
+            - **対象/件名**: ${word}
+            - **詳細/期待内容**: ${expectation || '未入力'}
             - **コメント**: ${comment || 'なし'}
 
             ---
@@ -35,7 +44,7 @@ jobs:
               repo: context.repo.repo,
               title: title,
               body: body,
-              labels: ['feedback']
+              labels: [type || 'feedback']
             });
 
   update-spreadsheet:
