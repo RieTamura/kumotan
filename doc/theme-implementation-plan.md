@@ -65,18 +65,25 @@
 - [x] **[UI/UX]** 設定画面の実装 (`src/screens/SettingsScreen.tsx`)
 
 ### コンポーネント・画面のテーマ適用
-- [ ] **[Global]** `App.tsx` (StatusBar, 全体背景)
-- [ ] **[Home]** `HomeScreen.tsx`
-- [ ] **[Home]** `PostCard.tsx`
-- [ ] **[Post]** `PostCreationModal.tsx`
-- [ ] **[Thread]** `ThreadScreen.tsx`
-- [ ] **[Word]** `WordListScreen.tsx`
-- [ ] **[Word]** `WordListItem.tsx`
-- [ ] **[Word]** `WordPopup.tsx`
-- [ ] **[Common]** `Button.tsx`
-- [ ] **[Common]** `Input.tsx`
-- [ ] **[Common]** `Loading.tsx`
-- [ ] **[Common]** `Toast.tsx`
-- [ ] **[Common]** `OfflineBanner.tsx`
-- [ ] **[Common]** `FeedbackModal.tsx`
+- [x] **[Global]** `App.tsx` (StatusBar, 全体背景)
+- [x] **[Home]** `HomeScreen.tsx`
+- [x] **[Home]** `PostCard.tsx`
+- [x] **[Post]** `PostCreationModal.tsx`
+- [x] **[Thread]** `ThreadScreen.tsx`
+- [x] **[Word]** `WordListScreen.tsx`
+- [x] **[Word]** `WordListItem.tsx`
+- [x] **[Word]** `WordPopup.tsx`
+- [x] **[Common]** `Button.tsx`
+- [x] **[Common]** `Input.tsx`
+- [x] **[Common]** `Loading.tsx`
+- [x] **[Common]** `Toast.tsx`
+- [x] **[Common]** `OfflineBanner.tsx`
+- [x] **[Common]** `FeedbackModal.tsx`
 - [ ] **[Tutorial]** `TutorialTooltip.tsx`
+
+### その他対応済みの画面（当初予定外）
+- [x] **[Stats]** `ProgressScreen.tsx`
+- [x] **[Dictionary]** `DictionarySetupScreen.tsx`
+- [x] **[Auth]** `LoginScreen.tsx`, `LoginScreenSimple.tsx`
+- [x] **[Settings]** `ApiKeySetupScreen.tsx`, `DebugLogsScreen.tsx`, `LicenseScreen.tsx`
+- [x] **[Tips]** `TipsScreen.tsx`

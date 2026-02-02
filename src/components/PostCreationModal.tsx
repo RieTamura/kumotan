@@ -19,10 +19,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
-import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
-import { Button } from './common/Button';
-import { usePostCreation } from '../hooks/usePostCreation';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../hooks/useTheme';
+import { usePostCreation } from '../hooks/usePostCreation';
+import { Button } from './common/Button';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_CHARACTERS = 300;
@@ -37,24 +37,27 @@ interface HashtagChipProps {
 }
 
 function HashtagChip({ tag, selected, onPress }: HashtagChipProps): React.JSX.Element {
+  const { colors } = useTheme();
   return (
     <Pressable
       style={[
         styles.hashtagChip,
-        selected && styles.hashtagChipSelected,
+        { backgroundColor: colors.backgroundTertiary, borderColor: colors.border },
+        selected && [styles.hashtagChipSelected, { backgroundColor: colors.primary, borderColor: colors.primary }],
       ]}
       onPress={onPress}
     >
       <Text
         style={[
           styles.hashtagChipText,
-          selected && styles.hashtagChipTextSelected,
+          { color: colors.textSecondary },
+          selected && { color: colors.background, fontWeight: '600' },
         ]}
       >
         #{tag}
       </Text>
       {selected && (
-        <X size={14} color={Colors.background} style={styles.hashtagChipIcon} />
+        <X size={14} color={colors.background} style={styles.hashtagChipIcon} />
       )}
     </Pressable>
   );
@@ -72,8 +75,9 @@ export function PostCreationModal({
   onClose: () => void;
   onPostSuccess?: () => void;
 }): React.JSX.Element {
-  const { t } = useTranslation('home');
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('home');
+  const { colors, isDark } = useTheme();
 
   const {
     text,
@@ -144,15 +148,15 @@ export function PostCreationModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
         {/* Header (Bluesky style) */}
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable
             onPress={onClose}
             style={styles.headerCancel}
             disabled={isPosting}
           >
-            <Text style={styles.cancelText}>{t('postCancel')}</Text>
+            <Text style={[styles.cancelText, { color: colors.primary }]}>{t('postCancel')}</Text>
           </Pressable>
 
           <View style={styles.headerRight}>
@@ -180,9 +184,9 @@ export function PostCreationModal({
             {/* Input Area */}
             <View style={styles.inputSection}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: colors.text }]}
                 placeholder={t('postPlaceholder')}
-                placeholderTextColor={Colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 value={text}
                 onChangeText={setText}
                 multiline
@@ -194,17 +198,17 @@ export function PostCreationModal({
 
             {/* Error Message */}
             {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error.getUserMessage()}</Text>
+              <View style={[styles.errorContainer, { backgroundColor: colors.errorLight }]}>
+                <Text style={[styles.errorText, { color: colors.error }]}>{error.getUserMessage()}</Text>
                 <Pressable onPress={clearError}>
-                  <X size={16} color={Colors.error} />
+                  <X size={16} color={colors.error} />
                 </Pressable>
               </View>
             )}
 
             {/* Hashtags Section - Integrated into scroll */}
             <View style={styles.hashtagSection}>
-              <Text style={styles.sectionLabel}>{t('hashtags')}</Text>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('hashtags')}</Text>
               <View style={styles.hashtagsContainer}>
                 {hashtagHistory.map((tag) => (
                   <HashtagChip
@@ -219,7 +223,7 @@ export function PostCreationModal({
           </ScrollView>
 
           {/* Bottom Toolbar (Sticky above keyboard) */}
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12), borderTopColor: colors.border, backgroundColor: colors.background }]}>
             <View style={styles.toolbar}>
               {/* Optional tools could go here (e.g. image upload icons) */}
               <View style={styles.spacer} />
@@ -241,7 +245,6 @@ export function PostCreationModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -251,16 +254,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: 16, // Spacing.lg
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.divider,
   },
   headerCancel: {
-    paddingVertical: Spacing.sm,
+    paddingVertical: 8, // Spacing.sm
   },
   cancelText: {
-    fontSize: FontSizes.lg,
-    color: Colors.primary,
+    fontSize: 16, // FontSizes.lg
   },
   headerRight: {
     flexDirection: 'row',
@@ -268,24 +269,23 @@ const styles = StyleSheet.create({
   },
   postButtonSmall: {
     minHeight: 32,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: 16, // Spacing.lg
     paddingVertical: 0,
-    borderRadius: BorderRadius.full,
+    borderRadius: 99, // BorderRadius.full
   },
   postButtonText: {
-    fontSize: FontSizes.md,
+    fontSize: 14, // FontSizes.md
     fontWeight: '700',
   },
   content: {
     flex: 1,
   },
   inputSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingHorizontal: 16, // Spacing.lg
+    paddingTop: 16, // Spacing.lg
   },
   textInput: {
-    fontSize: FontSizes.xl,
-    color: Colors.text,
+    fontSize: 18, // FontSizes.xl
     minHeight: SCREEN_HEIGHT * 0.2,
     textAlignVertical: 'top',
   },
@@ -293,67 +293,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.errorLight,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.sm,
+    marginHorizontal: 16, // Spacing.lg
+    marginTop: 12, // Spacing.md
+    padding: 8, // Spacing.sm
+    borderRadius: 4, // BorderRadius.sm
   },
   errorText: {
     flex: 1,
-    fontSize: FontSizes.sm,
-    color: Colors.error,
+    fontSize: 12, // FontSizes.sm
   },
   hashtagSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
+    paddingHorizontal: 16, // Spacing.lg
+    paddingVertical: 24, // Spacing.xl
   },
   sectionLabel: {
-    fontSize: FontSizes.sm,
+    fontSize: 12, // FontSizes.sm
     fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+    marginBottom: 12, // Spacing.md
   },
   hashtagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: 8, // Spacing.sm
   },
   hashtagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.backgroundTertiary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: 12, // Spacing.md
+    paddingVertical: 8, // Spacing.sm
+    borderRadius: 12, // BorderRadius.lg
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   hashtagChipSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    // Colors handled dynamically
   },
   hashtagChipText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-  },
-  hashtagChipTextSelected: {
-    color: Colors.background,
-    fontWeight: '600',
+    fontSize: 12, // FontSizes.sm
   },
   hashtagChipIcon: {
-    marginLeft: Spacing.xs,
+    marginLeft: 4, // Spacing.xs
   },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.divider,
-    backgroundColor: Colors.background,
   },
   toolbar: {
     height: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: 16, // Spacing.lg
   },
   spacer: {
     flex: 1,
@@ -362,15 +349,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   characterCount: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
+    fontSize: 12, // FontSizes.sm
   },
   characterCountWarning: {
-    color: Colors.warning,
+    color: '#FFAD1F', // Colors.warning
     fontWeight: '600',
   },
   characterCountError: {
-    color: Colors.error,
+    color: '#E0245E', // Colors.error
     fontWeight: '700',
   },
 });

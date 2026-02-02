@@ -12,8 +12,8 @@ import {
   Pressable,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, FontSizes } from '../constants/colors';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * OfflineBanner Props
@@ -54,6 +54,7 @@ export function OfflineBanner({
 }: OfflineBannerProps): React.ReactElement | null {
   const { t } = useTranslation('common');
   const isConnected = useNetworkStatus();
+  const { colors } = useTheme();
   const [slideAnim] = React.useState(new Animated.Value(-50));
   const displayMessage = message ?? t('status.offline');
 
@@ -82,8 +83,8 @@ export function OfflineBanner({
         ]}
       >
         <View style={styles.content}>
-          <OfflineIcon />
-          <Text style={styles.message}>{displayMessage}</Text>
+          <OfflineIcon color={colors.offlineText} />
+          <Text style={[styles.message, { color: colors.offlineText }]}>{displayMessage}</Text>
         </View>
       </Animated.View>
     );
@@ -97,15 +98,15 @@ export function OfflineBanner({
       ]}
     >
       <View style={styles.content}>
-        <OfflineIcon />
-        <Text style={styles.message}>{displayMessage}</Text>
+        <OfflineIcon color={colors.offlineText} />
+        <Text style={[styles.message, { color: colors.offlineText }]}>{displayMessage}</Text>
         {showRetry && onRetry && (
           <Pressable
             onPress={onRetry}
             style={styles.retryButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.retryText}>{t('buttons.retry')}</Text>
+            <Text style={[styles.retryText, { color: colors.offlineText }]}>{t('buttons.retry')}</Text>
           </Pressable>
         )}
       </View>
@@ -128,6 +129,7 @@ export function StaticOfflineBanner({
   onRetry?: () => void;
 }): React.ReactElement | null {
   const { t } = useTranslation('common');
+  const { colors } = useTheme();
   const displayMessage = message ?? t('status.offline');
 
   if (!visible) {
@@ -135,10 +137,10 @@ export function StaticOfflineBanner({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.offline }]}>
       <View style={styles.content}>
-        <OfflineIcon />
-        <Text style={styles.message}>{displayMessage}</Text>
+        <OfflineIcon color={colors.offlineText} />
+        <Text style={[styles.message, { color: colors.offlineText }]}>{displayMessage}</Text>
         {showRetry && onRetry && (
           <Pressable
             onPress={onRetry}
@@ -157,20 +159,19 @@ export function StaticOfflineBanner({
  * Simple cloud-offline icon using Text
  * In a real app, you'd use an icon library like @expo/vector-icons
  */
-function OfflineIcon(): React.ReactElement {
+function OfflineIcon({ color }: { color: string }): React.ReactElement {
   return (
     <View style={styles.iconContainer}>
-      <Text style={styles.icon}>☁</Text>
-      <View style={styles.iconSlash} />
+      <Text style={[styles.icon, { color }]}>☁</Text>
+      <View style={[styles.iconSlash, { backgroundColor: color }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.offline,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 8, // Spacing.sm
+    paddingHorizontal: 12, // Spacing.md
     position: 'absolute',
     top: 0,
     left: 0,
@@ -185,36 +186,32 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 18,
     height: 18,
-    marginRight: Spacing.sm,
+    marginRight: 8, // Spacing.sm
     justifyContent: 'center',
     alignItems: 'center',
   },
   icon: {
     fontSize: 16,
-    color: Colors.offlineText,
   },
   iconSlash: {
     position: 'absolute',
     width: 20,
     height: 2,
-    backgroundColor: Colors.offlineText,
     transform: [{ rotate: '45deg' }],
   },
   message: {
-    color: Colors.offlineText,
-    fontSize: FontSizes.sm,
+    fontSize: 12, // FontSizes.sm
     fontWeight: '600',
   },
   retryButton: {
-    marginLeft: Spacing.md,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
+    marginLeft: 12, // Spacing.md
+    paddingVertical: 4, // Spacing.xs
+    paddingHorizontal: 8, // Spacing.sm
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
   },
   retryText: {
-    color: Colors.offlineText,
-    fontSize: FontSizes.sm,
+    fontSize: 12, // FontSizes.sm
     fontWeight: '600',
   },
 });
