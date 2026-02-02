@@ -203,7 +203,7 @@ export function WordListScreen(): React.JSX.Element {
         </Pressable>
       </View>
     ),
-    [handleToggleRead, handleWordDelete]
+    [handleToggleRead, handleWordDelete, colors]
   );
 
   /**
@@ -223,7 +223,7 @@ export function WordListScreen(): React.JSX.Element {
         </Text>
       </View>
     );
-  }, [isLoading, t]);
+  }, [isLoading, t, colors]);
 
   /**
    * Get sort label for display

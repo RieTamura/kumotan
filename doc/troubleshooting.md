@@ -4753,3 +4753,51 @@ useEffect(() => {
 ### 関連ファイル
 - `src/components/PostCreationModal.tsx`
 - `src/hooks/usePostCreation.ts`
+
+---
+
+## 20. 単語帳ページで「削除ボタン」の背景色がダークモードにならない問題
+
+### 発生日
+2026年2月2日
+
+### 症状
+- アプリ全体の「明るさ設定」をダークモードにしても、単語帳ページの各単語カード右側にある「削除ボタン」部分の背景が白く残ってしまう
+- 左側の単語テキスト部分は正しくダークモードの色（暗い背景）になっている
+
+### 原因
+`WordListScreen.tsx` 内で、リストの各アイテムをレンダリングする `renderWordItem` 関数が `useCallback` でメモ化されていたが、その**依存配列に `colors` （テーマカラー情報）が含まれていなかった**。
+
+このため、テーマが切り替わっても `renderWordItem` 内で使用されている背景色の指定などが更新されず、初期化時のライトモード（背景白）の設定が維持されたままになっていた。
+
+### 解決策
+`WordListScreen.tsx` の以下のレンダリング関数の `useCallback` 依存配列に `colors` を追加した。
+
+- `renderWordItem`: 各単語カードのレンダリング
+- `renderEmpty`: リストが空の時の表示レンダリング
+
+```tsx
+// 修正後
+const renderWordItem = useCallback(
+  ({ item }: { item: Word }) => (
+    <View style={[styles.wordCard, { backgroundColor: colors.card }]}>
+      {/* ... */}
+      <Pressable style={styles.deleteButton} onPress={() => handleWordDelete(item)}>
+        <Trash2 size={20} color={colors.error} />
+      </Pressable>
+    </View>
+  ),
+  [handleToggleRead, handleWordDelete, colors] // colors を追加
+);
+
+const renderEmpty = useCallback(() => {
+  // ...
+}, [isLoading, t, colors]); // colors を追加
+```
+
+### 関連ファイル
+- `src/screens/WordListScreen.tsx`
+
+### 教訓
+- `useCallback` や `useMemo` を使用する際、レンダリング結果がテーマ（ `colors` ）に依存している場合は、必ず依存配列に含める必要がある。
+- コンポーネント化されている部分は正しく表示されていても、画面（Screen）レベルで定義されているレンダリング関数内のインラインスタイルなどが盲点になりやすい。
