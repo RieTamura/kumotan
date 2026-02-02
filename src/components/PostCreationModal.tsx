@@ -1,40 +1,31 @@
 /**
  * PostCreationModal Component
- * Center popup modal for creating Bluesky posts
+ * Full-screen modal for creating Bluesky posts, inspired by Bluesky's own UI.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Modal,
   Pressable,
-  Animated,
-  Dimensions,
   TextInput,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
+import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
 import { Button } from './common/Button';
 import { usePostCreation } from '../hooks/usePostCreation';
 import { useTranslation } from 'react-i18next';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const POPUP_WIDTH = Math.min(SCREEN_WIDTH - Spacing.xl * 2, 400);
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_CHARACTERS = 300;
-
-/**
- * PostCreationModal props interface
- */
-interface PostCreationModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onPostSuccess?: () => void;
-}
 
 /**
  * HashtagChip Component
@@ -76,10 +67,13 @@ export function PostCreationModal({
   visible,
   onClose,
   onPostSuccess,
-}: PostCreationModalProps): React.JSX.Element {
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onPostSuccess?: () => void;
+}): React.JSX.Element {
   const { t } = useTranslation('home');
-  const [scaleAnim] = useState(new Animated.Value(0.9));
-  const [opacityAnim] = useState(new Animated.Value(0));
+  const insets = useSafeAreaInsets();
 
   const {
     text,
@@ -97,40 +91,6 @@ export function PostCreationModal({
     reset,
     clearError,
   } = usePostCreation();
-
-  /**
-   * Animate popup open/close
-   */
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-          damping: 20,
-          stiffness: 150,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(scaleAnim, {
-          toValue: 0.9,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible, scaleAnim, opacityAnim]);
 
   /**
    * Reset state when modal closes
@@ -152,15 +112,6 @@ export function PostCreationModal({
       onPostSuccess?.();
     }
   }, [submitPost, onClose, onPostSuccess, t]);
-
-  /**
-   * Handle backdrop press
-   */
-  const handleBackdropPress = useCallback(() => {
-    if (!isPosting) {
-      onClose();
-    }
-  }, [isPosting, onClose]);
 
   /**
    * Handle hashtag toggle
@@ -189,52 +140,45 @@ export function PostCreationModal({
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={handleBackdropPress}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        {/* Backdrop */}
-        <Animated.View
-          style={[
-            styles.backdrop,
-            { opacity: opacityAnim },
-          ]}
-        >
-          <Pressable style={styles.backdropPressable} onPress={handleBackdropPress} />
-        </Animated.View>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Header (Bluesky style) */}
+        <View style={styles.header}>
+          <Pressable
+            onPress={onClose}
+            style={styles.headerCancel}
+            disabled={isPosting}
+          >
+            <Text style={styles.cancelText}>{t('postCancel')}</Text>
+          </Pressable>
 
-        {/* Center Popup */}
-        <Animated.View
-          style={[
-            styles.popup,
-            {
-              opacity: opacityAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>{t('postTitle')}</Text>
-            <Pressable
-              onPress={handleBackdropPress}
-              style={styles.closeButton}
-              disabled={isPosting}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <X size={24} color={Colors.textSecondary} />
-            </Pressable>
+          <View style={styles.headerRight}>
+            <Button
+              title={isPosting ? t('posting') : t('postButton')}
+              onPress={handleSubmit}
+              variant="primary"
+              loading={isPosting}
+              disabled={!isValid || isPosting}
+              style={styles.postButtonSmall}
+              textStyle={styles.postButtonText}
+            />
           </View>
+        </View>
 
-          {/* Content */}
-          <View style={styles.content}>
-            {/* Text Input */}
-            <View style={styles.inputContainer}>
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+            style={styles.content}
+            keyboardShouldPersistTaps="handled"
+            bounces={true}
+          >
+            {/* Input Area */}
+            <View style={styles.inputSection}>
               <TextInput
                 style={styles.textInput}
                 placeholder={t('postPlaceholder')}
@@ -242,14 +186,10 @@ export function PostCreationModal({
                 value={text}
                 onChangeText={setText}
                 multiline
-                maxLength={MAX_CHARACTERS + 50} // Allow some buffer for hashtags
-                textAlignVertical="top"
-                autoFocus={visible}
+                autoFocus={true}
                 editable={!isPosting}
+                maxLength={MAX_CHARACTERS + 50}
               />
-              <Text style={[styles.characterCount, getCharacterCounterStyle()]}>
-                {characterCount}/{MAX_CHARACTERS}
-              </Text>
             </View>
 
             {/* Error Message */}
@@ -262,7 +202,7 @@ export function PostCreationModal({
               </View>
             )}
 
-            {/* Hashtags Section */}
+            {/* Hashtags Section - Integrated into scroll */}
             <View style={styles.hashtagSection}>
               <Text style={styles.sectionLabel}>{t('hashtags')}</Text>
               <View style={styles.hashtagsContainer}>
@@ -276,28 +216,24 @@ export function PostCreationModal({
                 ))}
               </View>
             </View>
-          </View>
+          </ScrollView>
 
-          {/* Action Buttons */}
-          <View style={styles.actions}>
-            <Button
-              title={isPosting ? t('posting') : t('postButton')}
-              onPress={handleSubmit}
-              variant="primary"
-              loading={isPosting}
-              disabled={!isValid || isPosting}
-              style={styles.postButton}
-            />
-            <Button
-              title={t('postCancel')}
-              onPress={handleBackdropPress}
-              variant="outline"
-              disabled={isPosting}
-              style={styles.cancelButton}
-            />
+          {/* Bottom Toolbar (Sticky above keyboard) */}
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+            <View style={styles.toolbar}>
+              {/* Optional tools could go here (e.g. image upload icons) */}
+              <View style={styles.spacer} />
+
+              {/* Character Counter */}
+              <View style={styles.counterContainer}>
+                <Text style={[styles.characterCount, getCharacterCounterStyle()]}>
+                  {characterCount}/{MAX_CHARACTERS}
+                </Text>
+              </View>
+            </View>
           </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -305,79 +241,63 @@ export function PostCreationModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: Colors.background,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.overlay,
-  },
-  backdropPressable: {
+  keyboardView: {
     flex: 1,
   },
-  popup: {
-    width: POPUP_WIDTH,
-    maxHeight: SCREEN_HEIGHT * 0.8,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.xl,
-    ...Shadows.lg,
-  },
   header: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
+    paddingHorizontal: Spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.divider,
   },
-  title: {
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
-    color: Colors.text,
+  headerCancel: {
+    paddingVertical: Spacing.sm,
   },
-  closeButton: {
-    padding: Spacing.xs,
+  cancelText: {
+    fontSize: FontSizes.lg,
+    color: Colors.primary,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  postButtonSmall: {
+    minHeight: 32,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 0,
+    borderRadius: BorderRadius.full,
+  },
+  postButtonText: {
+    fontSize: FontSizes.md,
+    fontWeight: '700',
   },
   content: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
+    flex: 1,
   },
-  inputContainer: {
-    marginBottom: Spacing.md,
+  inputSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
   },
   textInput: {
-    minHeight: 100,
-    maxHeight: 150,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.xl,
     color: Colors.text,
-    backgroundColor: Colors.backgroundSecondary,
-  },
-  characterCount: {
-    fontSize: FontSizes.sm,
-    color: Colors.textTertiary,
-    textAlign: 'right',
-    marginTop: Spacing.xs,
-  },
-  characterCountWarning: {
-    color: '#FF9800',
-  },
-  characterCountError: {
-    color: Colors.error,
+    minHeight: SCREEN_HEIGHT * 0.2,
+    textAlignVertical: 'top',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFEBEE',
+    backgroundColor: Colors.errorLight,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
     padding: Spacing.sm,
     borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.md,
   },
   errorText: {
     flex: 1,
@@ -385,13 +305,14 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
   hashtagSection: {
-    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
   },
   sectionLabel: {
     fontSize: FontSizes.sm,
     fontWeight: '600',
     color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   hashtagsContainer: {
     flexDirection: 'row',
@@ -401,7 +322,7 @@ const styles = StyleSheet.create({
   hashtagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.backgroundSecondary,
+    backgroundColor: Colors.backgroundTertiary,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
@@ -423,19 +344,34 @@ const styles = StyleSheet.create({
   hashtagChipIcon: {
     marginLeft: Spacing.xs,
   },
-  actions: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.md,
-    borderTopWidth: 1,
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.divider,
+    backgroundColor: Colors.background,
   },
-  postButton: {
-    flex: 2,
+  toolbar: {
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
   },
-  cancelButton: {
+  spacer: {
     flex: 1,
+  },
+  counterContainer: {
+    justifyContent: 'center',
+  },
+  characterCount: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+  },
+  characterCountWarning: {
+    color: Colors.warning,
+    fontWeight: '600',
+  },
+  characterCountError: {
+    color: Colors.error,
+    fontWeight: '700',
   },
 });
 
