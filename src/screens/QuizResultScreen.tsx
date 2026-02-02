@@ -3,13 +3,12 @@
  * Displays quiz results and incorrect answers
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,7 +18,6 @@ import {
   Trophy,
   RotateCcw,
   Home,
-  ChevronRight,
   X,
   Check,
 } from 'lucide-react-native';
@@ -27,6 +25,7 @@ import {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from '../components/common/Button';
+import { Confetti } from '../components/common/Confetti';
 import { QuizResult } from '../types/quiz';
 import { formatTimeSpent, getEncouragementKey } from '../services/quiz/quizEngine';
 
@@ -112,9 +111,14 @@ export function QuizResultScreen(): React.JSX.Element {
   const { colors } = useTheme();
 
   const { result } = route.params;
+  const [showConfetti, setShowConfetti] = useState(true);
 
   const timeFormatted = formatTimeSpent(result.timeSpentSeconds);
   const encouragementKey = getEncouragementKey(result.accuracy);
+
+  const handleConfettiEnd = useCallback(() => {
+    setShowConfetti(false);
+  }, []);
 
   // Handle retry with same settings
   const handleRetry = useCallback(() => {
@@ -128,100 +132,110 @@ export function QuizResultScreen(): React.JSX.Element {
   }, [navigation]);
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingBottom: insets.bottom + 24 },
-      ]}
-    >
-      {/* Trophy icon */}
-      <View style={styles.trophyContainer}>
-        <Trophy size={48} color={colors.primary} />
-      </View>
-
-      {/* Score display */}
-      <ScoreCircle
-        accuracy={result.accuracy}
-        correctCount={result.correctCount}
-        totalQuestions={result.totalQuestions}
-      />
-
-      {/* Encouragement message */}
-      <Text style={[styles.encouragement, { color: colors.text }]}>
-        {t(`result.${encouragementKey}`)}
-      </Text>
-
-      {/* Stats row */}
-      <View style={[styles.statsRow, { backgroundColor: colors.card }]}>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {result.correctCount}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-            {t('result.score', { correct: '', total: '' }).split('/')[0].trim()}
-          </Text>
+    <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingBottom: insets.bottom + 24 },
+        ]}
+      >
+        {/* Trophy icon */}
+        <View style={styles.trophyContainer}>
+          <Trophy size={48} color={colors.primary} />
         </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {result.incorrectCount}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-            {t('result.incorrectWords')}
-          </Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {timeFormatted.minutes}:{timeFormatted.seconds.toString().padStart(2, '0')}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-            {t('result.timeTaken', { minutes: '', seconds: '' }).split(':')[0].trim()}
-          </Text>
-        </View>
-      </View>
 
-      {/* Incorrect words section */}
-      {result.incorrectWords.length > 0 && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {t('result.incorrectWords')} ({result.incorrectWords.length})
-          </Text>
-          {result.incorrectWords.map((item, index) => (
-            <IncorrectWordItem
-              key={`${item.word.id}-${index}`}
-              word={item.word.english}
-              userAnswer={item.userAnswer}
-              correctAnswer={item.correctAnswer}
-            />
-          ))}
+        {/* Score display */}
+        <ScoreCircle
+          accuracy={result.accuracy}
+          correctCount={result.correctCount}
+          totalQuestions={result.totalQuestions}
+        />
+
+        {/* Encouragement message */}
+        <Text style={[styles.encouragement, { color: colors.text }]}>
+          {t(`result.${encouragementKey}`)}
+        </Text>
+
+        {/* Stats row */}
+        <View style={[styles.statsRow, { backgroundColor: colors.card }]}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {result.correctCount}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              {t('result.score', { correct: '', total: '' }).split('/')[0].trim()}
+            </Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {result.incorrectCount}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              {t('result.incorrectWords')}
+            </Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {timeFormatted.minutes}:{timeFormatted.seconds.toString().padStart(2, '0')}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+              {t('result.timeTaken', { minutes: '', seconds: '' }).split(':')[0].trim()}
+            </Text>
+          </View>
         </View>
+
+        {/* Incorrect words section */}
+        {result.incorrectWords.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              {t('result.incorrectWords')} ({result.incorrectWords.length})
+            </Text>
+            {result.incorrectWords.map((item, index) => (
+              <IncorrectWordItem
+                key={`${item.word.id}-${index}`}
+                word={item.word.english}
+                userAnswer={item.userAnswer}
+                correctAnswer={item.correctAnswer}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Action buttons */}
+        <View style={styles.buttonContainer}>
+          <Button
+            title={t('result.retryButton')}
+            onPress={handleRetry}
+            variant="outline"
+            leftIcon={<RotateCcw size={20} color={colors.primary} />}
+            fullWidth
+            style={styles.button}
+          />
+          <Button
+            title={t('result.homeButton')}
+            onPress={handleGoHome}
+            leftIcon={<Home size={20} color="#FFFFFF" />}
+            fullWidth
+            style={styles.button}
+          />
+        </View>
+      </ScrollView>
+
+      {/* Confetti animation */}
+      {showConfetti && (
+        <Confetti count={60} onAnimationEnd={handleConfettiEnd} />
       )}
-
-      {/* Action buttons */}
-      <View style={styles.buttonContainer}>
-        <Button
-          title={t('result.retryButton')}
-          onPress={handleRetry}
-          variant="outline"
-          leftIcon={<RotateCcw size={20} color={colors.primary} />}
-          fullWidth
-          style={styles.button}
-        />
-        <Button
-          title={t('result.homeButton')}
-          onPress={handleGoHome}
-          leftIcon={<Home size={20} color="#FFFFFF" />}
-          fullWidth
-          style={styles.button}
-        />
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

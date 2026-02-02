@@ -24,6 +24,7 @@ import { Check, X, ArrowRight } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from '../components/common/Button';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { QuizSession, QuizAnswer, QuizSettings } from '../types/quiz';
 import { generateQuiz, submitAnswer, completeQuiz } from '../services/quiz/quizEngine';
 
@@ -110,9 +111,11 @@ export function QuizScreen(): React.JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastAnswer, setLastAnswer] = useState<QuizAnswer | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
   const isExitingRef = useRef(false);
+  const isCompletingRef = useRef(false);
 
   // Initialize quiz
   useEffect(() => {
@@ -191,6 +194,7 @@ export function QuizScreen(): React.JSX.Element {
         }
 
         if (result.success) {
+          isCompletingRef.current = true;
           navigation.replace('QuizResult', { result: result.data });
         } else {
           Alert.alert(t('common:errors.error'), result.error.message);
@@ -215,28 +219,26 @@ export function QuizScreen(): React.JSX.Element {
 
   // Handle exit confirmation
   const handleExit = useCallback(() => {
-    Alert.alert(
-      t('quiz.exitConfirmTitle'),
-      t('quiz.exitConfirmMessage'),
-      [
-        { text: t('quiz.continue'), style: 'cancel' },
-        {
-          text: t('quiz.exit'),
-          style: 'destructive',
-          onPress: () => {
-            isExitingRef.current = true;
-            navigation.goBack();
-          },
-        },
-      ]
-    );
-  }, [navigation, t]);
+    setShowExitConfirm(true);
+  }, []);
+
+  // Handle confirm exit
+  const handleConfirmExit = useCallback(() => {
+    setShowExitConfirm(false);
+    isExitingRef.current = true;
+    navigation.goBack();
+  }, [navigation]);
+
+  // Handle cancel exit
+  const handleCancelExit = useCallback(() => {
+    setShowExitConfirm(false);
+  }, []);
 
   // Prevent back navigation
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      // Allow navigation if intentionally exiting
-      if (isExitingRef.current) {
+      // Allow navigation if intentionally exiting or completing quiz
+      if (isExitingRef.current || isCompletingRef.current) {
         return;
       }
 
@@ -362,6 +364,26 @@ export function QuizScreen(): React.JSX.Element {
         isCorrect={lastAnswer?.isCorrect ?? false}
         correctAnswer={lastAnswer?.correctAnswer ?? ''}
         visible={showFeedback}
+      />
+
+      {/* Exit confirmation modal */}
+      <ConfirmModal
+        visible={showExitConfirm}
+        title={t('quiz.exitConfirmTitle')}
+        message={t('quiz.exitConfirmMessage')}
+        buttons={[
+          {
+            text: t('quiz.continue'),
+            onPress: handleCancelExit,
+            style: 'cancel',
+          },
+          {
+            text: t('quiz.exit'),
+            onPress: handleConfirmExit,
+            style: 'destructive',
+          },
+        ]}
+        onClose={handleCancelExit}
       />
     </KeyboardAvoidingView>
   );
