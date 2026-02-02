@@ -18,12 +18,14 @@ import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import { getLogsAsString, clearLogs } from '../utils/logger';
 import { Colors, FontSizes, Spacing } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 
 export function DebugLogsScreen(): React.JSX.Element {
   const { t } = useTranslation('debugLogs');
   const { t: tc } = useTranslation('common');
   const [logs, setLogs] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const { colors } = useTheme();
 
   useEffect(() => {
     loadLogs();
@@ -89,52 +91,52 @@ export function DebugLogsScreen(): React.JSX.Element {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('header')}</Text>
-        <Text style={styles.subtitle}>{t('subtitle')}</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>{t('header')}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('subtitle')}</Text>
       </View>
 
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { borderBottomColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.button, styles.buttonPrimary]}
+          style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={handleCopyToClipboard}
         >
-          <Text style={styles.buttonText}>{t('actions.copy')}</Text>
+          <Text style={[styles.buttonText, { color: colors.background }]}>{t('actions.copy')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.buttonPrimary]}
+          style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={handleShare}
         >
-          <Text style={styles.buttonText}>{t('actions.share')}</Text>
+          <Text style={[styles.buttonText, { color: colors.background }]}>{t('actions.share')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.buttonSecondary]}
+          style={[styles.button, { backgroundColor: colors.backgroundSecondary }]}
           onPress={loadLogs}
         >
-          <Text style={styles.buttonText}>{t('actions.reload')}</Text>
+          <Text style={[styles.buttonText, { color: colors.textSecondary }]}>{t('actions.reload')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.buttonDanger]}
+          style={[styles.button, { backgroundColor: colors.error }]}
           onPress={handleClearLogs}
         >
-          <Text style={styles.buttonText}>{t('actions.delete')}</Text>
+          <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>{t('actions.delete')}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.logsContainer}>
         {isLoading ? (
-          <Text style={styles.logsText}>{t('loading')}</Text>
+          <Text style={[styles.logsText, { color: colors.textSecondary }]}>{t('loading')}</Text>
         ) : (
-          <Text style={styles.logsText}>{logs}</Text>
+          <Text style={[styles.logsText, { color: colors.text }]}>{logs}</Text>
         )}
       </ScrollView>
 
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
+      <View style={[styles.infoContainer, { backgroundColor: colors.primary + '20', borderTopColor: colors.border }]}>
+        <Text style={[styles.infoText, { color: colors.text }]}>
           {t('info')}
         </Text>
       </View>

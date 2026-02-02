@@ -22,6 +22,7 @@ import {
   BorderRadius,
   Shadows,
 } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 import { Toast } from '../components/common/Toast';
@@ -57,8 +58,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ApiKeySetup'>;
  * API Key Setup Screen Component
  */
 export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Element {
-  const { t } = useTranslation('apiSetup');
   const { t: tc } = useTranslation('common');
+  const { colors } = useTheme();
 
   // Refs
   const scrollViewRef = useRef<ScrollView>(null);
@@ -123,7 +124,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
           (_x, y) => {
             scrollViewRef.current?.scrollTo({ y: y - 20, animated: true });
           },
-          () => {}
+          () => { }
         );
       }, 300);
       return () => clearTimeout(timer);
@@ -299,18 +300,18 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
     let statusText = t('usage.normal');
 
     if (isCritical) {
-      statusColor = Colors.error;
+      statusColor = colors.error;
       statusText = t('usage.critical');
     } else if (isWarning) {
-      statusColor = Colors.warning;
+      statusColor = colors.warning;
       statusText = t('usage.warning');
     }
 
     return (
-      <View style={styles.usageContainer}>
-        <Text style={styles.usageTitle}>{t('usage.title')}</Text>
-        <Text style={styles.usageText}>{formatUsage(usage)}</Text>
-        <View style={styles.usageBarContainer}>
+      <View style={[styles.usageContainer, { borderTopColor: colors.border }]}>
+        <Text style={[styles.usageTitle, { color: colors.textSecondary }]}>{t('usage.title')}</Text>
+        <Text style={[styles.usageText, { color: colors.text }]}>{formatUsage(usage)}</Text>
+        <View style={[styles.usageBarContainer, { backgroundColor: colors.border }]}>
           <View
             style={[
               styles.usageBar,
@@ -329,7 +330,7 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -337,27 +338,27 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>{t('header')}</Text>
-          <Text style={styles.description}>
+          <Text style={[styles.title, { color: colors.text }]}>{t('header')}</Text>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
             {t('description')}
           </Text>
         </View>
 
         {/* ========== DeepL Section ========== */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('deepl.title')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('deepl.title')}</Text>
 
           {/* DeepL Status */}
-          <View style={styles.statusCard}>
-            <Text style={styles.statusLabel}>{t('status.label')}</Text>
+          <View style={[styles.statusCard, { backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>{t('status.label')}</Text>
             <View style={styles.statusRow}>
               <View
                 style={[
                   styles.statusIndicator,
-                  { backgroundColor: isKeySet ? Colors.success : Colors.error },
+                  { backgroundColor: isKeySet ? colors.success : colors.error },
                 ]}
               />
-              <Text style={styles.statusText}>
+              <Text style={[styles.statusText, { color: colors.text }]}>
                 {isKeySet ? t('deepl.statusConfigured') : t('deepl.statusNotConfigured')}
               </Text>
             </View>
@@ -403,11 +404,11 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
           )}
 
           {/* DeepL Info Section */}
-          <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>{t('deepl.howToGetTitle')}</Text>
+          <View style={[styles.infoSection, { backgroundColor: colors.backgroundTertiary }]}>
+            <Text style={[styles.infoTitle, { color: colors.text }]}>{t('deepl.howToGetTitle')}</Text>
             <View style={styles.infoSteps}>
               {(t('deepl.howToGetSteps', { returnObjects: true }) as string[]).map((step, index) => (
-                <Text key={index} style={styles.infoStep}>
+                <Text key={index} style={[styles.infoStep, { color: colors.textSecondary }]}>
                   {step}
                 </Text>
               ))}
@@ -422,23 +423,23 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
         </View>
 
         {/* Divider */}
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         {/* ========== Yahoo! JAPAN Section ========== */}
         <View ref={yahooSectionRef} style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('yahoo.title')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('yahoo.title')}</Text>
 
           {/* Yahoo! Status */}
-          <View style={styles.statusCard}>
-            <Text style={styles.statusLabel}>{t('status.label')}</Text>
+          <View style={[styles.statusCard, { backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>{t('status.label')}</Text>
             <View style={styles.statusRow}>
               <View
                 style={[
                   styles.statusIndicator,
-                  { backgroundColor: isYahooIdSet ? Colors.success : Colors.error },
+                  { backgroundColor: isYahooIdSet ? colors.success : colors.error },
                 ]}
               />
-              <Text style={styles.statusText}>
+              <Text style={[styles.statusText, { color: colors.text }]}>
                 {isYahooIdSet ? t('yahoo.statusConfigured') : t('yahoo.statusNotConfigured')}
               </Text>
             </View>
@@ -481,11 +482,11 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
           )}
 
           {/* Yahoo! Info Section */}
-          <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>{t('yahoo.howToGetTitle')}</Text>
+          <View style={[styles.infoSection, { backgroundColor: colors.backgroundTertiary }]}>
+            <Text style={[styles.infoTitle, { color: colors.text }]}>{t('yahoo.howToGetTitle')}</Text>
             <View style={styles.infoSteps}>
               {(t('yahoo.howToGetSteps', { returnObjects: true }) as string[]).map((step, index) => (
-                <Text key={index} style={styles.infoStep}>
+                <Text key={index} style={[styles.infoStep, { color: colors.textSecondary }]}>
                   {step}
                 </Text>
               ))}
@@ -500,9 +501,9 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
         </View>
 
         {/* Note */}
-        <View style={styles.noteSection}>
-          <Text style={styles.noteTitle}>{t('note.title')}</Text>
-          <Text style={styles.noteText}>
+        <View style={[styles.noteSection, { backgroundColor: colors.warningLight, borderLeftColor: colors.warning }]}>
+          <Text style={[styles.noteTitle, { color: colors.text }]}>{t('note.title')}</Text>
+          <Text style={[styles.noteText, { color: colors.textSecondary }]}>
             {t('note.content')}
           </Text>
         </View>

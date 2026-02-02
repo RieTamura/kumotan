@@ -9,19 +9,20 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Spacing, FontSizes } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * Simple LoginScreen for testing
  */
 export function LoginScreenSimple(): React.JSX.Element {
+  const { colors } = useTheme();
   console.log('LoginScreenSimple rendering...');
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <Text style={styles.title}>テスト画面</Text>
-        <Text style={styles.message}>
+        <Text style={[styles.title, { color: colors.primary }]}>テスト画面</Text>
+        <Text style={[styles.message, { color: colors.text }]}>
           この画面が表示されれば、基本的なレンダリングは正常です。
         </Text>
       </View>
@@ -32,23 +33,20 @@ export function LoginScreenSimple(): React.JSX.Element {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.xl,
+    padding: 24, // Spacing.xl
   },
   title: {
-    fontSize: FontSizes.xxxl,
+    fontSize: 32, // FontSizes.xxxl
     fontWeight: '700',
-    color: Colors.primary,
-    marginBottom: Spacing.lg,
+    marginBottom: 16, // Spacing.lg
   },
   message: {
-    fontSize: FontSizes.lg,
-    color: Colors.text,
+    fontSize: 16, // FontSizes.lg
     textAlign: 'center',
   },
 });

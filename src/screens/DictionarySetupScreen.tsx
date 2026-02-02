@@ -20,6 +20,7 @@ import { useNetInfo } from '@react-native-community/netinfo';
 
 import { Colors } from '../constants/colors';
 import { Button } from '../components/common/Button';
+import { useTheme } from '../hooks/useTheme';
 import {
   installDictionary,
   fetchRemoteMetadata,
@@ -43,6 +44,7 @@ export function DictionarySetupScreen({
   const navigation = useNavigation();
   const { t } = useTranslation(['dictionary', 'common']);
   const netInfo = useNetInfo();
+  const { colors } = useTheme();
 
   const [status, setStatus] = useState<InstallStatus>('not_installed');
   const [progress, setProgress] = useState<DownloadProgress | null>(null);
@@ -102,15 +104,15 @@ export function DictionarySetupScreen({
   const getStatusIcon = () => {
     switch (status) {
       case 'installed':
-        return <CheckCircle size={64} color={Colors.success} />;
+        return <CheckCircle size={64} color={colors.success} />;
       case 'error':
-        return <AlertCircle size={64} color={Colors.error} />;
+        return <AlertCircle size={64} color={colors.error} />;
       case 'downloading':
       case 'extracting':
       case 'installing':
-        return <ActivityIndicator size={64} color={Colors.primary} />;
+        return <ActivityIndicator size={64} color={colors.primary} />;
       default:
-        return <Book size={64} color={Colors.primary} />;
+        return <Book size={64} color={colors.primary} />;
     }
   };
 
@@ -145,46 +147,46 @@ export function DictionarySetupScreen({
   const isOffline = netInfo.isConnected === false;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         {/* アイコン */}
         <View style={styles.iconContainer}>{getStatusIcon()}</View>
 
         {/* タイトル */}
-        <Text style={styles.title}>{t('dictionary:setup.title')}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('dictionary:setup.title')}</Text>
 
         {/* 説明 */}
-        <Text style={styles.description}>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           {t('dictionary:setup.description')}
         </Text>
 
         {/* メタデータ情報 */}
         {metadata && status === 'not_installed' && (
-          <View style={styles.metadataContainer}>
-            <Text style={styles.metadataText}>
+          <View style={[styles.metadataContainer, { backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
               {t('dictionary:setup.version')}: {metadata.version}
             </Text>
-            <Text style={styles.metadataText}>
+            <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
               {t('dictionary:setup.downloadSize')}: {formatFileSize(metadata.compressedSize)}
             </Text>
-            <Text style={styles.metadataText}>
+            <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
               {t('dictionary:setup.installedSize')}: {formatFileSize(metadata.uncompressedSize)}
             </Text>
           </View>
         )}
 
         {/* ステータスメッセージ */}
-        <Text style={styles.statusText}>{getStatusMessage()}</Text>
+        <Text style={[styles.statusText, { color: colors.text }]}>{getStatusMessage()}</Text>
 
         {/* 進捗バー */}
         {progress && status === 'downloading' && (
           <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
+            <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
               <View
-                style={[styles.progressFill, { width: `${progress.percentage}%` }]}
+                style={[styles.progressFill, { width: `${progress.percentage}%`, backgroundColor: colors.primary }]}
               />
             </View>
-            <Text style={styles.progressText}>
+            <Text style={[styles.progressText, { color: colors.textSecondary }]}>
               {formatFileSize(progress.downloadedBytes)} / {formatFileSize(progress.totalBytes)}
             </Text>
           </View>
@@ -192,17 +194,17 @@ export function DictionarySetupScreen({
 
         {/* エラーメッセージ */}
         {error && (
-          <View style={styles.errorContainer}>
-            <AlertCircle size={20} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={[styles.errorContainer, { backgroundColor: colors.errorLight }]}>
+            <AlertCircle size={20} color={colors.error} />
+            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
           </View>
         )}
 
         {/* オフライン警告 */}
         {isOffline && status === 'not_installed' && (
-          <View style={styles.warningContainer}>
-            <Wifi size={20} color={Colors.warning} />
-            <Text style={styles.warningText}>
+          <View style={[styles.warningContainer, { backgroundColor: colors.warningLight }]}>
+            <Wifi size={20} color={colors.warning} />
+            <Text style={[styles.warningText, { color: colors.warning }]}>
               {t('dictionary:setup.offlineWarning')}
             </Text>
           </View>
@@ -211,8 +213,8 @@ export function DictionarySetupScreen({
         {/* Wi-Fi推奨メッセージ */}
         {!isOffline && metadata && status === 'not_installed' && metadata.compressedSize > 10 * 1024 * 1024 && (
           <View style={styles.infoContainer}>
-            <Wifi size={16} color={Colors.textSecondary} />
-            <Text style={styles.infoText}>
+            <Wifi size={16} color={colors.textSecondary} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
               {t('dictionary:setup.wifiRecommended')}
             </Text>
           </View>
@@ -226,7 +228,7 @@ export function DictionarySetupScreen({
                 title={t('dictionary:setup.downloadButton')}
                 onPress={handleDownload}
                 disabled={isOffline}
-                leftIcon={<Download size={20} color={Colors.background} />}
+                leftIcon={<Download size={20} color="#FFFFFF" />}
                 style={styles.downloadButton}
               />
               <Button

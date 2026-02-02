@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 import { DictionaryResult, JapaneseWordInfo, WordInfo } from '../types/word';
 import { lookupWord } from '../services/dictionary/freeDictionary';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +54,7 @@ interface SwipeableWordCardProps {
 }
 
 function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): React.JSX.Element {
+  const { colors, isDark } = useTheme();
   const swipeableRef = useRef<Swipeable>(null);
 
   // 右側に表示される削除背景
@@ -89,9 +91,13 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
   // 登録済みの単語はスワイプ不可
   if (wordInfo.isRegistered) {
     return (
-      <View style={[styles.wordItemCard, styles.wordItemCardRegistered]}>
+      <View style={[
+        styles.wordItemCard,
+        { backgroundColor: colors.card, borderColor: colors.border },
+        wordInfo.isRegistered && [styles.wordItemCardRegistered, { backgroundColor: isDark ? '#1B301B' : '#E8F5E9', borderColor: '#4CAF50' }]
+      ]}>
         <View style={styles.wordCardHeader}>
-          <Text style={styles.wordCardWord}>{wordInfo.word}</Text>
+          <Text style={[styles.wordCardWord, { color: colors.text }]}>{wordInfo.word}</Text>
           <View style={styles.registeredBadge}>
             <Text style={styles.registeredBadgeText}>登録済み</Text>
           </View>
@@ -99,21 +105,21 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
 
         {wordInfo.japanese && (
           <View style={styles.wordCardRow}>
-            <Text style={styles.wordCardLabel}>日本語訳:</Text>
-            <Text style={styles.wordCardJapanese}>{wordInfo.japanese}</Text>
+            <Text style={[styles.wordCardLabel, { color: colors.textSecondary }]}>日本語訳:</Text>
+            <Text style={[styles.wordCardJapanese, { color: colors.primary }]}>{wordInfo.japanese}</Text>
           </View>
         )}
 
         {wordInfo.definition && (
           <View style={styles.wordCardRow}>
-            <Text style={styles.wordCardLabel}>定義:</Text>
-            <Text style={styles.wordCardDefinition} numberOfLines={3}>
+            <Text style={[styles.wordCardLabel, { color: colors.textSecondary }]}>定義:</Text>
+            <Text style={[styles.wordCardDefinition, { color: colors.text }]} numberOfLines={3}>
               {wordInfo.definition}
             </Text>
           </View>
         )}
 
-        <Text style={styles.wordItemHint}>この単語は既に登録されています</Text>
+        <Text style={[styles.wordItemHint, { color: colors.textTertiary }]}>この単語は既に登録されています</Text>
       </View>
     );
   }
@@ -127,32 +133,32 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
       overshootRight={false}
       containerStyle={styles.swipeableContainer}
     >
-      <View style={styles.wordItemCard}>
+      <View style={[styles.wordItemCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {/* 単語名 */}
         <View style={styles.wordCardHeader}>
-          <Text style={styles.wordCardWord}>{wordInfo.word}</Text>
+          <Text style={[styles.wordCardWord, { color: colors.text }]}>{wordInfo.word}</Text>
         </View>
 
         {/* 日本語訳 */}
         {wordInfo.japanese && (
           <View style={styles.wordCardRow}>
-            <Text style={styles.wordCardLabel}>日本語訳:</Text>
-            <Text style={styles.wordCardJapanese}>{wordInfo.japanese}</Text>
+            <Text style={[styles.wordCardLabel, { color: colors.textSecondary }]}>日本語訳:</Text>
+            <Text style={[styles.wordCardJapanese, { color: colors.primary }]}>{wordInfo.japanese}</Text>
           </View>
         )}
 
         {/* 定義 */}
         {wordInfo.definition && (
           <View style={styles.wordCardRow}>
-            <Text style={styles.wordCardLabel}>定義:</Text>
-            <Text style={styles.wordCardDefinition} numberOfLines={3}>
+            <Text style={[styles.wordCardLabel, { color: colors.textSecondary }]}>定義:</Text>
+            <Text style={[styles.wordCardDefinition, { color: colors.text }]} numberOfLines={3}>
               {wordInfo.definition}
             </Text>
           </View>
         )}
 
         {/* スワイプヒント */}
-        <Text style={styles.swipeHint}>← スワイプで除外</Text>
+        <Text style={[styles.swipeHint, { color: colors.textTertiary }]}>← スワイプで除外</Text>
       </View>
     </Swipeable>
   );
@@ -202,6 +208,7 @@ export function WordPopup({
   onAddToWordList,
 }: WordPopupProps): React.JSX.Element {
   const { t } = useTranslation('wordPopup');
+  const { colors, isDark } = useTheme();
   const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
   const [backdropOpacity] = useState(new Animated.Value(0));
 
@@ -720,32 +727,33 @@ export function WordPopup({
           style={[
             styles.popup,
             {
+              backgroundColor: colors.background,
               transform: [{ translateY: slideAnim }],
             },
           ]}
         >
           {/* Handle */}
           <View style={styles.handleContainer}>
-            <View style={styles.handle} />
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
           </View>
 
           {/* Word/Sentence Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <Text style={isSentenceMode ? styles.sentence : styles.word} numberOfLines={2}>
+              <Text style={[isSentenceMode ? styles.sentence : styles.word, { color: colors.text }]} numberOfLines={2}>
                 {word}
               </Text>
               {!isJapanese && !isSentenceMode && definition?.phonetic && (
-                <Text style={styles.phonetic}>{definition.phonetic}</Text>
+                <Text style={[styles.phonetic, { color: colors.textSecondary }]}>{definition.phonetic}</Text>
               )}
               {!isJapanese && !isSentenceMode && definition?.partOfSpeech && (
-                <View style={styles.posTag}>
-                  <Text style={styles.posText}>{definition.partOfSpeech}</Text>
+                <View style={[styles.posTag, { backgroundColor: colors.backgroundSecondary }]}>
+                  <Text style={[styles.posText, { color: colors.textSecondary }]}>{definition.partOfSpeech}</Text>
                 </View>
               )}
               {isSentenceMode && (
-                <View style={styles.modeTag}>
-                  <Text style={styles.modeText}>文章モード</Text>
+                <View style={[styles.modeTag, { backgroundColor: colors.primary + '20' }]}>
+                  <Text style={[styles.modeText, { color: colors.primary }]}>文章モード</Text>
                 </View>
               )}
             </View>
@@ -757,7 +765,7 @@ export function WordPopup({
                 style={styles.feedbackButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <MessageSquareShare size={22} color={Colors.primary} />
+                <MessageSquareShare size={22} color={colors.primary} />
               </Pressable>
             )}
           </View>
@@ -772,13 +780,13 @@ export function WordPopup({
               <>
                 {/* Sentence Translation */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>文章の日本語訳</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>文章の日本語訳</Text>
                   {loading.sentenceTranslation ? (
-                    <ActivityIndicator size="small" color={Colors.primary} />
+                    <ActivityIndicator size="small" color={colors.primary} />
                   ) : sentenceTranslation ? (
-                    <Text style={styles.translationText}>{sentenceTranslation.text}</Text>
+                    <Text style={[styles.translationText, { color: colors.text }]}>{sentenceTranslation.text}</Text>
                   ) : sentenceError ? (
-                    <Text style={styles.errorText}>{sentenceError}</Text>
+                    <Text style={[styles.errorText, { color: colors.error }]}>{sentenceError}</Text>
                   ) : !translationAvailable ? (
                     <Text style={styles.hintText}>
                       翻訳が利用できません
@@ -790,12 +798,12 @@ export function WordPopup({
 
                 {/* Words List */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>含まれる単語</Text>
-                  <Text style={styles.swipeInstruction}>
+                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>含まれる単語</Text>
+                  <Text style={[styles.swipeInstruction, { color: colors.textTertiary }]}>
                     登録しない単語は左にスワイプして除外
                   </Text>
                   {loading.wordsInfo ? (
-                    <ActivityIndicator size="small" color={Colors.primary} />
+                    <ActivityIndicator size="small" color={colors.primary} />
                   ) : wordsInfo.length > 0 ? (
                     <View style={styles.wordsListContainer}>
                       {wordsInfo.map((wordInfo, index) => (
@@ -809,7 +817,7 @@ export function WordPopup({
                       ))}
                     </View>
                   ) : (
-                    <Text style={styles.hintText}>単語が見つかりませんでした</Text>
+                    <Text style={[styles.hintText, { color: colors.textTertiary }]}>単語が見つかりませんでした</Text>
                   )}
                 </View>
               </>
@@ -820,128 +828,128 @@ export function WordPopup({
               <>
                 {/* Japanese Word - English Translation Section */}
                 {isJapanese && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>英語訳</Text>
+                  <View style={[styles.section, { borderBottomColor: colors.divider }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>英語訳</Text>
                     {loading.englishTranslation ? (
-                      <ActivityIndicator size="small" color={Colors.primary} />
+                      <ActivityIndicator size="small" color={colors.primary} />
                     ) : englishTranslation ? (
                       <>
-                        <Text style={styles.translationText}>{englishTranslation.text}</Text>
+                        <Text style={[styles.translationText, { color: colors.text }]}>{englishTranslation.text}</Text>
                         {englishTranslation.source && (
-                          <Text style={styles.sourceText}>
+                          <Text style={[styles.sourceText, { color: colors.textTertiary }]}>
                             出典: {englishTranslation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
                           </Text>
                         )}
                         {englishTranslation.readings && englishTranslation.readings.length > 0 && (
-                          <Text style={styles.readingText}>
+                          <Text style={[styles.readingText, { color: colors.textSecondary }]}>
                             読み: {englishTranslation.readings.join(', ')}
                           </Text>
                         )}
                         {englishTranslation.partOfSpeech && englishTranslation.partOfSpeech.length > 0 && (
-                          <Text style={styles.posInfoText}>
+                          <Text style={[styles.posInfoText, { color: colors.textSecondary }]}>
                             品詞: {englishTranslation.partOfSpeech.join(', ')}
                           </Text>
                         )}
                       </>
                     ) : englishTranslationError ? (
-                      <Text style={styles.errorText}>{englishTranslationError}</Text>
+                      <Text style={[styles.errorText, { color: colors.error }]}>{englishTranslationError}</Text>
                     ) : (
-                      <Text style={styles.hintText}>英語訳が見つかりませんでした</Text>
+                      <Text style={[styles.hintText, { color: colors.textTertiary }]}>英語訳が見つかりませんでした</Text>
                     )}
                   </View>
                 )}
 
                 {/* Japanese Word Info Section (Morphological Analysis) */}
                 {isJapanese && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>形態素解析結果</Text>
+                  <View style={[styles.section, { borderBottomColor: colors.divider }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>形態素解析結果</Text>
                     {loading.japanese ? (
-                      <ActivityIndicator size="small" color={Colors.primary} />
+                      <ActivityIndicator size="small" color={colors.primary} />
                     ) : japaneseInfo.length > 0 ? (
                       <>
                         {japaneseInfo.map((token, index) => (
-                          <View key={`token-${index}-${token.word}-${token.reading}`} style={styles.tokenCard}>
+                          <View key={`token-${index}-${token.word}-${token.reading}`} style={[styles.tokenCard, { backgroundColor: colors.backgroundSecondary }]}>
                             <View style={styles.tokenHeader}>
-                              <Text style={styles.tokenWord}>{token.word}</Text>
-                              <Text style={styles.tokenReading}>({token.reading})</Text>
+                              <Text style={[styles.tokenWord, { color: colors.text }]}>{token.word}</Text>
+                              <Text style={[styles.tokenReading, { color: colors.textSecondary }]}>({token.reading})</Text>
                             </View>
                             <View style={styles.tokenDetails}>
-                              <Text style={styles.tokenDetailText}>品詞: {token.partOfSpeech}</Text>
-                              <Text style={styles.tokenDetailText}>基本形: {token.baseForm}</Text>
+                              <Text style={[styles.tokenDetailText, { color: colors.textSecondary }]}>品詞: {token.partOfSpeech}</Text>
+                              <Text style={[styles.tokenDetailText, { color: colors.textSecondary }]}>基本形: {token.baseForm}</Text>
                             </View>
                           </View>
                         ))}
                       </>
                     ) : japaneseError ? (
-                      <Text style={styles.errorText}>{japaneseError}</Text>
+                      <Text style={[styles.errorText, { color: colors.error }]}>{japaneseError}</Text>
                     ) : !yahooClientIdAvailable ? (
-                      <Text style={styles.hintText}>
+                      <Text style={[styles.hintText, { color: colors.textTertiary }]}>
                         Yahoo! Client IDを設定すると詳細情報が表示されます
                       </Text>
                     ) : (
-                      <Text style={styles.hintText}>-</Text>
+                      <Text style={[styles.hintText, { color: colors.textTertiary }]}>-</Text>
                     )}
                   </View>
                 )}
 
                 {/* Translation Section (English words only) */}
                 {!isJapanese && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>日本語訳</Text>
+                  <View style={[styles.section, { borderBottomColor: colors.divider }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>日本語訳</Text>
                     {loading.translation ? (
-                      <ActivityIndicator size="small" color={Colors.primary} />
+                      <ActivityIndicator size="small" color={colors.primary} />
                     ) : translation ? (
                       <>
-                        <Text style={styles.translationText}>{translation.text}</Text>
+                        <Text style={[styles.translationText, { color: colors.text }]}>{translation.text}</Text>
                         {translation.source && (
-                          <Text style={styles.sourceText}>
+                          <Text style={[styles.sourceText, { color: colors.textTertiary }]}>
                             出典: {translation.source === 'jmdict' ? 'JMdict辞書' : 'DeepL翻訳'}
                           </Text>
                         )}
                         {translation.readings && translation.readings.length > 0 && (
-                          <Text style={styles.readingText}>
+                          <Text style={[styles.readingText, { color: colors.textSecondary }]}>
                             読み: {translation.readings.join(', ')}
                           </Text>
                         )}
                         {translation.partOfSpeech && translation.partOfSpeech.length > 0 && (
-                          <Text style={styles.posInfoText}>
+                          <Text style={[styles.posInfoText, { color: colors.textSecondary }]}>
                             品詞: {translation.partOfSpeech.join(', ')}
                           </Text>
                         )}
                       </>
                     ) : translationError ? (
-                      <Text style={styles.errorText}>{translationError}</Text>
+                      <Text style={[styles.errorText, { color: colors.error }]}>{translationError}</Text>
                     ) : !translationAvailable ? (
-                      <Text style={styles.hintText}>
+                      <Text style={[styles.hintText, { color: colors.textTertiary }]}>
                         翻訳が利用できません
                       </Text>
                     ) : (
-                      <Text style={styles.hintText}>-</Text>
+                      <Text style={[styles.hintText, { color: colors.textTertiary }]}>-</Text>
                     )}
                   </View>
                 )}
 
                 {/* Definition Section (English words only) */}
                 {!isJapanese && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>英語の定義</Text>
+                  <View style={[styles.section, { borderBottomColor: colors.divider }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>英語の定義</Text>
                     {loading.definition ? (
-                      <ActivityIndicator size="small" color={Colors.primary} />
+                      <ActivityIndicator size="small" color={colors.primary} />
                     ) : definition ? (
                       <>
-                        <Text style={styles.definitionText}>{definition.definition}</Text>
+                        <Text style={[styles.definitionText, { color: colors.text }]}>{definition.definition}</Text>
                         {definition.example && (
-                          <Text style={styles.exampleText}>
+                          <Text style={[styles.exampleText, { color: colors.textSecondary }]}>
                             例: "{definition.example}"
                           </Text>
                         )}
                       </>
                     ) : definitionNotFound ? (
-                      <Text style={styles.notFoundText}>定義が見つかりませんでした</Text>
+                      <Text style={[styles.notFoundText, { color: colors.textSecondary }]}>定義が見つかりませんでした</Text>
                     ) : definitionError ? (
-                      <Text style={styles.errorText}>{definitionError}</Text>
+                      <Text style={[styles.errorText, { color: colors.error }]}>{definitionError}</Text>
                     ) : (
-                      <Text style={styles.hintText}>-</Text>
+                      <Text style={[styles.hintText, { color: colors.textTertiary }]}>-</Text>
                     )}
                   </View>
                 )}
@@ -1014,7 +1022,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: Colors.border,
+    backgroundColor: '#CCCCCC',
     borderRadius: 2,
   },
   header: {

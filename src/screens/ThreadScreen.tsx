@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Loading } from '../components/common/Loading';
 import { PostCard } from '../components/PostCard';
 import { WordPopup } from '../components/WordPopup';
@@ -149,6 +150,7 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { colors } = useTheme();
 
   // Word popup state
   const [wordPopup, setWordPopup] = useState<WordPopupState>(initialWordPopupState);
@@ -394,7 +396,7 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
         {/* Parent post if exists */}
         {threadData.parent && (
           <View style={styles.parentContainer}>
-            <View style={styles.threadLine} />
+            <View style={[styles.threadLine, { backgroundColor: colors.border }]} />
             <PostCard
               post={threadData.parent}
               onWordSelect={handleWordSelect}
@@ -406,7 +408,7 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
         )}
 
         {/* Main post */}
-        <View style={styles.mainPostContainer}>
+        <View style={[styles.mainPostContainer, { borderBottomColor: colors.border }]}>
           <PostCard
             post={threadData.post}
             onWordSelect={handleWordSelect}
@@ -418,8 +420,8 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
 
         {/* Replies header */}
         {threadData.replies.length > 0 && (
-          <View style={styles.repliesHeader}>
-            <Text style={styles.repliesHeaderText}>
+          <View style={[styles.repliesHeader, { backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.repliesHeaderText, { color: colors.textSecondary }]}>
               {t('thread:replies', { count: threadData.replies.length })}
             </Text>
           </View>
@@ -434,7 +436,7 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
   const renderReply = useCallback(({ item }: { item: TimelinePost }) => {
     const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri && wordPopup.postUri !== '';
     return (
-      <View style={styles.replyContainer}>
+      <View style={[styles.replyContainer, { borderBottomColor: colors.border }]}>
         <PostCard
           post={item}
           onWordSelect={handleWordSelect}
@@ -454,7 +456,7 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
   // Loading state
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
         <Loading fullScreen message={t('thread:loading')} />
       </SafeAreaView>
     );
@@ -463,9 +465,9 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
   // Error state
   if (error) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.textSecondary }]}>{error}</Text>
         </View>
       </SafeAreaView>
     );
@@ -474,16 +476,16 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
   // No data
   if (!threadData) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{t('thread:notFound')}</Text>
+          <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t('thread:notFound')}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
       <FlatList
         data={threadData.replies}
         renderItem={renderReply}
@@ -494,8 +496,8 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            colors={[Colors.primary]}
-            tintColor={Colors.primary}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
         showsVerticalScrollIndicator={false}

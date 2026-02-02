@@ -18,7 +18,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Lightbulb, ArrowUp, Plus } from 'lucide-react-native';
+import { Lightbulb, ArrowUp, Plus, Settings } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -37,6 +37,7 @@ import { TutorialTooltip } from '../components/Tutorial';
 import { TimelinePost } from '../types/bluesky';
 import { addWord } from '../services/database/words';
 import { likePost, unlikePost } from '../services/bluesky/feed';
+import { useTheme } from '../hooks/useTheme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -71,6 +72,7 @@ export function HomeScreen(): React.JSX.Element {
   const { t } = useTranslation('home');
   const { t: tc } = useTranslation('common');
   const { t: tt } = useTranslation('tutorial');
+  const { colors, isDark } = useTheme();
 
   const tipsRef = useRef<View>(null);
   const [tutorialPositions, setTutorialPositions] = useState<{
@@ -460,14 +462,15 @@ export function HomeScreen(): React.JSX.Element {
     );
   }, [isLoading, error, isConnected, refresh, t]);
 
+
   // Show loading state on initial load
   if (isLoading && posts.length === 0) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>{t('header')}</Text>
-            <Text style={styles.headerSubtitle}>{t('headerSubtitle')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('headerSubtitle')}</Text>
           </View>
         </View>
         <Loading fullScreen message={t('loadingTimeline')} />
@@ -476,27 +479,34 @@ export function HomeScreen(): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <OfflineBanner />
 
-      <View style={styles.header}>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{t('header')}</Text>
-          <Text style={styles.headerSubtitle}>{t('headerSubtitle')}</Text>
+      {/* Header */}
+      <View style={[styles.header, {
+        backgroundColor: colors.background,
+        borderBottomColor: colors.border,
+        paddingTop: insets.top,
+      }]}>
+        <View style={styles.headerLeft}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
         </View>
-        <Pressable
-          ref={tipsRef}
-          onLayout={measureTips}
-          onPress={() => navigation.navigate('Tips')}
-          style={styles.tipsButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessible={true}
-          accessibilityLabel={t('tips')}
-          accessibilityHint={t('tipsHint')}
-          accessibilityRole="button"
-        >
-          <Lightbulb size={24} color={Colors.primary} />
-        </Pressable>
+        <View style={styles.headerRight}>
+          <Pressable
+            ref={tipsRef}
+            onPress={() => navigation.navigate('Tips')}
+            style={({ pressed }) => [
+              styles.headerIconButton,
+              pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
+            ]}
+            accessible={true}
+            accessibilityLabel={t('tips')}
+            accessibilityHint={t('tipsHint')}
+            accessibilityRole="button"
+          >
+            <Lightbulb size={24} color={colors.primary} />
+          </Pressable>
+        </View>
       </View>
 
       <FlatList
@@ -506,14 +516,33 @@ export function HomeScreen(): React.JSX.Element {
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={renderHeader}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmpty}
+        ListEmptyComponent={
+          !isLoading ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>{t('feed.empty')}</Text>
+              <Button
+                title={t('feed.retry')}
+                onPress={refresh}
+                variant="outline"
+                size="small"
+                style={{ marginTop: Spacing.md }}
+              />
+            </View>
+          ) : null
+        }
+        ListFooterComponent={
+          isLoading && !isRefreshing ? (
+            <View style={styles.footerLoader}>
+              <Loading size="small" />
+            </View>
+          ) : <View style={{ height: 100 }} />
+        }
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={refresh}
-            colors={[Colors.primary]}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
             enabled={isConnected}
           />
         }
@@ -527,32 +556,25 @@ export function HomeScreen(): React.JSX.Element {
         windowSize={5}
       />
 
-      {/* Scroll to Top Button (Left) */}
-      <Animated.View
-        style={[
-          styles.scrollToTopButton,
-          { opacity: scrollToTopOpacity },
-        ]}
-        pointerEvents={showScrollToTop ? 'auto' : 'none'}
-      >
+      {/* Floating Action Button */}
+      {showScrollToTop && (
         <Pressable
+          style={[styles.scrollToTopButton, styles.scrollToTopPressable, { backgroundColor: colors.primary }]}
           onPress={scrollToTop}
-          style={styles.scrollToTopPressable}
           accessibilityLabel={t('scrollToTop')}
           accessibilityRole="button"
         >
-          <ArrowUp size={24} color={Colors.background} />
+          <ArrowUp size={24} color="#FFF" />
         </Pressable>
-      </Animated.View>
+      )}
 
-      {/* FAB - Create Post Button (Right) */}
       <Pressable
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: colors.primary, ...Shadows.lg }]}
         onPress={() => setIsPostModalVisible(true)}
         accessibilityLabel={t('createPost')}
         accessibilityRole="button"
       >
-        <Plus size={24} color={Colors.background} />
+        <Plus size={28} color="#FFF" />
       </Pressable>
 
       <PostCreationModal
@@ -591,7 +613,7 @@ export function HomeScreen(): React.JSX.Element {
           skipLabel={tt('skip')}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -609,6 +631,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  headerIconButton: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
   headerTitleContainer: {
     flex: 1,
@@ -632,6 +666,7 @@ const styles = StyleSheet.create({
   },
   footerLoader: {
     paddingVertical: Spacing.lg,
+    alignItems: 'center',
   },
   emptyContainer: {
     flex: 1,

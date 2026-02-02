@@ -8,7 +8,8 @@
     "dataManagement": "Data Management",
     "feedback": "Feedback",
     "other": "Other",
-    "language": "Language"
+    "language": "Language",
+    "appearance": "Appearance"
   },
   "account": {
     "loading": "Loading...",
@@ -92,5 +93,12 @@
     "resetSuccess": "Tutorial has been reset. It will appear on next launch."
   },
   "version": "Version {{version}}",
-  "linkError": "Could not open link."
+  "linkError": "Could not open link.",
+  "appearance": {
+    "theme": "Brightness (Theme)",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Follow System Settings",
+    "selectTheme": "Select Theme"
+  }
 }

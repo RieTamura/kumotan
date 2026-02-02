@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 const TOAST_WIDTH = width - Spacing.lg * 2;
@@ -32,17 +34,17 @@ export interface ToastProps {
 /**
  * Get color based on toast type
  */
-function getToastColor(type: ToastType): string {
+function getToastColor(type: ToastType, colors: ThemeColors): string {
   switch (type) {
     case 'success':
-      return Colors.success;
+      return colors.success;
     case 'error':
-      return Colors.error;
+      return colors.error;
     case 'warning':
-      return Colors.warning;
+      return colors.warning;
     case 'info':
     default:
-      return Colors.primary;
+      return colors.primary;
   }
 }
 
@@ -74,6 +76,7 @@ export function Toast({
   onDismiss,
   visible,
 }: ToastProps): React.JSX.Element | null {
+  const { colors } = useTheme();
   const translateY = useRef(new Animated.Value(-TOAST_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -138,7 +141,7 @@ export function Toast({
     return null;
   }
 
-  const backgroundColor = getToastColor(type);
+  const backgroundColor = getToastColor(type, colors);
   const icon = getToastIcon(type);
 
   return (

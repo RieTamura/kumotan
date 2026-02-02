@@ -29,6 +29,7 @@ import {
 } from './src/services/dictionary/jmdict';
 import { Colors, FontSizes, Spacing } from './src/constants/colors';
 import { APP_INFO } from './src/constants/config';
+import { useTheme } from './src/hooks/useTheme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* ignore */
@@ -41,6 +42,7 @@ interface InitState {
 }
 
 export default function App(): React.JSX.Element {
+  const { colors, isDark } = useTheme();
   const [initState, setInitState] = useState<InitState>({
     isReady: false,
     error: null,
@@ -150,11 +152,11 @@ export default function App(): React.JSX.Element {
   if (initState.error) {
     return (
       <SafeAreaProvider>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Error</Text>
+        <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+          <Text style={[styles.errorTitle, { color: colors.text }]}>Error</Text>
           <Text style={styles.errorMessage}>{initState.error}</Text>
         </View>
-        <StatusBar style="dark" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
       </SafeAreaProvider>
     );
   }
@@ -192,6 +194,7 @@ export default function App(): React.JSX.Element {
                   style={[
                     styles.progressBarInner,
                     {
+                      backgroundColor: Colors.textInverse, // Splash is always primary blue, so keep textInverse
                       transform: [
                         {
                           translateX: progressAnim.interpolate({
@@ -216,10 +219,10 @@ export default function App(): React.JSX.Element {
   // メインアプリ
   return (
     <SafeAreaProvider>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <AppNavigator />
       </View>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
     </SafeAreaProvider>
   );
 }

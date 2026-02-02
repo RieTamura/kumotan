@@ -14,6 +14,7 @@ import {
   StyleProp,
 } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Button variant types
@@ -60,8 +61,10 @@ export function Button({
 }: ButtonProps): React.JSX.Element {
   const isDisabled = disabled || loading;
 
-  const getContainerStyle = (): ViewStyle[] => {
-    const styles: ViewStyle[] = [baseStyles.container];
+  const { colors } = useTheme();
+
+  const getContainerStyle = (): (ViewStyle | StyleProp<ViewStyle>)[] => {
+    const styles: (ViewStyle | StyleProp<ViewStyle>)[] = [baseStyles.container];
 
     // Size styles
     switch (size) {
@@ -78,19 +81,23 @@ export function Button({
     // Variant styles
     switch (variant) {
       case 'secondary':
-        styles.push(variantStyles.secondary);
+        styles.push({ backgroundColor: colors.backgroundSecondary });
         break;
       case 'outline':
-        styles.push(variantStyles.outline);
+        styles.push({
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: colors.primary,
+        });
         break;
       case 'ghost':
-        styles.push(variantStyles.ghost);
+        styles.push({ backgroundColor: 'transparent' });
         break;
       case 'danger':
-        styles.push(variantStyles.danger);
+        styles.push({ backgroundColor: colors.error });
         break;
       default:
-        styles.push(variantStyles.primary);
+        styles.push({ backgroundColor: colors.primary });
     }
 
     // Full width
@@ -106,8 +113,8 @@ export function Button({
     return styles;
   };
 
-  const getTextStyle = (): TextStyle[] => {
-    const styles: TextStyle[] = [baseStyles.text];
+  const getTextStyle = (): (TextStyle | StyleProp<TextStyle>)[] => {
+    const styles: (TextStyle | StyleProp<TextStyle>)[] = [baseStyles.text];
 
     // Size text styles
     switch (size) {
@@ -124,19 +131,17 @@ export function Button({
     // Variant text styles
     switch (variant) {
       case 'secondary':
-        styles.push(textVariantStyles.secondary);
+        styles.push({ color: colors.text });
         break;
       case 'outline':
-        styles.push(textVariantStyles.outline);
-        break;
       case 'ghost':
-        styles.push(textVariantStyles.ghost);
+        styles.push({ color: colors.primary });
         break;
       case 'danger':
-        styles.push(textVariantStyles.danger);
+        styles.push({ color: '#FFFFFF' }); // Clear white for danger background
         break;
       default:
-        styles.push(textVariantStyles.primary);
+        styles.push({ color: '#FFFFFF' }); // Clear white for primary background
     }
 
     // Disabled text
@@ -151,11 +156,11 @@ export function Button({
     switch (variant) {
       case 'outline':
       case 'ghost':
-        return Colors.primary;
+        return colors.primary;
       case 'secondary':
-        return Colors.text;
+        return colors.text;
       default:
-        return Colors.textInverse;
+        return '#FFFFFF';
     }
   };
 

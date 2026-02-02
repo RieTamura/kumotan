@@ -40,6 +40,7 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import { FeedbackModal, type FeedbackType } from '../components/FeedbackModal';
 import { GithubIcon } from '../components/common/GithubIcon';
 import { useTutorial } from '../hooks/useTutorial';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * Settings item component props
@@ -64,9 +65,15 @@ function SettingsItem({
   danger = false,
   disabled = false,
 }: SettingsItemProps): React.JSX.Element {
+  const { colors } = useTheme();
+
   return (
     <Pressable
-      style={[styles.settingsItem, disabled && styles.settingsItemDisabled]}
+      style={[
+        styles.settingsItem,
+        { borderBottomColor: colors.divider },
+        disabled && styles.settingsItemDisabled,
+      ]}
       onPress={onPress}
       disabled={disabled}
     >
@@ -74,16 +81,18 @@ function SettingsItem({
         <Text
           style={[
             styles.settingsItemTitle,
-            danger && styles.settingsItemTitleDanger,
+            { color: danger ? colors.error : colors.text },
           ]}
         >
           {title}
         </Text>
         {subtitle && (
-          <Text style={styles.settingsItemSubtitle}>{subtitle}</Text>
+          <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+            {subtitle}
+          </Text>
         )}
       </View>
-      {showArrow && <Text style={styles.settingsItemArrow}>›</Text>}
+      {showArrow && <Text style={[styles.settingsItemArrow, { color: colors.textTertiary }]}>›</Text>}
     </Pressable>
   );
 }
@@ -98,10 +107,12 @@ function SettingsSection({
   title: string;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>{children}</View>
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{title}</Text>
+      <View style={[styles.sectionContent, { backgroundColor: colors.card }]}>{children}</View>
     </View>
   );
 }
@@ -128,6 +139,7 @@ export function SettingsScreen(): React.JSX.Element {
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('bug');
   const { toastState, showSuccess, showError, hideToast } = useToast();
   const { resetTutorial } = useTutorial([], false);
+  const { colors, mode, setMode, isDark } = useTheme();
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -185,6 +197,31 @@ export function SettingsScreen(): React.JSX.Element {
       ]
     );
   }, [t, tc]);
+
+  /**
+   * Handle theme change
+   */
+  const handleThemeChange = useCallback(() => {
+    Alert.alert(
+      t('appearance.selectTheme'),
+      undefined,
+      [
+        {
+          text: t('appearance.system'),
+          onPress: () => setMode('system'),
+        },
+        {
+          text: t('appearance.light'),
+          onPress: () => setMode('light'),
+        },
+        {
+          text: t('appearance.dark'),
+          onPress: () => setMode('dark'),
+        },
+        { text: tc('buttons.cancel'), style: 'cancel' },
+      ]
+    );
+  }, [setMode, t, tc]);
 
   /**
    * Handle logout button press
@@ -381,10 +418,10 @@ export function SettingsScreen(): React.JSX.Element {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('header')}</Text>
+      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
       </View>
 
       <ScrollView
@@ -396,8 +433,8 @@ export function SettingsScreen(): React.JSX.Element {
           <View style={styles.accountInfo}>
             {isProfileLoading ? (
               <View style={styles.accountLoading}>
-                <ActivityIndicator size="small" color={Colors.primary} />
-                <Text style={styles.accountLoadingText}>{t('account.loading')}</Text>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.accountLoadingText, { color: colors.textSecondary }]}>{t('account.loading')}</Text>
               </View>
             ) : (
               <>
@@ -408,8 +445,8 @@ export function SettingsScreen(): React.JSX.Element {
                     style={styles.accountAvatar}
                   />
                 ) : (
-                  <View style={styles.accountAvatarPlaceholder}>
-                    <Text style={styles.accountAvatarText}>
+                  <View style={[styles.accountAvatarPlaceholder, { backgroundColor: colors.backgroundTertiary }]}>
+                    <Text style={[styles.accountAvatarText, { color: colors.textSecondary }]}>
                       {profile?.handle?.[0]?.toUpperCase() ?? '?'}
                     </Text>
                   </View>
@@ -418,15 +455,15 @@ export function SettingsScreen(): React.JSX.Element {
                 {/* Profile Details */}
                 <View style={styles.accountDetails}>
                   {profile?.displayName && (
-                    <Text style={styles.accountDisplayName}>
+                    <Text style={[styles.accountDisplayName, { color: colors.text }]}>
                       {profile.displayName}
                     </Text>
                   )}
-                  <Text style={styles.accountHandle}>
+                  <Text style={[styles.accountHandle, { color: colors.textSecondary }]}>
                     @{profile?.handle ?? user?.handle ?? 'unknown'}
                   </Text>
                   {profile?.description && (
-                    <Text style={styles.accountDescription} numberOfLines={2}>
+                    <Text style={[styles.accountDescription, { color: colors.textSecondary }]} numberOfLines={2}>
                       {profile.description}
                     </Text>
                   )}
@@ -434,20 +471,20 @@ export function SettingsScreen(): React.JSX.Element {
                   {(profile?.followersCount !== undefined || profile?.followsCount !== undefined) && (
                     <View style={styles.accountStats}>
                       {profile.postsCount !== undefined && (
-                        <Text style={styles.accountStat}>
-                          <Text style={styles.accountStatValue}>{profile.postsCount}</Text>
+                        <Text style={[styles.accountStat, { color: colors.textSecondary }]}>
+                          <Text style={[styles.accountStatValue, { color: colors.text }]}>{profile.postsCount}</Text>
                           {` ${t('account.posts')}`}
                         </Text>
                       )}
                       {profile.followersCount !== undefined && (
-                        <Text style={styles.accountStat}>
-                          <Text style={styles.accountStatValue}>{profile.followersCount}</Text>
+                        <Text style={[styles.accountStat, { color: colors.textSecondary }]}>
+                          <Text style={[styles.accountStatValue, { color: colors.text }]}>{profile.followersCount}</Text>
                           {` ${t('account.followers')}`}
                         </Text>
                       )}
                       {profile.followsCount !== undefined && (
-                        <Text style={styles.accountStat}>
-                          <Text style={styles.accountStatValue}>{profile.followsCount}</Text>
+                        <Text style={[styles.accountStat, { color: colors.textSecondary }]}>
+                          <Text style={[styles.accountStatValue, { color: colors.text }]}>{profile.followsCount}</Text>
                           {` ${t('account.following')}`}
                         </Text>
                       )}
@@ -494,6 +531,21 @@ export function SettingsScreen(): React.JSX.Element {
             title={t('language.title')}
             subtitle={currentLang === 'ja' ? t('language.japanese') : t('language.english')}
             onPress={handleLanguageChange}
+          />
+        </SettingsSection>
+
+        {/* Appearance Section */}
+        <SettingsSection title={t('sections.appearance')}>
+          <SettingsItem
+            title={t('appearance.theme')}
+            subtitle={
+              mode === 'system'
+                ? t('appearance.system')
+                : mode === 'light'
+                  ? t('appearance.light')
+                  : t('appearance.dark')
+            }
+            onPress={handleThemeChange}
           />
         </SettingsSection>
 
@@ -619,11 +671,11 @@ export function SettingsScreen(): React.JSX.Element {
 
         {/* App Info */}
         <View style={styles.appInfo}>
-          <Text style={styles.appName}>{APP_INFO.NAME}</Text>
-          <Text style={styles.appVersion}>
+          <Text style={[styles.appName, { color: colors.primary }]}>{APP_INFO.NAME}</Text>
+          <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
             {t('version', { version: APP_INFO.VERSION })}
           </Text>
-          <Text style={styles.appTagline}>{APP_INFO.DESCRIPTION}</Text>
+          <Text style={[styles.appTagline, { color: colors.textTertiary }]}>{APP_INFO.DESCRIPTION}</Text>
 
           <View style={styles.socialIconsContainer}>
             <Pressable
@@ -632,7 +684,7 @@ export function SettingsScreen(): React.JSX.Element {
             >
               <Image
                 source={require('../../assets/bluesky-logo.png')}
-                style={styles.blueskyIcon}
+                style={[styles.blueskyIcon, isDark && { tintColor: colors.text }]}
               />
             </Pressable>
 
@@ -640,7 +692,7 @@ export function SettingsScreen(): React.JSX.Element {
               onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
               style={styles.socialIconWrapper}
             >
-              <GithubIcon size={28} color="#181717" />
+              <GithubIcon size={28} color={isDark ? colors.text : '#181717'} />
             </Pressable>
           </View>
         </View>

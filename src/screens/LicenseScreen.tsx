@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * License information for each library
@@ -186,9 +187,10 @@ const LICENSES: LicenseInfo[] = [
  * Section header component
  */
 function SectionHeader({ title }: { title: string }): React.JSX.Element {
+  const { colors } = useTheme();
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{title}</Text>
+    <View style={[styles.sectionHeader, { backgroundColor: colors.backgroundSecondary }]}>
+      <Text style={[styles.sectionHeaderText, { color: colors.textSecondary }]}>{title}</Text>
     </View>
   );
 }
@@ -197,6 +199,7 @@ function SectionHeader({ title }: { title: string }): React.JSX.Element {
  * License item component
  */
 function LicenseItem({ license }: { license: LicenseInfo }): React.JSX.Element {
+  const { colors } = useTheme();
   const handlePress = async () => {
     if (license.url) {
       try {
@@ -214,20 +217,21 @@ function LicenseItem({ license }: { license: LicenseInfo }): React.JSX.Element {
     <Pressable
       style={({ pressed }) => [
         styles.licenseItem,
-        pressed && license.url && styles.licenseItemPressed,
+        { backgroundColor: colors.card },
+        pressed && license.url && [styles.licenseItemPressed, { backgroundColor: colors.backgroundSecondary }],
       ]}
       onPress={handlePress}
       disabled={!license.url}
     >
       <View style={styles.licenseHeader}>
-        <Text style={styles.licenseName}>{license.name}</Text>
-        <Text style={styles.licenseType}>{license.license}</Text>
+        <Text style={[styles.licenseName, { color: colors.text }]}>{license.name}</Text>
+        <Text style={[styles.licenseType, { color: colors.primary, backgroundColor: colors.primary + '20' }]}>{license.license}</Text>
       </View>
       {license.description && (
-        <Text style={styles.licenseDescription}>{license.description}</Text>
+        <Text style={[styles.licenseDescription, { color: colors.textSecondary }]}>{license.description}</Text>
       )}
       {license.url && (
-        <Text style={styles.licenseUrl}>{license.url}</Text>
+        <Text style={[styles.licenseUrl, { color: colors.primary }]}>{license.url}</Text>
       )}
     </Pressable>
   );
@@ -238,6 +242,7 @@ function LicenseItem({ license }: { license: LicenseInfo }): React.JSX.Element {
  */
 export function LicenseScreen(): React.JSX.Element {
   const { t } = useTranslation('license');
+  const { colors } = useTheme();
 
   // Build API licenses from translations
   const apiLicenses: LicenseInfo[] = [
@@ -274,15 +279,15 @@ export function LicenseScreen(): React.JSX.Element {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header Info */}
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle}>{t('header')}</Text>
-          <Text style={styles.headerDescription}>
+        <View style={[styles.headerInfo, { backgroundColor: colors.backgroundSecondary, borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
+          <Text style={[styles.headerDescription, { color: colors.textSecondary }]}>
             {t('description')}
           </Text>
         </View>
@@ -306,7 +311,7 @@ export function LicenseScreen(): React.JSX.Element {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
+          <Text style={[styles.footerText, { color: colors.textTertiary }]}>
             {t('footer')}
           </Text>
         </View>

@@ -14,6 +14,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Input component props
@@ -47,6 +48,8 @@ export const Input = forwardRef<TextInput, InputProps>(
     },
     ref
   ) => {
+    const { colors } = useTheme();
+
     const [isFocused, setIsFocused] = useState(false);
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
@@ -69,13 +72,14 @@ export const Input = forwardRef<TextInput, InputProps>(
 
     return (
       <View style={[styles.container, containerStyle]}>
-        {label && <Text style={styles.label}>{label}</Text>}
+        {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
 
         <View
           style={[
             styles.inputContainer,
-            isFocused && styles.inputContainerFocused,
-            hasError && styles.inputContainerError,
+            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+            isFocused && [styles.inputContainerFocused, { borderColor: colors.inputFocus }],
+            hasError && [styles.inputContainerError, { borderColor: colors.inputError }],
           ]}
         >
           {leftIcon && <View style={styles.iconContainer}>{leftIcon}</View>}
@@ -84,11 +88,12 @@ export const Input = forwardRef<TextInput, InputProps>(
             ref={ref}
             style={[
               styles.input,
+              { color: colors.text },
               leftIcon ? styles.inputWithLeftIcon : undefined,
               rightIcon || showPasswordToggle ? styles.inputWithRightIcon : undefined,
               style,
             ]}
-            placeholderTextColor={Colors.placeholder}
+            placeholderTextColor={colors.placeholder}
             secureTextEntry={isSecure}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -101,7 +106,7 @@ export const Input = forwardRef<TextInput, InputProps>(
               style={styles.iconContainer}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.toggleText}>
+              <Text style={[styles.toggleText, { color: colors.primary }]}>
                 {isPasswordVisible ? '隠す' : '表示'}
               </Text>
             </Pressable>
@@ -112,8 +117,8 @@ export const Input = forwardRef<TextInput, InputProps>(
           )}
         </View>
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
-        {hint && !error && <Text style={styles.hintText}>{hint}</Text>}
+        {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
+        {hint && !error && <Text style={[styles.hintText, { color: colors.textSecondary }]}>{hint}</Text>}
       </View>
     );
   }

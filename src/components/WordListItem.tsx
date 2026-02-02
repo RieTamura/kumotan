@@ -8,10 +8,10 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,  Animated,
+  Pressable, Animated,
   LayoutAnimation,
   Platform,
-  UIManager,  Linking,
+  UIManager, Linking,
   Alert,
 } from 'react-native';
 import {
@@ -20,6 +20,7 @@ import {
   FontSizes,
   BorderRadius,
 } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Word } from '../types/word';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -61,6 +62,7 @@ export function WordListItem({
   onToggleRead,
   onDelete,
 }: WordListItemProps): React.JSX.Element {
+  const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   /**
@@ -86,7 +88,7 @@ export function WordListItem({
       try {
         // Convert AT Protocol URI to HTTPS URL if needed
         let urlToOpen = word.postUrl;
-        
+
         // Check if it's an AT Protocol URI (at://...)
         if (word.postUrl.startsWith('at://')) {
           // Parse: at://did:plc:xxxxx/app.bsky.feed.post/xxxxx
@@ -99,9 +101,9 @@ export function WordListItem({
             return;
           }
         }
-        
+
         console.log('Opening URL:', urlToOpen);
-        
+
         // Try to open the URL - suppress errors as they may be false positives
         await Linking.openURL(urlToOpen).catch((err) => {
           console.warn('Linking.openURL error (may be ignorable):', err);
@@ -119,7 +121,8 @@ export function WordListItem({
     <Pressable
       style={({ pressed }: { pressed: boolean }) => [
         styles.container,
-        pressed && styles.containerPressed,
+        { backgroundColor: colors.card, borderBottomColor: colors.border },
+        pressed && [styles.containerPressed, { backgroundColor: colors.backgroundSecondary }],
       ]}
       onPress={handlePress}
     >
@@ -132,11 +135,12 @@ export function WordListItem({
         <View
           style={[
             styles.checkbox,
-            word.isRead && styles.checkboxChecked,
+            { borderColor: colors.border },
+            word.isRead && [styles.checkboxChecked, { backgroundColor: colors.success, borderColor: colors.success }],
           ]}
         >
           {word.isRead && (
-            <Text style={styles.checkmark}>✓</Text>
+            <Text style={[styles.checkmark, { color: '#FFFFFF' }]}>✓</Text>
           )}
         </View>
       </Pressable>
@@ -147,13 +151,14 @@ export function WordListItem({
           <Text
             style={[
               styles.english,
-              word.isRead && styles.textRead,
+              { color: colors.text },
+              word.isRead && [styles.textRead, { color: colors.textTertiary }],
             ]}
             numberOfLines={1}
           >
             {word.english}
           </Text>
-          <Text style={styles.date}>
+          <Text style={[styles.date, { color: colors.textTertiary }]}>
             {formatDate(word.createdAt)}
           </Text>
         </View>
@@ -161,8 +166,9 @@ export function WordListItem({
         <Text
           style={[
             styles.japanese,
-            word.isRead && styles.textRead,
-            !word.japanese && styles.noTranslation,
+            { color: colors.textSecondary },
+            word.isRead && [styles.textRead, { color: colors.textTertiary }],
+            !word.japanese && [styles.noTranslation, { color: colors.textTertiary }],
           ]}
           numberOfLines={expanded ? undefined : 1}
         >
@@ -171,35 +177,35 @@ export function WordListItem({
 
         {/* Expanded details */}
         {expanded && (
-          <View style={styles.expandedContent}>
+          <View style={[styles.expandedContent, { borderTopColor: colors.divider }]}>
             {/* Definition or morphological analysis */}
             {word.definition && (
               <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>
+                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
                   {word.japanese && word.definition.includes('品詞:') ? '形態素解析結果' : '英語定義'}
                 </Text>
-                <Text style={styles.detailText}>{word.definition}</Text>
+                <Text style={[styles.detailText, { color: colors.text }]}>{word.definition}</Text>
               </View>
             )}
 
             {/* Post text */}
             {word.postText && (
               <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>投稿文章</Text>
-                <Text style={styles.detailText}>{word.postText}</Text>
+                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>投稿文章</Text>
+                <Text style={[styles.detailText, { color: colors.text }]}>{word.postText}</Text>
               </View>
             )}
 
             {/* Post URL */}
             {word.postUrl && (
               <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>投稿URL</Text>
-                <Pressable 
+                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>投稿URL</Text>
+                <Pressable
                   onPress={handleUrlPress}
                   onStartShouldSetResponder={() => true}
                   onResponderTerminationRequest={() => false}
                 >
-                  <Text style={styles.detailLink} numberOfLines={1}>
+                  <Text style={[styles.detailLink, { color: colors.primary }]} numberOfLines={1}>
                     {word.postUrl}
                   </Text>
                 </Pressable>
@@ -208,8 +214,8 @@ export function WordListItem({
 
             {/* Created date */}
             <View style={styles.detailSection}>
-              <Text style={styles.detailLabel}>登録日時</Text>
-              <Text style={styles.detailText}>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>登録日時</Text>
+              <Text style={[styles.detailText, { color: colors.text }]}>
                 {new Date(word.createdAt).toLocaleString('ja-JP')}
               </Text>
             </View>
@@ -218,7 +224,7 @@ export function WordListItem({
       </View>
 
       {/* Expand/Collapse indicator */}
-      <Text style={styles.arrow}>{expanded ? '⌄' : '›'}</Text>
+      <Text style={[styles.arrow, { color: colors.textTertiary }]}>{expanded ? '⌄' : '›'}</Text>
     </Pressable>
   );
 }
@@ -236,11 +242,12 @@ export function WordListHeader({
   title,
   count,
 }: WordListHeaderProps): React.JSX.Element {
+  const { colors } = useTheme();
   return (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>{title}</Text>
+    <View style={[styles.header, { backgroundColor: colors.backgroundSecondary }]}>
+      <Text style={[styles.headerTitle, { color: colors.textSecondary }]}>{title}</Text>
       {count !== undefined && (
-        <Text style={styles.headerCount}>{count}件</Text>
+        <Text style={[styles.headerCount, { color: colors.textTertiary }]}>{count}件</Text>
       )}
     </View>
   );
@@ -257,11 +264,12 @@ interface WordListEmptyProps {
 export function WordListEmpty({
   message = '単語がまだ登録されていません',
 }: WordListEmptyProps): React.JSX.Element {
+  const { colors } = useTheme();
   return (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyIcon}>📝</Text>
-      <Text style={styles.emptyMessage}>{message}</Text>
-      <Text style={styles.emptyHint}>
+      <Text style={[styles.emptyMessage, { color: colors.text }]}>{message}</Text>
+      <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
         ホームのタイムラインで単語を長押しして追加しましょう
       </Text>
     </View>

@@ -3,7 +3,7 @@
  * Following Bluesky's design language with custom accents
  */
 
-export const Colors = {
+export const LightColors = {
   // Primary colors
   primary: '#1DA1F2', // Bluesky blue
   primaryDark: '#0d8bd9',
@@ -72,6 +72,79 @@ export const Colors = {
   skeleton: '#E1E8ED',
   skeletonHighlight: '#F7F9FA',
 } as const;
+
+export const DarkColors = {
+  // Primary colors
+  primary: '#1DA1F2',
+  primaryDark: '#0d8bd9',
+  primaryLight: '#4db5f5',
+
+  // Background colors
+  background: '#15202B', // Dim dark mode
+  backgroundSecondary: '#1E2732',
+  backgroundTertiary: '#253341',
+
+  // Text colors
+  text: '#FFFFFF',
+  textSecondary: '#8899A6',
+  textTertiary: '#657786',
+  textInverse: '#14171A',
+
+  // Border colors
+  border: '#38444D',
+  borderLight: '#253341',
+
+  // Status colors
+  success: '#17BF63',
+  successLight: 'rgba(23, 191, 99, 0.15)',
+  warning: '#FFAD1F',
+  warningLight: 'rgba(255, 173, 31, 0.15)',
+  error: '#E0245E',
+  errorLight: 'rgba(224, 36, 94, 0.15)',
+
+  // Interactive states
+  hover: 'rgba(29, 161, 242, 0.1)',
+  pressed: 'rgba(29, 161, 242, 0.2)',
+  disabled: '#38444D',
+
+  // Card colors
+  card: '#192734',
+  cardShadow: 'rgba(0, 0, 0, 0.3)',
+
+  // Tab bar colors
+  tabActive: '#1DA1F2',
+  tabInactive: '#8899A6',
+
+  // Read/Unread status
+  read: '#17BF63',
+  unread: '#657786',
+
+  // Offline banner
+  offline: '#F59E0B',
+  offlineText: '#FFFFFF',
+
+  // Overlay
+  overlay: 'rgba(0, 0, 0, 0.7)',
+
+  // Input
+  inputBackground: '#1E2732',
+  inputBorder: '#38444D',
+  inputFocus: '#1DA1F2',
+  inputError: '#E0245E',
+
+  // Placeholder
+  placeholder: '#657786',
+
+  // Divider
+  divider: '#38444D',
+
+  // Skeleton loading
+  skeleton: '#253341',
+  skeletonHighlight: '#1E2732',
+} as const;
+
+export type ThemeColors = Record<keyof typeof LightColors, string>;
+export const Colors = LightColors;
 
 /**
  * Spacing constants

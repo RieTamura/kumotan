@@ -13,6 +13,7 @@ import {
 import { X, Send } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 import { Input } from './common/Input';
 import { Button } from './common/Button';
 import { API } from '../constants/config';
@@ -28,6 +29,7 @@ interface FeedbackModalProps {
 
 export function FeedbackModal({ visible, type = 'word_search', word: initialWord = '', onClose }: FeedbackModalProps) {
   const { t } = useTranslation('wordPopup');
+  const { colors } = useTheme();
   const [subject, setSubject] = useState(initialWord);
   const [description, setDescription] = useState('');
   const [comment, setComment] = useState('');
@@ -132,16 +134,16 @@ export function FeedbackModal({ visible, type = 'word_search', word: initialWord
         style={styles.overlay}
       >
         <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{config.title}</Text>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.header, { borderBottomColor: colors.divider }]}>
+            <Text style={[styles.title, { color: colors.text }]}>{config.title}</Text>
             <Pressable onPress={onClose} style={styles.closeButton}>
-              <X size={24} color={Colors.textSecondary} />
+              <X size={24} color={colors.textSecondary} />
             </Pressable>
           </View>
 
           <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-            <Text style={styles.descriptionText}>{config.description}</Text>
+            <Text style={[styles.descriptionText, { color: colors.textSecondary }]}>{config.description}</Text>
 
             <Input
               label={config.subjectLabel}

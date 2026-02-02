@@ -20,6 +20,7 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { formatRelativeTime } from '../services/bluesky/feed';
 import { splitIntoSentences } from '../utils/validators';
 import { tokenizeJapanese, isMeaningfulToken } from '../utils/japaneseTokenizer';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * PostCard props interface
@@ -365,6 +366,7 @@ function PostCardComponent({
   onLayoutElements
 }: PostCardProps): React.JSX.Element {
   const { t, i18n } = useTranslation(['home', 'common']);
+  const { colors, isDark } = useTheme();
   const bookIconRef = React.useRef<View>(null);
   const firstWordRef = React.useRef<Text>(null);
   const contentColumnRef = React.useRef<View>(null);
@@ -669,7 +671,7 @@ function PostCardComponent({
             return (
               <Text
                 key={token.index}
-                style={styles.urlText}
+                style={[styles.urlText, { color: colors.primary }]}
                 onPress={() => handleUrlPress(token.text)}
                 suppressHighlighting={false}
               >
@@ -683,7 +685,7 @@ function PostCardComponent({
             return (
               <Text
                 key={token.index}
-                style={styles.hashtagText}
+                style={[styles.hashtagText, { color: colors.primary }]}
                 onPress={() => handleHashtagPress(token.hashtagValue!)}
                 suppressHighlighting={false}
               >
@@ -697,7 +699,7 @@ function PostCardComponent({
             return (
               <Text
                 key={token.index}
-                style={styles.mentionText}
+                style={[styles.mentionText, { color: colors.primary }]}
                 onPress={() => handleMentionPress(token.mentionHandle!)}
                 suppressHighlighting={false}
               >
@@ -717,13 +719,13 @@ function PostCardComponent({
             return (
               <Text
                 key={token.index}
-                style={
+                style={[
                   isWordSelected
-                    ? styles.highlightedWord
+                    ? [styles.highlightedWord, { backgroundColor: colors.primary, color: '#FFF' }]
                     : isSentenceSelected
-                      ? styles.highlightedSentence
-                      : styles.selectableWord
-                }
+                      ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
+                      : [styles.selectableWord, { color: colors.text }]
+                ]}
                 ref={isFirstMeaningfulWord ? firstWordRef : undefined}
                 onLongPress={() => handleWordLongPress(token.text)}
                 onPress={() => handleWordPress(token.text)}
@@ -741,13 +743,13 @@ function PostCardComponent({
             return (
               <Text
                 key={token.index}
-                style={
+                style={[
                   isWordSelected
-                    ? styles.highlightedWord
+                    ? [styles.highlightedWord, { backgroundColor: colors.primary, color: '#FFF' }]
                     : isSentenceSelected
-                      ? styles.highlightedSentence
-                      : styles.selectableJapanese
-                }
+                      ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
+                      : [styles.selectableJapanese, { color: colors.text }]
+                ]}
                 onPress={() => handleWordPress(token.text)}
                 onLongPress={() => handleWordLongPress(token.text)}
                 suppressHighlighting={false}
@@ -757,7 +759,7 @@ function PostCardComponent({
             );
           }
 
-          return <Text key={token.index}>{token.text}</Text>;
+          return <Text key={token.index} style={{ color: colors.text }}>{token.text}</Text>;
         })}
       </Text>
     );
@@ -808,7 +810,7 @@ function PostCardComponent({
             resizeMode="cover"
           />
           {image.alt ? (
-            <View style={styles.altBadge}>
+            <View style={[styles.altBadge, { backgroundColor: colors.overlay }]}>
               <Text style={styles.altBadgeText}>ALT</Text>
             </View>
           ) : null}
@@ -835,7 +837,7 @@ function PostCardComponent({
                 resizeMode="cover"
               />
               {image.alt ? (
-                <View style={styles.altBadge}>
+                <View style={[styles.altBadge, { backgroundColor: colors.overlay }]}>
                   <Text style={styles.altBadgeText}>ALT</Text>
                 </View>
               ) : null}
@@ -866,7 +868,7 @@ function PostCardComponent({
               resizeMode="cover"
             />
             {image.alt ? (
-              <View style={styles.altBadge}>
+              <View style={[styles.altBadge, { backgroundColor: colors.overlay }]}>
                 <Text style={styles.altBadgeText}>ALT</Text>
               </View>
             ) : null}
@@ -885,7 +887,7 @@ function PostCardComponent({
 
     return (
       <Pressable
-        style={styles.externalEmbedContainer}
+        style={[styles.externalEmbedContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.backgroundSecondary : '#FFF' }]}
         onPress={() => handleUrlPress(external.uri)}
         accessible={true}
         accessibilityLabel={`リンク: ${external.title || external.uri}`}
@@ -900,18 +902,18 @@ function PostCardComponent({
         )}
         <View style={styles.externalEmbedContent}>
           <View style={styles.externalEmbedHeader}>
-            <ExternalLink size={14} color={Colors.textTertiary} />
-            <Text style={styles.externalEmbedDomain} numberOfLines={1}>
+            <ExternalLink size={14} color={colors.textTertiary} />
+            <Text style={[styles.externalEmbedDomain, { color: colors.textSecondary }]} numberOfLines={1}>
               {new URL(external.uri).hostname.replace(/^www\./, '')}
             </Text>
           </View>
           {external.title ? (
-            <Text style={styles.externalEmbedTitle} numberOfLines={2}>
+            <Text style={[styles.externalEmbedTitle, { color: colors.text }]} numberOfLines={2}>
               {external.title}
             </Text>
           ) : null}
           {external.description ? (
-            <Text style={styles.externalEmbedDescription} numberOfLines={2}>
+            <Text style={[styles.externalEmbedDescription, { color: colors.textSecondary }]} numberOfLines={2}>
               {external.description}
             </Text>
           ) : null}
@@ -922,7 +924,7 @@ function PostCardComponent({
 
   return (
     <Pressable
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
       onPress={handlePress}
       accessible={true}
       accessibilityLabel={`${post.author.displayName}の投稿: ${post.text.substring(0, 100)}`}
@@ -942,14 +944,14 @@ function PostCardComponent({
           {/* Author row */}
           <View style={styles.authorRow}>
             <View style={styles.authorInfo}>
-              <Text style={styles.displayName} numberOfLines={1}>
+              <Text style={[styles.displayName, { color: colors.text }]} numberOfLines={1}>
                 {post.author.displayName}
               </Text>
-              <Text style={styles.handle} numberOfLines={1}>
+              <Text style={[styles.handle, { color: colors.textSecondary }]} numberOfLines={1}>
                 @{post.author.handle}
               </Text>
             </View>
-            <Text style={styles.timestamp}>
+            <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
               {formatRelativeTime(post.createdAt, t, i18n.language)}
             </Text>
           </View>
@@ -968,12 +970,12 @@ function PostCardComponent({
           {/* Engagement metrics */}
           <View style={styles.metricsRow}>
             <View style={styles.metric}>
-              <MessageCircle size={16} color={Colors.textSecondary} />
-              <Text style={styles.metricText}>{post.replyCount ?? 0}</Text>
+              <MessageCircle size={16} color={colors.textSecondary} />
+              <Text style={[styles.metricText, { color: colors.textSecondary }]}>{post.replyCount ?? 0}</Text>
             </View>
             <View style={styles.metric}>
-              <Repeat2 size={16} color={Colors.textSecondary} />
-              <Text style={styles.metricText}>{post.repostCount ?? 0}</Text>
+              <Repeat2 size={16} color={colors.textSecondary} />
+              <Text style={[styles.metricText, { color: colors.textSecondary }]}>{post.repostCount ?? 0}</Text>
             </View>
             <Pressable
               style={styles.likeButton}
@@ -986,10 +988,10 @@ function PostCardComponent({
             >
               <Heart
                 size={16}
-                color={isLiked ? Colors.error : Colors.textSecondary}
-                fill={isLiked ? Colors.error : 'none'}
+                color={isLiked ? colors.error : colors.textSecondary}
+                fill={isLiked ? colors.error : 'none'}
               />
-              <Text style={[styles.metricText, isLiked && styles.likedText]}>
+              <Text style={[styles.metricText, { color: colors.textSecondary }, isLiked && { color: colors.error }]}>
                 {likeCount}
               </Text>
             </Pressable>

@@ -23,8 +23,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { getCurrentLanguage } from '../locales';
+import { useTheme } from '../hooks/useTheme';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
 import { getStats, getCalendarData } from '../services/database/stats';
@@ -44,13 +44,14 @@ interface StatsCardProps {
 }
 
 function StatsCard({ title, value, Icon }: StatsCardProps): React.JSX.Element {
+  const { colors } = useTheme();
   return (
-    <View style={styles.statsCard}>
+    <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
       <View style={styles.statsIconContainer}>
-        <Icon size={24} color={Colors.primary} />
+        <Icon size={24} color={colors.primary} />
       </View>
-      <Text style={styles.statsValue}>{value}</Text>
-      <Text style={styles.statsTitle}>{title}</Text>
+      <Text style={[styles.statsValue, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.statsTitle, { color: colors.textSecondary }]}>{title}</Text>
     </View>
   );
 }
@@ -65,6 +66,7 @@ interface CalendarDayProps {
 }
 
 function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX.Element {
+  const { colors } = useTheme();
   if (day === null) {
     return <View style={styles.calendarDayEmpty} />;
   }
@@ -74,15 +76,16 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
       <View
         style={[
           styles.calendarDayInner,
-          isToday && styles.calendarDayInnerToday,
-          hasActivity && !isToday && styles.calendarDayInnerActivity,
+          isToday && [styles.calendarDayInnerToday, { backgroundColor: colors.primary }],
+          hasActivity && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.success }],
         ]}
       >
         <Text
           style={[
             styles.calendarDayText,
-            isToday && styles.calendarDayTextToday,
-            hasActivity && !isToday && styles.calendarDayTextActivity,
+            { color: colors.text },
+            isToday && [styles.calendarDayTextToday, { color: '#FFFFFF' }],
+            hasActivity && !isToday && [styles.calendarDayTextActivity, { color: '#FFFFFF' }],
           ]}
         >
           {day}
@@ -105,6 +108,7 @@ export function ProgressScreen(): React.JSX.Element {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [stats, setStats] = useState<Stats | null>(null);
   const [activityDays, setActivityDays] = useState<number[]>([]);
+  const { colors, isDark } = useTheme();
 
   /**
    * Load all data (stats and calendar)
@@ -129,7 +133,7 @@ export function ProgressScreen(): React.JSX.Element {
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth() + 1;
       const calendarResult = await getCalendarData(year, month);
-      
+
       if (calendarResult.success) {
         const activeDays = calendarResult.data.days
           .filter(day => day.wordsReadCount > 0)
@@ -399,9 +403,9 @@ export function ProgressScreen(): React.JSX.Element {
 
   if (isLoading || !stats) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('header')}</Text>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
         </View>
         <Loading fullScreen message={t('loading')} />
       </SafeAreaView>
@@ -409,10 +413,10 @@ export function ProgressScreen(): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('header')}</Text>
+      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
         <TouchableOpacity
           onPress={handleShare}
           disabled={!isConnected}
@@ -424,7 +428,7 @@ export function ProgressScreen(): React.JSX.Element {
         >
           <ShareIcon
             size={24}
-            color={isConnected ? Colors.primary : Colors.textSecondary}
+            color={isConnected ? colors.primary : colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -437,16 +441,16 @@ export function ProgressScreen(): React.JSX.Element {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={onRefresh}
-            colors={[Colors.primary]}
-            tintColor={Colors.primary}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
         {/* Today's Progress */}
         <View style={styles.section}>
-          <View style={styles.todayProgress}>
-            <Text style={styles.todayProgressTitle}>{t('today.title')}</Text>
-            <Text style={styles.todayProgressValue}>
+          <View style={[styles.todayProgress, { backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.todayProgressTitle, { color: colors.textSecondary }]}>{t('today.title')}</Text>
+            <Text style={[styles.todayProgressValue, { color: colors.text }]}>
               {t('today.wordsLearned', { count: stats.todayCount })}
             </Text>
           </View>
@@ -454,25 +458,25 @@ export function ProgressScreen(): React.JSX.Element {
 
         {/* Calendar Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('calendar.title')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('calendar.title')}</Text>
 
           {/* Month Navigation */}
           <View style={styles.monthNav}>
             <Pressable onPress={goToPrevMonth} style={styles.monthNavButton}>
-              <Text style={styles.monthNavButtonText}>◀</Text>
+              <Text style={[styles.monthNavButtonText, { color: colors.primary }]}>◀</Text>
             </Pressable>
-            <Text style={styles.monthNavTitle}>{formatMonthYear()}</Text>
+            <Text style={[styles.monthNavTitle, { color: colors.text }]}>{formatMonthYear()}</Text>
             <Pressable onPress={goToNextMonth} style={styles.monthNavButton}>
-              <Text style={styles.monthNavButtonText}>▶</Text>
+              <Text style={[styles.monthNavButtonText, { color: colors.primary }]}>▶</Text>
             </Pressable>
           </View>
 
           {/* Calendar Grid */}
-          <View style={styles.calendarContainer}>
+          <View style={[styles.calendarContainer, { backgroundColor: colors.card }]}>
             {/* Weekday headers */}
             <View style={styles.calendarWeekdays}>
               {(t('calendar.weekdays', { returnObjects: true }) as string[]).map((day, index) => (
-                <Text key={index} style={styles.calendarWeekday}>
+                <Text key={index} style={[styles.calendarWeekday, { color: colors.textSecondary }]}>
                   {day}
                 </Text>
               ))}
@@ -487,15 +491,15 @@ export function ProgressScreen(): React.JSX.Element {
           {/* Legend */}
           <View style={styles.legend}>
             <View style={styles.legendItem}>
-              <View style={styles.legendDot} />
-              <Text style={styles.legendText}>{t('calendar.legend')}</Text>
+              <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+              <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('calendar.legend')}</Text>
             </View>
           </View>
         </View>
 
         {/* Stats Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('statistics.title')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('statistics.title')}</Text>
           <View style={styles.statsGrid}>
             <StatsCard
               title={t('statistics.totalWords')}
@@ -536,13 +540,13 @@ export function ProgressScreen(): React.JSX.Element {
         animationType="fade"
         onRequestClose={() => setIsShareModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('share.title')}</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('share.title')}</Text>
 
             {/* Share Text Area */}
             <TouchableOpacity
-              style={styles.shareTextContainer}
+              style={[styles.shareTextContainer, { backgroundColor: colors.backgroundSecondary }]}
               onPress={async () => {
                 const text = t('share.text', { count: stats.todayCount });
                 await Clipboard.setStringAsync(text);
@@ -550,24 +554,24 @@ export function ProgressScreen(): React.JSX.Element {
               }}
               activeOpacity={0.7}
             >
-              <Text style={styles.shareText}>
+              <Text style={[styles.shareText, { color: colors.text }]}>
                 {t('share.text', { count: stats.todayCount })}
               </Text>
-              <Text style={styles.shareTextHint}>{t('share.tapToCopy')}</Text>
+              <Text style={[styles.shareTextHint, { color: colors.textTertiary }]}>{t('share.tapToCopy')}</Text>
             </TouchableOpacity>
-            
+
             {/* Share Card Preview */}
             <View style={styles.shareCardPreviewWrapper}>
               <ViewShot
                 ref={shareCardRef}
                 options={{ format: 'jpg', quality: 0.9 }}
-                style={styles.shareCard}
+                style={[styles.shareCard, { backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderColor: colors.border }]}
               >
                 {/* App Logo/Title */}
-                <Text style={styles.shareCardAppName}>{t('shareCard.appName')}</Text>
+                <Text style={[styles.shareCardAppName, { color: colors.primary }]}>{t('shareCard.appName')}</Text>
 
                 {/* Date */}
-                <Text style={styles.shareCardDate}>
+                <Text style={[styles.shareCardDate, { color: isDark ? '#AAAAAA' : '#666666' }]}>
                   {new Date().toLocaleDateString(getCurrentLanguage() === 'ja' ? 'ja-JP' : 'en-US', {
                     year: 'numeric',
                     month: 'long',
@@ -577,35 +581,35 @@ export function ProgressScreen(): React.JSX.Element {
 
                 {/* Main Progress */}
                 <View style={styles.shareCardProgress}>
-                  <Text style={styles.shareCardProgressValue}>
+                  <Text style={[styles.shareCardProgressValue, { color: isDark ? '#FFFFFF' : '#000000' }]}>
                     {stats.todayCount}
                   </Text>
-                  <Text style={styles.shareCardProgressLabel}>
+                  <Text style={[styles.shareCardProgressLabel, { color: isDark ? '#BBBBBB' : '#333333' }]}>
                     {t('shareCard.wordsLearned')}
                   </Text>
                 </View>
 
                 {/* Stats Row */}
-                <View style={styles.shareCardStatsRow}>
+                <View style={[styles.shareCardStatsRow, { borderTopColor: isDark ? '#333333' : '#EEEEEE' }]}>
                   <View style={styles.shareCardStatItem}>
-                    <Text style={styles.shareCardStatValue}>
+                    <Text style={[styles.shareCardStatValue, { color: isDark ? '#FFFFFF' : '#000000' }]}>
                       {t('statistics.days', { count: stats.streak })}
                     </Text>
-                    <Text style={styles.shareCardStatLabel}>{t('shareCard.consecutiveDays')}</Text>
+                    <Text style={[styles.shareCardStatLabel, { color: isDark ? '#AAAAAA' : '#666666' }]}>{t('shareCard.consecutiveDays')}</Text>
                   </View>
-                  <View style={styles.shareCardStatDivider} />
+                  <View style={[styles.shareCardStatDivider, { backgroundColor: isDark ? '#333333' : '#EEEEEE' }]} />
                   <View style={styles.shareCardStatItem}>
-                    <Text style={styles.shareCardStatValue}>
+                    <Text style={[styles.shareCardStatValue, { color: isDark ? '#FFFFFF' : '#000000' }]}>
                       {stats.totalWords}
                     </Text>
-                    <Text style={styles.shareCardStatLabel}>{t('shareCard.totalWords')}</Text>
+                    <Text style={[styles.shareCardStatLabel, { color: isDark ? '#AAAAAA' : '#666666' }]}>{t('shareCard.totalWords')}</Text>
                   </View>
-                  <View style={styles.shareCardStatDivider} />
+                  <View style={[styles.shareCardStatDivider, { backgroundColor: isDark ? '#333333' : '#EEEEEE' }]} />
                   <View style={styles.shareCardStatItem}>
-                    <Text style={styles.shareCardStatValue}>
+                    <Text style={[styles.shareCardStatValue, { color: isDark ? '#FFFFFF' : '#000000' }]}>
                       {stats.readPercentage}%
                     </Text>
-                    <Text style={styles.shareCardStatLabel}>{t('shareCard.readRate')}</Text>
+                    <Text style={[styles.shareCardStatLabel, { color: isDark ? '#AAAAAA' : '#666666' }]}>{t('shareCard.readRate')}</Text>
                   </View>
                 </View>
               </ViewShot>
@@ -614,20 +618,21 @@ export function ProgressScreen(): React.JSX.Element {
             {/* Action Buttons */}
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles.modalButtonCancel}
+                style={[styles.modalButtonCancel, { backgroundColor: colors.backgroundTertiary }]}
                 onPress={() => setIsShareModalVisible(false)}
                 disabled={isCapturing}
                 accessible={true}
                 accessibilityLabel={t('share.cancel')}
                 accessibilityRole="button"
               >
-                <Text style={styles.modalButtonCancelText}>{t('share.cancel')}</Text>
+                <Text style={[styles.modalButtonCancelText, { color: colors.textSecondary }]}>{t('share.cancel')}</Text>
               </TouchableOpacity>
 
               {/* Unified Share Button */}
               <TouchableOpacity
                 style={[
                   styles.modalButtonShare,
+                  { backgroundColor: colors.primary },
                   (isCapturing || (isAuthenticated && !isConnected)) && styles.modalButtonDisabled,
                 ]}
                 onPress={isAuthenticated ? handleShareToBluesky : captureAndShare}
@@ -638,8 +643,8 @@ export function ProgressScreen(): React.JSX.Element {
                 accessibilityRole="button"
                 accessibilityState={{ disabled: isCapturing || (isAuthenticated && !isConnected), busy: isCapturing }}
               >
-                <ShareIcon size={18} color={Colors.textInverse} />
-                <Text style={styles.modalButtonShareText}>
+                <ShareIcon size={18} color="#FFFFFF" />
+                <Text style={[styles.modalButtonShareText, { color: '#FFFFFF' }]}>
                   {isCapturing ? t('share.creating') : t('share.button')}
                 </Text>
               </TouchableOpacity>
@@ -654,104 +659,90 @@ export function ProgressScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: 16, // Spacing.lg
+    paddingVertical: 12, // Spacing.md
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: 18, // FontSizes.xl
     fontWeight: '700',
-    color: Colors.text,
   },
   shareButton: {
-    padding: Spacing.sm,
+    padding: 8, // Spacing.sm
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.lg,
+    padding: 16, // Spacing.lg
   },
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: 24, // Spacing.xl
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: 16, // FontSizes.lg
     fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.md,
+    marginBottom: 12, // Spacing.md
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: 12, // Spacing.md
   },
   statsCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    borderRadius: 12, // BorderRadius.lg
+    padding: 16, // Spacing.lg
     alignItems: 'center',
-    ...Shadows.sm,
   },
   statsIconContainer: {
-    marginBottom: Spacing.sm,
+    marginBottom: 8, // Spacing.sm
   },
   statsValue: {
-    fontSize: FontSizes.xxl,
+    fontSize: 24, // FontSizes.xxl
     fontWeight: '700',
-    color: Colors.text,
   },
   statsTitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
+    fontSize: 12, // FontSizes.sm
+    marginTop: 4, // Spacing.xs
   },
   streakContainer: {
-    marginTop: Spacing.md,
+    marginTop: 12, // Spacing.md
   },
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: 12, // Spacing.md
   },
   monthNavButton: {
-    padding: Spacing.sm,
+    padding: 8, // Spacing.sm
   },
   monthNavButtonText: {
-    fontSize: FontSizes.lg,
-    color: Colors.primary,
+    fontSize: 16, // FontSizes.lg
   },
   monthNavTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: 16, // FontSizes.lg
     fontWeight: '600',
-    color: Colors.text,
   },
   calendarContainer: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    ...Shadows.sm,
+    borderRadius: 12, // BorderRadius.lg
+    padding: 12, // Spacing.md
   },
   calendarWeekdays: {
     flexDirection: 'row',
-    marginBottom: Spacing.sm,
+    marginBottom: 8, // Spacing.sm
   },
   calendarWeekday: {
     flex: 1,
     textAlign: 'center',
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
+    fontSize: 12, // FontSizes.sm
     fontWeight: '600',
   },
   calendarGrid: {
@@ -777,47 +768,41 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   calendarDayInnerToday: {
-    backgroundColor: Colors.primary,
+    // Background color set dynamically
   },
   calendarDayText: {
-    fontSize: FontSizes.md,
-    color: Colors.text,
+    fontSize: 14, // FontSizes.md
   },
   calendarDayTextToday: {
     fontWeight: '700',
-    color: Colors.card,
   },
   calendarDayInnerActivity: {
-    backgroundColor: Colors.success,
+    // Background color set dynamically
   },
   calendarDayTextActivity: {
     fontWeight: '600',
-    color: Colors.card,
   },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: Spacing.md,
+    marginTop: 12, // Spacing.md
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 4, // Spacing.xs
   },
   legendDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.success,
   },
   legendText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
+    fontSize: 12, // FontSizes.sm
   },
   todayProgress: {
-    backgroundColor: Colors.primaryLight,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
+    borderRadius: 12, // BorderRadius.lg
+    padding: 24, // Spacing.xl
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -826,110 +811,93 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 4, // Android用
+    elevation: 4,
   },
   todayProgressTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: 16, // FontSizes.lg
     fontWeight: '600',
-    color: Colors.textInverse,
-    marginBottom: Spacing.sm,
+    marginBottom: 8, // Spacing.sm
   },
   todayProgressValue: {
-    fontSize: FontSizes.xxl,
+    fontSize: 24, // FontSizes.xxl
     fontWeight: '700',
-    color: Colors.textInverse,
   },
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: 16, // Spacing.lg
   },
   modalContent: {
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
+    borderRadius: 16, // BorderRadius.xl
+    padding: 16, // Spacing.lg
     width: '100%',
     maxWidth: 360,
   },
   modalTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: 18, // FontSizes.xl
     fontWeight: '700',
-    color: Colors.text,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: 12, // Spacing.md
   },
   // Share Text styles
   shareTextContainer: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    borderRadius: 8, // BorderRadius.md
+    padding: 12, // Spacing.md
+    marginBottom: 12, // Spacing.md
     borderWidth: 1,
-    borderColor: Colors.border,
     borderStyle: 'dashed',
   },
   shareText: {
-    fontSize: FontSizes.sm,
-    color: Colors.text,
+    fontSize: 12, // FontSizes.sm
     lineHeight: 20,
   },
   shareTextHint: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
+    fontSize: 10, // FontSizes.xs
     textAlign: 'right',
-    marginTop: Spacing.xs,
+    marginTop: 4, // Spacing.xs
   },
   // Share Card styles
   shareCardPreviewWrapper: {
-    marginBottom: Spacing.lg,
-    borderRadius: BorderRadius.lg,
+    marginBottom: 16, // Spacing.lg
+    borderRadius: 12, // BorderRadius.lg
     overflow: 'hidden',
   },
   shareCard: {
-    backgroundColor: Colors.primary,
-    padding: Spacing.xl,
+    padding: 24, // Spacing.xl
     alignItems: 'center',
-    // No borderRadius here - ViewShot captures this as a rectangle
-    // The preview shows rounded corners via shareCardPreviewWrapper's overflow:hidden
   },
   shareCardAppName: {
-    fontSize: FontSizes.lg,
+    fontSize: 16, // FontSizes.lg
     fontWeight: '700',
-    color: Colors.textInverse,
-    marginBottom: Spacing.sm,
+    marginBottom: 8, // Spacing.sm
   },
   shareCardDate: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: Spacing.lg,
+    fontSize: 12, // FontSizes.sm
+    marginBottom: 16, // Spacing.lg
   },
   shareCardProgress: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: 24, // Spacing.xl
   },
   shareCardProgressValue: {
     fontSize: 64,
     fontWeight: '700',
-    color: Colors.textInverse,
     lineHeight: 72,
   },
   shareCardProgressLabel: {
-    fontSize: FontSizes.lg,
+    fontSize: 16, // FontSizes.lg
     fontWeight: '600',
-    color: Colors.textInverse,
   },
   shareCardStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    marginBottom: 16, // Spacing.lg
+    borderRadius: 8, // BorderRadius.md
+    paddingVertical: 12, // Spacing.md
+    paddingHorizontal: 16, // Spacing.lg
     width: '100%',
   },
   shareCardStatItem: {
@@ -939,55 +907,46 @@ const styles = StyleSheet.create({
   shareCardStatDivider: {
     width: 1,
     height: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   shareCardStatValue: {
-    fontSize: FontSizes.lg,
+    fontSize: 16, // FontSizes.lg
     fontWeight: '700',
-    color: Colors.textInverse,
   },
   shareCardStatLabel: {
-    fontSize: FontSizes.xs,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 10, // FontSizes.xs
     marginTop: 2,
   },
   // Modal buttons
   modalButtons: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: 12, // Spacing.md
   },
   modalButtonCancel: {
     flex: 1,
-    paddingVertical: Spacing.md,
+    paddingVertical: 12, // Spacing.md
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: 8, // BorderRadius.md
   },
   modalButtonCancelText: {
-    fontSize: FontSizes.md,
+    fontSize: 14, // FontSizes.md
     fontWeight: '600',
-    color: Colors.textSecondary,
   },
   modalButtonShare: {
     flex: 1,
     flexDirection: 'row',
-    paddingVertical: Spacing.md,
+    paddingVertical: 12, // Spacing.md
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primary,
-    gap: Spacing.sm,
+    borderRadius: 8, // BorderRadius.md
+    gap: 8, // Spacing.sm
   },
   modalButtonDisabled: {
     opacity: 0.6,
   },
   modalButtonShareText: {
-    fontSize: FontSizes.md,
+    fontSize: 14, // FontSizes.md
     fontWeight: '600',
-    color: Colors.textInverse,
   },
 });
 

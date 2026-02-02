@@ -23,6 +23,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
 import { StaticOfflineBanner } from '../components/OfflineBanner';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * LoginScreen Component
@@ -30,6 +31,7 @@ import { StaticOfflineBanner } from '../components/OfflineBanner';
 export function LoginScreen(): React.JSX.Element {
   const { t } = useTranslation('login');
   const { t: tc } = useTranslation('common');
+  const { colors, isDark } = useTheme();
 
   // Auth store
   const { loginWithOAuth, isLoading, error, clearError } = useAuthStore();
@@ -84,7 +86,7 @@ export function LoginScreen(): React.JSX.Element {
   }, [identifier, isConnected, validateIdentifier, loginWithOAuth, t, tc]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <StaticOfflineBanner visible={!isConnected} />
 
       <KeyboardAvoidingView
@@ -98,13 +100,13 @@ export function LoginScreen(): React.JSX.Element {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.appName}>{APP_INFO.NAME}</Text>
-            <Text style={styles.tagline}>{APP_INFO.DESCRIPTION}</Text>
+            <Text style={[styles.appName, { color: colors.primary }]}>{APP_INFO.NAME}</Text>
+            <Text style={[styles.tagline, { color: colors.textSecondary }]}>{APP_INFO.DESCRIPTION}</Text>
           </View>
 
           {/* Description */}
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.description}>
+          <View style={[styles.descriptionContainer, { backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.description, { color: colors.text }]}>
               {t('description')}
             </Text>
           </View>
@@ -113,8 +115,8 @@ export function LoginScreen(): React.JSX.Element {
           <View style={styles.formContainer}>
             {/* Auth Error Display */}
             {error && (
-              <View style={styles.errorBanner}>
-                <Text style={styles.errorBannerText}>
+              <View style={[styles.errorBanner, { backgroundColor: colors.errorLight, borderLeftColor: colors.error }]}>
+                <Text style={[styles.errorBannerText, { color: colors.error }]}>
                   {error.getUserMessage()}
                 </Text>
               </View>
@@ -151,8 +153,8 @@ export function LoginScreen(): React.JSX.Element {
             </View>
 
             {/* Security Note */}
-            <View style={styles.securityNote}>
-              <Text style={styles.securityNoteText}>
+            <View style={[styles.securityNote, { backgroundColor: colors.backgroundSecondary }]}>
+              <Text style={[styles.securityNoteText, { color: colors.textSecondary }]}>
                 {t('security.note')}
               </Text>
             </View>
@@ -160,7 +162,7 @@ export function LoginScreen(): React.JSX.Element {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>
+            <Text style={[styles.footerText, { color: colors.textTertiary }]}>
               {t('version', { version: APP_INFO.VERSION })}
             </Text>
           </View>

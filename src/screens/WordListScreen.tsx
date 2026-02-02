@@ -24,6 +24,7 @@ import { Toast } from '../components/common/Toast';
 import { useToast } from '../hooks/useToast';
 import { WordListItem } from '../components/WordListItem';
 import { useWordStore } from '../store/wordStore';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * Filter options type
@@ -41,6 +42,7 @@ type SortOption = 'created_at' | 'english';
 export function WordListScreen(): React.JSX.Element {
   const { t } = useTranslation('wordList');
   const { t: tc } = useTranslation('common');
+  const { colors, isDark } = useTheme();
 
   // Use word store
   const {
@@ -181,7 +183,7 @@ export function WordListScreen(): React.JSX.Element {
    */
   const renderWordItem = useCallback(
     ({ item }: { item: Word }) => (
-      <View style={styles.wordCard}>
+      <View style={[styles.wordCard, { backgroundColor: colors.card }]}>
         <View style={styles.wordCardWrapper}>
           <WordListItem
             word={item}
@@ -197,7 +199,7 @@ export function WordListScreen(): React.JSX.Element {
           accessibilityHint="単語帳から単語を削除します"
           accessibilityRole="button"
         >
-          <Trash2 size={20} color={Colors.error} />
+          <Trash2 size={20} color={colors.error} />
         </Pressable>
       </View>
     ),
@@ -213,10 +215,10 @@ export function WordListScreen(): React.JSX.Element {
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyIconContainer}>
-          <BookOpen size={64} color={Colors.textSecondary} />
+          <BookOpen size={64} color={colors.textSecondary} />
         </View>
-        <Text style={styles.emptyTitle}>{t('empty')}</Text>
-        <Text style={styles.emptyMessage}>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('empty')}</Text>
+        <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>
           {t('emptyMessage')}
         </Text>
       </View>
@@ -235,9 +237,9 @@ export function WordListScreen(): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('header')}</Text>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
         </View>
         <Loading fullScreen message={tc('status.loading')} />
       </SafeAreaView>
@@ -245,10 +247,10 @@ export function WordListScreen(): React.JSX.Element {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('header')}</Text>
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
         <Pressable
           onPress={handleSortChange}
           style={styles.sortButton}
@@ -257,21 +259,21 @@ export function WordListScreen(): React.JSX.Element {
           accessibilityHint={getSortLabel()}
           accessibilityRole="button"
         >
-          <Text style={styles.sortIcon}>⇅</Text>
+          <Text style={[styles.sortIcon, { color: colors.primary }]}>⇅</Text>
         </Pressable>
       </View>
 
       {/* Sort indicator */}
-      <View style={styles.sortIndicator}>
-        <Text style={styles.sortLabel}>{getSortLabel()}</Text>
+      <View style={[styles.sortIndicator, { backgroundColor: colors.backgroundSecondary }]}>
+        <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>{getSortLabel()}</Text>
       </View>
 
       {/* Filter tabs */}
-      <View style={styles.filterContainer}>
+      <View style={[styles.filterContainer, { backgroundColor: colors.backgroundSecondary, borderBottomColor: colors.border }]}>
         <Pressable
           style={[
             styles.filterTab,
-            filter === 'all' && styles.filterTabActive,
+            filter === 'all' && [styles.filterTabActive, { backgroundColor: colors.primary }],
           ]}
           onPress={() => handleFilterChange('all')}
           accessible={true}
@@ -282,7 +284,8 @@ export function WordListScreen(): React.JSX.Element {
           <Text
             style={[
               styles.filterTabText,
-              filter === 'all' && styles.filterTabTextActive,
+              { color: colors.textSecondary },
+              filter === 'all' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
             ]}
           >
             {t('filters.all')}
@@ -291,7 +294,7 @@ export function WordListScreen(): React.JSX.Element {
         <Pressable
           style={[
             styles.filterTab,
-            filter === 'unread' && styles.filterTabActive,
+            filter === 'unread' && [styles.filterTabActive, { backgroundColor: colors.primary }],
           ]}
           onPress={() => handleFilterChange('unread')}
           accessible={true}
@@ -302,7 +305,8 @@ export function WordListScreen(): React.JSX.Element {
           <Text
             style={[
               styles.filterTabText,
-              filter === 'unread' && styles.filterTabTextActive,
+              { color: colors.textSecondary },
+              filter === 'unread' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
             ]}
           >
             {t('filters.unread')}
@@ -311,7 +315,7 @@ export function WordListScreen(): React.JSX.Element {
         <Pressable
           style={[
             styles.filterTab,
-            filter === 'read' && styles.filterTabActive,
+            filter === 'read' && [styles.filterTabActive, { backgroundColor: colors.primary }],
           ]}
           onPress={() => handleFilterChange('read')}
           accessible={true}
@@ -322,7 +326,8 @@ export function WordListScreen(): React.JSX.Element {
           <Text
             style={[
               styles.filterTabText,
-              filter === 'read' && styles.filterTabTextActive,
+              { color: colors.textSecondary },
+              filter === 'read' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
             ]}
           >
             {t('filters.read')}
@@ -432,7 +437,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.backgroundSecondary,
+    backgroundColor: 'transparent',
   },
   emptyContainer: {
     flex: 1,

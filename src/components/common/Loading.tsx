@@ -12,6 +12,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Colors, FontSizes, Spacing } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Loading component props
@@ -52,17 +53,19 @@ interface LoadingProps {
  */
 export function Loading({
   size = 'large',
-  color = Colors.primary,
+  color,
   message,
   fullScreen = false,
   style,
 }: LoadingProps): React.ReactElement {
+  const { colors } = useTheme();
+  const indicatorColor = color || colors.primary;
   const containerStyle = fullScreen ? styles.fullScreen : styles.container;
 
   return (
-    <View style={[containerStyle, style]}>
-      <ActivityIndicator size={size} color={color} />
-      {message && <Text style={styles.message}>{message}</Text>}
+    <View style={[containerStyle, { backgroundColor: fullScreen ? colors.background : 'transparent' }, style]}>
+      <ActivityIndicator size={size} color={indicatorColor} />
+      {message && <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>}
     </View>
   );
 }
@@ -75,11 +78,12 @@ export function LoadingOverlay({
 }: {
   message?: string;
 }): React.ReactElement {
+  const { colors } = useTheme();
   return (
     <View style={styles.overlay}>
-      <View style={styles.overlayContent}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.overlayMessage}>{message}</Text>
+      <View style={[styles.overlayContent, { backgroundColor: colors.card }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.overlayMessage, { color: colors.text }]}>{message}</Text>
       </View>
     </View>
   );
@@ -89,11 +93,12 @@ export function LoadingOverlay({
  * Inline loading indicator for buttons or small areas
  */
 export function LoadingInline({
-  color = Colors.primary,
+  color,
 }: {
   color?: string;
 }): React.ReactElement {
-  return <ActivityIndicator size="small" color={color} />;
+  const { colors } = useTheme();
+  return <ActivityIndicator size="small" color={color || colors.primary} />;
 }
 
 const styles = StyleSheet.create({

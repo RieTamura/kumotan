@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Colors } from '../constants/colors';
 import { useAuthStore } from '../store/authStore';
+import { useTheme } from '../hooks/useTheme';
 
 // Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -89,12 +90,20 @@ interface CustomTabBarProps {
 function CustomTabBar({ currentIndex, onTabPress }: CustomTabBarProps): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('navigation');
+  const { colors } = useTheme();
 
   return (
-    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[
+      styles.tabBar,
+      {
+        paddingBottom: Math.max(insets.bottom, 8),
+        backgroundColor: colors.background,
+        borderTopColor: colors.border,
+      }
+    ]}>
       {TAB_CONFIG.map((tab, index) => {
         const isActive = currentIndex === index;
-        const color = isActive ? Colors.tabActive : Colors.tabInactive;
+        const color = isActive ? colors.tabActive : colors.tabInactive;
         const label = t(`tabs.${tab.labelKey}`);
 
         return (
@@ -134,8 +143,10 @@ function MainTabs(): React.JSX.Element {
     pagerRef.current?.setPage(index);
   }, []);
 
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <PagerView
         ref={pagerRef}
         style={styles.pagerView}
@@ -173,11 +184,19 @@ const defaultStackOptions: NativeStackNavigationOptions = {
 function RootNavigator(): React.JSX.Element {
   const { isAuthenticated, isLoading } = useAuthStore();
   const { t } = useTranslation('navigation');
+  const { colors, isDark } = useTheme();
+
+  const stackOptions: NativeStackNavigationOptions = {
+    ...defaultStackOptions,
+    contentStyle: {
+      backgroundColor: colors.background,
+    },
+  };
 
   // While checking auth status, show nothing (splash would be shown by expo-splash-screen)
   if (isLoading) {
     return (
-      <Stack.Navigator screenOptions={defaultStackOptions}>
+      <Stack.Navigator screenOptions={stackOptions}>
         <Stack.Screen
           name="Splash"
           component={SplashPlaceholder}
@@ -188,7 +207,7 @@ function RootNavigator(): React.JSX.Element {
   }
 
   return (
-    <Stack.Navigator screenOptions={defaultStackOptions}>
+    <Stack.Navigator screenOptions={stackOptions}>
       {isAuthenticated ? (
         // Authenticated routes
         <Stack.Group>
@@ -204,9 +223,12 @@ function RootNavigator(): React.JSX.Element {
               headerShown: true,
               headerTitle: t('headers.apiKeySetup'),
               headerBackTitle: t('common:buttons.back'),
-              headerTintColor: Colors.primary,
+              headerTintColor: colors.primary,
               headerStyle: {
-                backgroundColor: Colors.background,
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
               },
             }}
           />
@@ -217,9 +239,12 @@ function RootNavigator(): React.JSX.Element {
               headerShown: true,
               headerTitle: t('headers.license'),
               headerBackTitle: t('common:buttons.back'),
-              headerTintColor: Colors.primary,
+              headerTintColor: colors.primary,
               headerStyle: {
-                backgroundColor: Colors.background,
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
               },
             }}
           />
@@ -230,9 +255,12 @@ function RootNavigator(): React.JSX.Element {
               headerShown: true,
               headerTitle: t('headers.debugLogs'),
               headerBackTitle: t('common:buttons.back'),
-              headerTintColor: Colors.primary,
+              headerTintColor: colors.primary,
               headerStyle: {
-                backgroundColor: Colors.background,
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
               },
             }}
           />
@@ -243,9 +271,12 @@ function RootNavigator(): React.JSX.Element {
               headerShown: true,
               headerTitle: t('headers.tips'),
               headerBackTitle: t('common:buttons.back'),
-              headerTintColor: Colors.primary,
+              headerTintColor: colors.primary,
               headerStyle: {
-                backgroundColor: Colors.background,
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
               },
             }}
           />
@@ -256,9 +287,12 @@ function RootNavigator(): React.JSX.Element {
               headerShown: true,
               headerTitle: t('headers.thread'),
               headerBackTitle: t('common:buttons.back'),
-              headerTintColor: Colors.primary,
+              headerTintColor: colors.primary,
               headerStyle: {
-                backgroundColor: Colors.background,
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
               },
             }}
           />
@@ -269,9 +303,12 @@ function RootNavigator(): React.JSX.Element {
               headerShown: true,
               headerTitle: t('headers.dictionarySetup'),
               headerBackTitle: t('common:buttons.back'),
-              headerTintColor: Colors.primary,
+              headerTintColor: colors.primary,
               headerStyle: {
-                backgroundColor: Colors.background,
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
               },
             }}
           />
