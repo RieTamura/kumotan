@@ -69,6 +69,7 @@ export function QuizSetupScreen(): React.JSX.Element {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('quiz');
+  const { t: tNav } = useTranslation('navigation');
   const { colors } = useTheme();
 
   // Quiz settings state
@@ -114,13 +115,25 @@ export function QuizSetupScreen(): React.JSX.Element {
   const questionCountOptions: QuestionCount[] = [5, 10, 20];
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingBottom: insets.bottom + 24 },
-      ]}
-    >
+    <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={[styles.header, {
+        backgroundColor: colors.background,
+        borderBottomColor: colors.border,
+        paddingTop: insets.top,
+      }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {tNav('headers.quizSetup')}
+        </Text>
+      </View>
+
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingBottom: insets.bottom + 24 },
+        ]}
+      >
       {/* Available words info */}
       <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
         <HelpCircle size={20} color={colors.textSecondary} />
@@ -191,11 +204,26 @@ export function QuizSetupScreen(): React.JSX.Element {
           </Text>
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
   container: {
     flex: 1,
   },

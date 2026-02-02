@@ -11,7 +11,7 @@ import {
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Home, BookOpen, BarChart3, Settings } from 'lucide-react-native';
+import { Home, BookOpen, HelpCircle, BarChart3, Settings } from 'lucide-react-native';
 import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -61,6 +61,7 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   WordList: undefined;
+  Quiz: undefined;
   Progress: undefined;
   Settings: undefined;
 };
@@ -73,7 +74,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  */
 interface TabConfig {
   key: keyof MainTabParamList;
-  labelKey: 'home' | 'wordList' | 'progress' | 'settings';
+  labelKey: 'home' | 'wordList' | 'quiz' | 'progress' | 'settings';
   Icon: React.ComponentType<{ size?: number; color?: string }>;
   component: React.ComponentType<any>;
 }
@@ -81,6 +82,7 @@ interface TabConfig {
 const TAB_CONFIG: TabConfig[] = [
   { key: 'Home', labelKey: 'home', Icon: Home, component: HomeScreen },
   { key: 'WordList', labelKey: 'wordList', Icon: BookOpen, component: WordListScreen },
+  { key: 'Quiz', labelKey: 'quiz', Icon: HelpCircle, component: QuizSetupScreen },
   { key: 'Progress', labelKey: 'progress', Icon: BarChart3, component: ProgressScreen },
   { key: 'Settings', labelKey: 'settings', Icon: Settings, component: SettingsScreen },
 ];
@@ -323,16 +325,7 @@ function RootNavigator(): React.JSX.Element {
             name="QuizSetup"
             component={QuizSetupScreen}
             options={{
-              headerShown: true,
-              headerTitle: t('headers.quizSetup'),
-              headerBackTitle: t('common:buttons.back'),
-              headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerShown: false,
             }}
           />
           <Stack.Screen

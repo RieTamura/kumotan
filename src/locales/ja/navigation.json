@@ -2,6 +2,7 @@
   "tabs": {
     "home": "ホーム",
     "wordList": "単語帳",
+    "quiz": "クイズ",
     "progress": "進捗",
     "settings": "設定"
   },

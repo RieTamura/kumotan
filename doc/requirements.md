@@ -841,11 +841,24 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年1月29日
-**バージョン**: 1.22
+**最終更新日**: 2026年2月2日
+**バージョン**: 1.23
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.23 (2026-02-02)
+
+- **クイズ機能のナビゲーション改善**
+  - クイズアイコンをホーム画面ヘッダーからフッタータブに移動
+  - タブ順序： ホーム → 単語帳 → **クイズ** → 進捗 → 設定
+  - QuizSetupScreenに独自ヘッダーを追加（タブ表示用）
+  - 変更ファイル：
+    - `src/navigation/AppNavigator.tsx`： クイズタブ追加、TAB_CONFIG更新
+    - `src/screens/QuizSetupScreen.tsx`： 独自ヘッダー追加
+    - `src/screens/HomeScreen.tsx`： クイズボタン削除
+    - `src/locales/ja/navigation.json`： クイズタブラベル追加
+    - `src/locales/en/navigation.json`： クイズタブラベル追加
 
 ### v1.22 (2026-01-29)
 

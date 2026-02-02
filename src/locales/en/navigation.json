@@ -2,6 +2,7 @@
   "tabs": {
     "home": "Home",
     "wordList": "Words",
+    "quiz": "Quiz",
     "progress": "Progress",
     "settings": "Settings"
   },

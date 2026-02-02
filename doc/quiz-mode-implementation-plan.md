@@ -85,10 +85,15 @@ CREATE TABLE IF NOT EXISTS quiz_sessions (
 
 **画面フロー:**
 ```
-HomeScreen → [クイズボタン] → QuizSetupScreen → QuizScreen → QuizResultScreen
-                                    ↑                              ↓
-                                    └──────── [もう一度] ──────────┘
+フッタータブ [クイズ] → QuizSetupScreen → QuizScreen → QuizResultScreen
+                              ↑                              ↓
+                              └──────── [もう一度] ──────────┘
 ```
+
+**ナビゲーション構成：**
+
+- フッタータブ： ホーム → 単語帳 → **クイズ** → 進捗 → 設定
+- QuizSetupScreenはタブとして直接表示（独自ヘッダー付き）
 
 ---
 
@@ -123,9 +128,11 @@ HomeScreen → [クイズボタン] → QuizSetupScreen → QuizScreen → QuizR
 | `src/screens/QuizSetupScreen.tsx` | **新規** 設定画面 |
 | `src/screens/QuizScreen.tsx` | **新規** クイズ画面 |
 | `src/screens/QuizResultScreen.tsx` | **新規** 結果画面 |
-| `src/navigation/AppNavigator.tsx` | 3つのルート追加 |
+| `src/navigation/AppNavigator.tsx` | クイズタブ追加、3つのルート追加 |
 | `src/screens/ProgressScreen.tsx` | クイズ統計セクション追加 |
-| `src/screens/HomeScreen.tsx` | クイズ開始ボタン追加 |
+| `src/screens/HomeScreen.tsx` | クイズボタン削除（フッタータブに移動） |
+| `src/locales/ja/navigation.json` | クイズタブラベル追加 |
+| `src/locales/en/navigation.json` | クイズタブラベル追加 |
 | `src/locales/ja/quiz.json` | **新規** 日本語翻訳 |
 | `src/locales/en/quiz.json` | **新規** 英語翻訳 |
 | `src/locales/index.ts` | quiz名前空間追加 |

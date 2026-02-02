@@ -18,7 +18,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Lightbulb, ArrowUp, Plus, Settings, HelpCircle } from 'lucide-react-native';
+import { Lightbulb, ArrowUp, Plus } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -492,19 +492,6 @@ export function HomeScreen(): React.JSX.Element {
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
         </View>
         <View style={styles.headerRight}>
-          <Pressable
-            onPress={() => navigation.navigate('QuizSetup')}
-            style={({ pressed }) => [
-              styles.headerIconButton,
-              pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
-            ]}
-            accessible={true}
-            accessibilityLabel={t('quiz')}
-            accessibilityHint={t('quizHint')}
-            accessibilityRole="button"
-          >
-            <HelpCircle size={24} color={colors.primary} />
-          </Pressable>
           <Pressable
             ref={tipsRef}
             onPress={() => navigation.navigate('Tips')}
