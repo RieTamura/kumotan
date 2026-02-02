@@ -1,0 +1,59 @@
+{
+  "setup": {
+    "header": "クイズ設定",
+    "questionType": {
+      "title": "出題形式",
+      "enToJa": "英語 → 日本語",
+      "jaToEn": "日本語 → 英語",
+      "mixed": "ミックス"
+    },
+    "questionCount": {
+      "title": "出題数",
+      "questions": "{{count}}問"
+    },
+    "availableWords": "出題可能な単語: {{count}}語",
+    "startButton": "クイズを始める",
+    "notEnoughWords": "単語が足りません",
+    "notEnoughWordsHint": "クイズには日本語訳のある単語が{{count}}語以上必要です"
+  },
+  "quiz": {
+    "progress": "{{current}} / {{total}}",
+    "question": "問題",
+    "answerPlaceholder": "回答を入力",
+    "submitButton": "回答",
+    "nextButton": "次へ",
+    "correct": "正解！",
+    "incorrect": "不正解",
+    "correctAnswer": "正解: {{answer}}",
+    "exitConfirmTitle": "クイズを終了しますか？",
+    "exitConfirmMessage": "進捗は保存されません。",
+    "exit": "終了",
+    "continue": "続ける"
+  },
+  "result": {
+    "header": "結果",
+    "score": "{{correct}} / {{total}} 正解",
+    "accuracy": "正答率: {{percentage}}%",
+    "timeTaken": "所要時間: {{minutes}}分{{seconds}}秒",
+    "perfect": "パーフェクト！すばらしい！",
+    "great": "よくできました！",
+    "good": "頑張りました！",
+    "keepTrying": "もう少し頑張ろう！",
+    "incorrectWords": "間違えた単語",
+    "yourAnswer": "あなたの回答: {{answer}}",
+    "correctAnswer": "正解: {{answer}}",
+    "retryButton": "もう一度",
+    "newQuizButton": "新しいクイズ",
+    "homeButton": "ホームへ戻る"
+  },
+  "stats": {
+    "title": "クイズ統計",
+    "totalAttempts": "総回答数",
+    "accuracy": "正答率",
+    "sessions": "完了セッション",
+    "sessionsCompleted": "完了セッション",
+    "weakWords": "苦手な単語",
+    "noData": "まだクイズデータがありません",
+    "startQuiz": "クイズを始める"
+  }
+}

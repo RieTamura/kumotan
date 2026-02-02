@@ -1,0 +1,59 @@
+{
+  "setup": {
+    "header": "Quiz Setup",
+    "questionType": {
+      "title": "Question Type",
+      "enToJa": "English → Japanese",
+      "jaToEn": "Japanese → English",
+      "mixed": "Mixed"
+    },
+    "questionCount": {
+      "title": "Number of Questions",
+      "questions": "{{count}} questions"
+    },
+    "availableWords": "Available words: {{count}}",
+    "startButton": "Start Quiz",
+    "notEnoughWords": "Not enough words",
+    "notEnoughWordsHint": "You need at least {{count}} words with Japanese translation"
+  },
+  "quiz": {
+    "progress": "{{current}} / {{total}}",
+    "question": "Question",
+    "answerPlaceholder": "Enter your answer",
+    "submitButton": "Submit",
+    "nextButton": "Next",
+    "correct": "Correct!",
+    "incorrect": "Incorrect",
+    "correctAnswer": "Answer: {{answer}}",
+    "exitConfirmTitle": "Exit Quiz?",
+    "exitConfirmMessage": "Your progress will not be saved.",
+    "exit": "Exit",
+    "continue": "Continue"
+  },
+  "result": {
+    "header": "Results",
+    "score": "{{correct}} / {{total}} correct",
+    "accuracy": "Accuracy: {{percentage}}%",
+    "timeTaken": "Time: {{minutes}}m {{seconds}}s",
+    "perfect": "Perfect! Amazing!",
+    "great": "Great job!",
+    "good": "Good effort!",
+    "keepTrying": "Keep trying!",
+    "incorrectWords": "Incorrect Answers",
+    "yourAnswer": "Your answer: {{answer}}",
+    "correctAnswer": "Correct: {{answer}}",
+    "retryButton": "Retry",
+    "newQuizButton": "New Quiz",
+    "homeButton": "Back to Home"
+  },
+  "stats": {
+    "title": "Quiz Statistics",
+    "totalAttempts": "Total Attempts",
+    "accuracy": "Accuracy",
+    "sessions": "Sessions",
+    "sessionsCompleted": "Sessions Completed",
+    "weakWords": "Weak Words",
+    "noData": "No quiz data yet",
+    "startQuiz": "Start Quiz"
+  }
+}

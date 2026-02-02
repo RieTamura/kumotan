@@ -22,6 +22,7 @@ import { useAuthStore } from './src/store/authStore';
 import { initDatabase } from './src/services/database/init';
 import { setDatabase as setWordsDatabase } from './src/services/database/words';
 import { setDatabase as setStatsDatabase } from './src/services/database/stats';
+import { setQuizDatabase } from './src/services/database/quiz';
 import { networkMonitor } from './src/services/network/monitor';
 import {
   initJMdictDatabase,
@@ -107,6 +108,7 @@ export default function App(): React.JSX.Element {
         const db = await initDatabase();
         setWordsDatabase(db);
         setStatsDatabase(db);
+        setQuizDatabase(db);
 
         console.log('Starting network monitor...');
         networkMonitor.start();

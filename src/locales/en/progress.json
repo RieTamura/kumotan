@@ -54,5 +54,13 @@
     "noNetwork": "Please connect to a network.",
     "imageCapture": "Failed to create or share image.",
     "shareNotAvailable": "Sharing is not available on this device."
+  },
+  "quiz": {
+    "title": "Quiz",
+    "sessionsCompleted": "Sessions",
+    "accuracy": "Accuracy",
+    "weakWords": "Weak Words",
+    "noData": "No quiz data yet",
+    "startQuiz": "Start Quiz"
   }
 }

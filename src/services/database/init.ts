@@ -81,6 +81,47 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
     CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date DESC);
   `);
 
+  // Create quiz_attempts table for individual answer records
+  await database.execAsync(`
+    CREATE TABLE IF NOT EXISTS quiz_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      word_id INTEGER NOT NULL,
+      question_type TEXT NOT NULL CHECK(question_type IN ('en_to_ja', 'ja_to_en')),
+      user_answer TEXT NOT NULL,
+      correct_answer TEXT NOT NULL,
+      is_correct INTEGER NOT NULL CHECK(is_correct IN (0, 1)),
+      answered_at DATETIME DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+    );
+  `);
+
+  // Create quiz_sessions table for session statistics
+  await database.execAsync(`
+    CREATE TABLE IF NOT EXISTS quiz_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      question_type TEXT NOT NULL CHECK(question_type IN ('en_to_ja', 'ja_to_en', 'mixed')),
+      total_questions INTEGER NOT NULL,
+      correct_count INTEGER NOT NULL,
+      started_at DATETIME DEFAULT (datetime('now', 'localtime')),
+      completed_at DATETIME,
+      time_spent_seconds INTEGER
+    );
+  `);
+
+  // Create indexes for quiz tables
+  await database.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_quiz_attempts_word_id ON quiz_attempts(word_id);
+  `);
+  await database.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_quiz_attempts_answered_at ON quiz_attempts(answered_at DESC);
+  `);
+  await database.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_quiz_attempts_is_correct ON quiz_attempts(is_correct);
+  `);
+  await database.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_quiz_sessions_completed_at ON quiz_sessions(completed_at DESC);
+  `);
+
   // Check and set initial schema version
   const versionResult = await database.getFirstAsync<{ version: number }>(
     'SELECT version FROM schema_version ORDER BY version DESC LIMIT 1'
@@ -194,6 +235,59 @@ async function runMigrations(
     }
   }
 
+  // Migration to version 5: Add quiz tables
+  if (currentVersion < 5) {
+    // Create quiz_attempts table for individual answer records
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS quiz_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        word_id INTEGER NOT NULL,
+        question_type TEXT NOT NULL CHECK(question_type IN ('en_to_ja', 'ja_to_en')),
+        user_answer TEXT NOT NULL,
+        correct_answer TEXT NOT NULL,
+        is_correct INTEGER NOT NULL CHECK(is_correct IN (0, 1)),
+        answered_at DATETIME DEFAULT (datetime('now', 'localtime')),
+        FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Create quiz_sessions table for session statistics
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS quiz_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        question_type TEXT NOT NULL CHECK(question_type IN ('en_to_ja', 'ja_to_en', 'mixed')),
+        total_questions INTEGER NOT NULL,
+        correct_count INTEGER NOT NULL,
+        started_at DATETIME DEFAULT (datetime('now', 'localtime')),
+        completed_at DATETIME,
+        time_spent_seconds INTEGER
+      );
+    `);
+
+    // Create indexes for quiz tables
+    await database.execAsync(`
+      CREATE INDEX IF NOT EXISTS idx_quiz_attempts_word_id ON quiz_attempts(word_id);
+    `);
+    await database.execAsync(`
+      CREATE INDEX IF NOT EXISTS idx_quiz_attempts_answered_at ON quiz_attempts(answered_at DESC);
+    `);
+    await database.execAsync(`
+      CREATE INDEX IF NOT EXISTS idx_quiz_attempts_is_correct ON quiz_attempts(is_correct);
+    `);
+    await database.execAsync(`
+      CREATE INDEX IF NOT EXISTS idx_quiz_sessions_completed_at ON quiz_sessions(completed_at DESC);
+    `);
+
+    await database.runAsync(
+      'INSERT INTO schema_version (version) VALUES (?)',
+      [5]
+    );
+
+    if (__DEV__) {
+      console.log('Migration to version 5 completed: Added quiz tables');
+    }
+  }
+
   // Add more migrations as needed
 }
 
@@ -217,6 +311,8 @@ export async function resetDatabase(): Promise<void> {
   await database.withTransactionAsync(async () => {
     await database.runAsync('DELETE FROM words');
     await database.runAsync('DELETE FROM daily_stats');
+    await database.runAsync('DELETE FROM quiz_attempts');
+    await database.runAsync('DELETE FROM quiz_sessions');
     await database.runAsync('DELETE FROM schema_version');
     await database.runAsync(
       'INSERT INTO schema_version (version) VALUES (?)',

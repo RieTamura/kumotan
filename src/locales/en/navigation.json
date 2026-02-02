@@ -11,6 +11,8 @@
     "debugLogs": "Debug Logs",
     "tips": "Tips",
     "thread": "Thread",
-    "dictionarySetup": "Dictionary Setup"
+    "dictionarySetup": "Dictionary Setup",
+    "quizSetup": "Quiz Setup",
+    "quizResult": "Quiz Results"
   }
 }

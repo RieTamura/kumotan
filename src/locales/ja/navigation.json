@@ -11,6 +11,8 @@
     "debugLogs": "デバッグログ",
     "tips": "操作のヒント",
     "thread": "スレッド",
-    "dictionarySetup": "辞書データの準備"
+    "dictionarySetup": "辞書データの準備",
+    "quizSetup": "クイズ設定",
+    "quizResult": "クイズ結果"
   }
 }

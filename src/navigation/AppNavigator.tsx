@@ -32,6 +32,10 @@ import { DebugLogsScreen } from '../screens/DebugLogsScreen';
 import { TipsScreen } from '../screens/TipsScreen';
 import { ThreadScreen } from '../screens/ThreadScreen';
 import { DictionarySetupScreen } from '../screens/DictionarySetupScreen';
+import { QuizSetupScreen } from '../screens/QuizSetupScreen';
+import { QuizScreen } from '../screens/QuizScreen';
+import { QuizResultScreen } from '../screens/QuizResultScreen';
+import { QuizSettings, QuizResult } from '../types/quiz';
 
 /**
  * Stack Navigator Types
@@ -46,6 +50,9 @@ export type RootStackParamList = {
   Tips: undefined;
   Thread: { postUri: string };
   DictionarySetup: undefined;
+  QuizSetup: undefined;
+  Quiz: { settings: QuizSettings };
+  QuizResult: { result: QuizResult };
 };
 
 /**
@@ -310,6 +317,47 @@ function RootNavigator(): React.JSX.Element {
               headerTitleStyle: {
                 color: colors.text,
               },
+            }}
+          />
+          <Stack.Screen
+            name="QuizSetup"
+            component={QuizSetupScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.quizSetup'),
+              headerBackTitle: t('common:buttons.back'),
+              headerTintColor: colors.primary,
+              headerStyle: {
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
+              },
+            }}
+          />
+          <Stack.Screen
+            name="Quiz"
+            component={QuizScreen}
+            options={{
+              headerShown: false,
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name="QuizResult"
+            component={QuizResultScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.quizResult'),
+              headerBackTitle: t('common:buttons.back'),
+              headerTintColor: colors.primary,
+              headerStyle: {
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
+              },
+              headerLeft: () => null,
             }}
           />
         </Stack.Group>

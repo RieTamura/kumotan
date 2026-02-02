@@ -24,6 +24,7 @@ import jaTips from './ja/tips.json';
 import jaThread from './ja/thread.json';
 import jaTutorial from './ja/tutorial.json';
 import jaDictionary from './ja/dictionary.json';
+import jaQuiz from './ja/quiz.json';
 
 // Import English translations
 import enCommon from './en/common.json';
@@ -41,6 +42,7 @@ import enTips from './en/tips.json';
 import enThread from './en/thread.json';
 import enTutorial from './en/tutorial.json';
 import enDictionary from './en/dictionary.json';
+import enQuiz from './en/quiz.json';
 
 /**
  * Translation resources
@@ -62,6 +64,7 @@ export const resources = {
     thread: jaThread,
     tutorial: jaTutorial,
     dictionary: jaDictionary,
+    quiz: jaQuiz,
   },
   en: {
     common: enCommon,
@@ -79,6 +82,7 @@ export const resources = {
     thread: enThread,
     tutorial: enTutorial,
     dictionary: enDictionary,
+    quiz: enQuiz,
   },
 } as const;
 
@@ -151,6 +155,7 @@ i18n
       'thread',
       'tutorial',
       'dictionary',
+      'quiz',
     ],
     interpolation: {
       escapeValue: false, // React already handles escaping

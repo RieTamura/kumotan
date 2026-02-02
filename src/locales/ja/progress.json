@@ -54,5 +54,13 @@
     "noNetwork": "ネットワークに接続してください。",
     "imageCapture": "画像の作成または共有に失敗しました。",
     "shareNotAvailable": "このデバイスでは共有機能が利用できません。"
+  },
+  "quiz": {
+    "title": "【クイズ】",
+    "sessionsCompleted": "完了セッション",
+    "accuracy": "正答率",
+    "weakWords": "苦手な単語",
+    "noData": "クイズデータがありません",
+    "startQuiz": "クイズを始める"
   }
 }

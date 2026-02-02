@@ -21,14 +21,19 @@ import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame } from 'lucide-react-native';
+import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame, HelpCircle, AlertTriangle } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';
 import { getCurrentLanguage } from '../locales';
 import { useTheme } from '../hooks/useTheme';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
 import { getStats, getCalendarData } from '../services/database/stats';
+import { getQuizStats } from '../services/database/quiz';
 import { Stats } from '../types/stats';
+import { QuizStats } from '../types/quiz';
 import { ImageAspectRatio } from '../types/word';
 import { useAuthStore } from '../store/authStore';
 import { shareToBlueskyWithImage, shareTodaysSession } from '../services/learning/session';
@@ -101,12 +106,14 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
 export function ProgressScreen(): React.JSX.Element {
   const { t } = useTranslation('progress');
   const { t: tc } = useTranslation('common');
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isConnected = useNetworkStatus();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [stats, setStats] = useState<Stats | null>(null);
+  const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
   const [activityDays, setActivityDays] = useState<number[]>([]);
   const { colors, isDark } = useTheme();
 
@@ -127,6 +134,12 @@ export function ProgressScreen(): React.JSX.Element {
         setStats(statsResult.data);
       } else {
         Alert.alert(tc('status.error'), t('errors.statsLoad'));
+      }
+
+      // Load quiz stats
+      const quizStatsResult = await getQuizStats();
+      if (quizStatsResult.success) {
+        setQuizStats(quizStatsResult.data);
       }
 
       // Load calendar data
@@ -530,6 +543,68 @@ export function ProgressScreen(): React.JSX.Element {
               Icon={Flame}
             />
           </View>
+        </View>
+
+        {/* Quiz Stats Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('quiz.title')}</Text>
+
+          {quizStats && quizStats.totalAttempts > 0 ? (
+            <>
+              <View style={styles.statsGrid}>
+                <StatsCard
+                  title={t('quiz.sessionsCompleted')}
+                  value={quizStats.sessionsCompleted}
+                  Icon={HelpCircle}
+                />
+                <StatsCard
+                  title={t('quiz.accuracy')}
+                  value={`${quizStats.overallAccuracy}%`}
+                  Icon={CheckCircle}
+                />
+              </View>
+
+              {/* Weak Words */}
+              {quizStats.weakWords.length > 0 && (
+                <View style={[styles.weakWordsContainer, { backgroundColor: colors.card }]}>
+                  <View style={styles.weakWordsHeader}>
+                    <AlertTriangle size={16} color={colors.warning} />
+                    <Text style={[styles.weakWordsTitle, { color: colors.text }]}>
+                      {t('quiz.weakWords')}
+                    </Text>
+                  </View>
+                  <View style={styles.weakWordsList}>
+                    {quizStats.weakWords.slice(0, 5).map((item) => (
+                      <View key={item.word.id} style={styles.weakWordItem}>
+                        <Text style={[styles.weakWordText, { color: colors.text }]}>
+                          {item.word.english}
+                        </Text>
+                        <Text style={[styles.weakWordAccuracy, { color: colors.textSecondary }]}>
+                          {item.accuracy}%
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={[styles.noQuizData, { backgroundColor: colors.card }]}>
+              <HelpCircle size={32} color={colors.textSecondary} />
+              <Text style={[styles.noQuizDataText, { color: colors.textSecondary }]}>
+                {t('quiz.noData')}
+              </Text>
+            </View>
+          )}
+
+          {/* Start Quiz Button */}
+          <TouchableOpacity
+            style={[styles.startQuizButton, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.navigate('QuizSetup')}
+          >
+            <HelpCircle size={20} color="#FFFFFF" />
+            <Text style={styles.startQuizButtonText}>{t('quiz.startQuiz')}</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -945,6 +1020,61 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   modalButtonShareText: {
+    fontSize: 14, // FontSizes.md
+    fontWeight: '600',
+  },
+  // Quiz Stats styles
+  weakWordsContainer: {
+    marginTop: 12, // Spacing.md
+    borderRadius: 12, // BorderRadius.lg
+    padding: 16, // Spacing.lg
+  },
+  weakWordsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8, // Spacing.sm
+    marginBottom: 12, // Spacing.md
+  },
+  weakWordsTitle: {
+    fontSize: 14, // FontSizes.md
+    fontWeight: '600',
+  },
+  weakWordsList: {
+    gap: 8, // Spacing.sm
+  },
+  weakWordItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  weakWordText: {
+    fontSize: 14, // FontSizes.md
+  },
+  weakWordAccuracy: {
+    fontSize: 12, // FontSizes.sm
+  },
+  noQuizData: {
+    borderRadius: 12, // BorderRadius.lg
+    padding: 24, // Spacing.xl
+    alignItems: 'center',
+    gap: 8, // Spacing.sm
+  },
+  noQuizDataText: {
+    fontSize: 14, // FontSizes.md
+    textAlign: 'center',
+  },
+  startQuizButton: {
+    marginTop: 12, // Spacing.md
+    borderRadius: 8, // BorderRadius.md
+    paddingVertical: 12, // Spacing.md
+    paddingHorizontal: 16, // Spacing.lg
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8, // Spacing.sm
+  },
+  startQuizButtonText: {
+    color: '#FFFFFF',
     fontSize: 14, // FontSizes.md
     fontWeight: '600',
   },
