@@ -15,6 +15,7 @@ import {
   Image,
   ActivityIndicator,
   Share,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -37,6 +38,7 @@ import { useToast } from '../hooks/useToast';
 import { changeLanguage, getCurrentLanguage, type Language } from '../locales';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { FeedbackModal, type FeedbackType } from '../components/FeedbackModal';
+import { GithubIcon } from '../components/common/GithubIcon';
 import { useTutorial } from '../hooks/useTutorial';
 
 /**
@@ -561,19 +563,7 @@ export function SettingsScreen(): React.JSX.Element {
           />
         </SettingsSection>
 
-        {/* Support Section */}
-        <SettingsSection title={t('sections.support')}>
-          <SettingsItem
-            title={t('support.donate')}
-            subtitle={t('support.donateSubtitle')}
-            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_SPONSORS)}
-          />
-          <SettingsItem
-            title={t('support.star')}
-            subtitle={t('support.starSubtitle')}
-            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
-          />
-        </SettingsSection>
+
 
         {/* Feedback Section */}
         <SettingsSection title={t('sections.feedback')}>
@@ -587,11 +577,7 @@ export function SettingsScreen(): React.JSX.Element {
             subtitle={t('feedbackItems.suggestSubtitle')}
             onPress={() => openFeedback('feature')}
           />
-          <SettingsItem
-            title={t('feedbackItems.blueskyContact')}
-            subtitle={EXTERNAL_LINKS.BLUESKY_ACCOUNT}
-            onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_ACCOUNT)}
-          />
+
         </SettingsSection>
 
         {/* About Section */}
@@ -606,20 +592,17 @@ export function SettingsScreen(): React.JSX.Element {
             onPress={handleLicensePress}
           />
           <SettingsItem
-            title={t('other.githubRepo')}
-            subtitle={EXTERNAL_LINKS.GITHUB_REPO}
+            title={t('support.donate')}
+            subtitle={t('support.donateSubtitle')}
+            onPress={() => openLink(EXTERNAL_LINKS.GITHUB_SPONSORS)}
+          />
+          <SettingsItem
+            title={t('support.star')}
+            subtitle={t('support.starSubtitle')}
             onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
           />
-          <SettingsItem
-            title={t('other.blueskyDocs')}
-            subtitle={EXTERNAL_LINKS.BLUESKY_DOCS}
-            onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_DOCS)}
-          />
-          <SettingsItem
-            title={t('other.deeplDocs')}
-            subtitle={EXTERNAL_LINKS.DEEPL_DOCS}
-            onPress={() => openLink(EXTERNAL_LINKS.DEEPL_DOCS)}
-          />
+
+
         </SettingsSection>
 
         {/* Logout Button */}
@@ -641,6 +624,25 @@ export function SettingsScreen(): React.JSX.Element {
             {t('version', { version: APP_INFO.VERSION })}
           </Text>
           <Text style={styles.appTagline}>{APP_INFO.DESCRIPTION}</Text>
+
+          <View style={styles.socialIconsContainer}>
+            <Pressable
+              onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_ACCOUNT)}
+              style={styles.socialIconWrapper}
+            >
+              <Image
+                source={require('../../assets/bluesky-logo.png')}
+                style={styles.blueskyIcon}
+              />
+            </Pressable>
+
+            <Pressable
+              onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
+              style={styles.socialIconWrapper}
+            >
+              <GithubIcon size={28} color="#181717" />
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
 
@@ -828,6 +830,21 @@ const styles = StyleSheet.create({
   appTagline: {
     fontSize: FontSizes.sm,
     color: Colors.textTertiary,
+  },
+  socialIconsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.lg,
+    gap: Spacing.xl,
+  },
+  socialIconWrapper: {
+    padding: Spacing.sm,
+  },
+  blueskyIcon: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain',
   },
 });
 

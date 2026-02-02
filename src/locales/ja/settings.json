@@ -6,7 +6,6 @@
     "apiSettings": "API設定",
     "dictionary": "辞書データ",
     "dataManagement": "データ管理",
-    "support": "サポート",
     "feedback": "フィードバック",
     "other": "その他",
     "language": "言語"
@@ -63,16 +62,12 @@
     "reportBug": "バグを報告",
     "reportBugSubtitle": "不具合を報告する",
     "suggest": "機能を提案",
-    "suggestSubtitle": "新機能やアイデアを共有する",
-    "blueskyContact": "Bluesky で連絡"
+    "suggestSubtitle": "新機能やアイデアを共有する"
   },
   "other": {
     "debugLogs": "デバッグログ",
     "debugLogsSubtitle": "TestFlight デバッグ用",
-    "license": "ライセンス",
-    "githubRepo": "GitHub リポジトリ",
-    "blueskyDocs": "Bluesky API ドキュメント",
-    "deeplDocs": "DeepL API ドキュメント"
+    "license": "ライセンス"
   },
   "logout": {
     "button": "ログアウト",

@@ -6,7 +6,6 @@
     "apiSettings": "API Settings",
     "dictionary": "Dictionary Data",
     "dataManagement": "Data Management",
-    "support": "Support",
     "feedback": "Feedback",
     "other": "Other",
     "language": "Language"
@@ -63,16 +62,12 @@
     "reportBug": "Report a Bug",
     "reportBugSubtitle": "Report issues",
     "suggest": "Suggest a Feature",
-    "suggestSubtitle": "Share ideas and suggestions",
-    "blueskyContact": "Contact on Bluesky"
+    "suggestSubtitle": "Share ideas and suggestions"
   },
   "other": {
     "debugLogs": "Debug Logs",
     "debugLogsSubtitle": "For TestFlight debugging",
-    "license": "License",
-    "githubRepo": "GitHub Repository",
-    "blueskyDocs": "Bluesky API Documentation",
-    "deeplDocs": "DeepL API Documentation"
+    "license": "License"
   },
   "logout": {
     "button": "Log Out",
