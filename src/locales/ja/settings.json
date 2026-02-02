@@ -89,7 +89,12 @@
   },
   "tips": {
     "title": "操作のヒント",
-    "subtitle": "アプリの使い方を確認する"
+    "subtitle": "アプリの使い方を確認する",
+    "reset": "チュートリアルをリセット",
+    "resetSubtitle": "初回起動時の説明をもう一度表示する",
+    "resetConfirmTitle": "チュートリアルをリセット",
+    "resetConfirmMessage": "アプリを再起動すると、チュートリアルが再度表示されます。よろしいですか？",
+    "resetSuccess": "チュートリアルをリセットしました。次回起動時に表示されます。"
   },
   "version": "バージョン {{version}}",
   "linkError": "リンクを開けませんでした。"

@@ -31,6 +31,11 @@ interface PostCardProps {
   onPostPress?: (postUri: string) => void;
   onLikePress?: (post: TimelinePost, isLiked: boolean) => void;
   clearSelection?: boolean;
+  onLayoutElements?: (elements: {
+    bookIcon?: { x: number; y: number; width: number; height: number };
+    firstWord?: { x: number; y: number; width: number; height: number };
+    contentColumn?: { x: number; y: number; width: number; height: number };
+  }) => void;
 }
 
 /**
@@ -350,8 +355,19 @@ function parseTextIntoTokens(text: string): TextToken[] {
 /**
  * PostCard Component (internal)
  */
-function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, onLikePress, clearSelection }: PostCardProps): React.JSX.Element {
+function PostCardComponent({
+  post,
+  onWordSelect,
+  onSentenceSelect,
+  onPostPress,
+  onLikePress,
+  clearSelection,
+  onLayoutElements
+}: PostCardProps): React.JSX.Element {
   const { t, i18n } = useTranslation(['home', 'common']);
+  const bookIconRef = React.useRef<View>(null);
+  const firstWordRef = React.useRef<Text>(null);
+  const contentColumnRef = React.useRef<View>(null);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -381,6 +397,65 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
       setSelectedSentence(null);
     }
   }, [clearSelection]);
+
+  /**
+   * Measure elements if needed
+   */
+  useEffect(() => {
+    if (onLayoutElements) {
+      // Small delay to ensure everything is rendered
+      const timer = setTimeout(() => {
+        const elements: any = {};
+
+        const measureBookIcon = new Promise<void>((resolve) => {
+          if (bookIconRef.current) {
+            bookIconRef.current.measureInWindow((x, y, width, height) => {
+              if (width > 0 && height > 0) {
+                elements.bookIcon = { x, y, width, height };
+              }
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+
+        const measureFirstWord = new Promise<void>((resolve) => {
+          if (firstWordRef.current) {
+            firstWordRef.current.measureInWindow((x, y, width, height) => {
+              if (width > 0 && height > 0) {
+                elements.firstWord = { x, y, width, height };
+              }
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+
+        const measureContentColumn = new Promise<void>((resolve) => {
+          if (contentColumnRef.current) {
+            contentColumnRef.current.measureInWindow((x, y, width, height) => {
+              if (width > 0 && height > 0) {
+                elements.contentColumn = { x, y, width, height };
+              }
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+
+        Promise.all([measureBookIcon, measureFirstWord, measureContentColumn]).then(() => {
+          if (Object.keys(elements).length > 0) {
+            onLayoutElements(elements);
+          }
+        });
+      }, 1000); // Wait for animations and data loading
+
+      return () => clearTimeout(timer);
+    }
+  }, [onLayoutElements]);
 
   /**
    * Cleanup timer on unmount to prevent memory leaks
@@ -432,7 +507,7 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
   const handleWordDoubleTap = useCallback(
     (word: string) => {
       if (!onSentenceSelect) return;
-      
+
       const sentence = getSentenceContainingWord(word);
       if (sentence) {
         setSelectedSentence(sentence);
@@ -631,6 +706,9 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
             );
           }
 
+          // Identify the first meaningful word for tutorial focus
+          const isFirstMeaningfulWord = token.isEnglishWord && !tokens.slice(0, tokens.indexOf(token)).some(t => t.isEnglishWord || t.isJapaneseWord);
+
           if (token.isEnglishWord) {
             const isWordSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
             const sentence = getSentenceContainingWord(token.text);
@@ -643,9 +721,10 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
                   isWordSelected
                     ? styles.highlightedWord
                     : isSentenceSelected
-                    ? styles.highlightedSentence
-                    : styles.selectableWord
+                      ? styles.highlightedSentence
+                      : styles.selectableWord
                 }
+                ref={isFirstMeaningfulWord ? firstWordRef : undefined}
                 onLongPress={() => handleWordLongPress(token.text)}
                 onPress={() => handleWordPress(token.text)}
                 suppressHighlighting={false}
@@ -666,8 +745,8 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
                   isWordSelected
                     ? styles.highlightedWord
                     : isSentenceSelected
-                    ? styles.highlightedSentence
-                    : styles.selectableJapanese
+                      ? styles.highlightedSentence
+                      : styles.selectableJapanese
                 }
                 onPress={() => handleWordPress(token.text)}
                 onLongPress={() => handleWordLongPress(token.text)}
@@ -859,7 +938,7 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
         />
 
         {/* Content column */}
-        <View style={styles.contentColumn}>
+        <View style={styles.contentColumn} ref={contentColumnRef}>
           {/* Author row */}
           <View style={styles.authorRow}>
             <View style={styles.authorInfo}>
@@ -918,6 +997,7 @@ function PostCardComponent({ post, onWordSelect, onSentenceSelect, onPostPress, 
               <Pressable
                 style={styles.bookSearchButton}
                 onPress={handleBookSearchPress}
+                ref={bookIconRef}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessible={true}
                 accessibilityLabel={t('home:lookupPost')}

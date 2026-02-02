@@ -13,9 +13,9 @@ import './src/locales';
 import React, { useEffect, useState, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
-// import * as SplashScreen from 'expo-splash-screen';  // 一時的に無効化
+import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, StyleSheet, Text, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Text, Animated, Easing, Image } from 'react-native';
 
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
@@ -30,7 +30,9 @@ import {
 import { Colors, FontSizes, Spacing } from './src/constants/colors';
 import { APP_INFO } from './src/constants/config';
 
-// SplashScreen.preventAutoHideAsync();  // 一時的に無効化
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* ignore */
+});
 
 interface InitState {
   isReady: boolean;
@@ -47,6 +49,26 @@ export default function App(): React.JSX.Element {
 
   // プログレスバーアニメーション
   const progressAnim = useRef(new Animated.Value(0)).current;
+
+  // ネイティブスプラッシュ画面を隠す関数
+  const hideNativeSplash = async () => {
+    try {
+      await SplashScreen.hideAsync();
+    } catch (e) {
+      /* ignore */
+    }
+  };
+
+  // アプリの準備ができたら確実にスプラッシュを隠す
+  useEffect(() => {
+    if (initState.isReady) {
+      // 遷移をスムーズにするため極短時間のディレイを入れる
+      const timer = setTimeout(() => {
+        hideNativeSplash();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initState.isReady]);
 
   useEffect(() => {
     if (
@@ -141,6 +163,8 @@ export default function App(): React.JSX.Element {
   if (!initState.isReady) {
     const getJMdictStatusText = (): string | null => {
       switch (initState.jmdictStatus) {
+        case 'idle':
+          return 'アプリを起動中...';
         case 'checking':
           return '辞書データを確認中...';
         case 'copying':
@@ -155,10 +179,14 @@ export default function App(): React.JSX.Element {
     return (
       <SafeAreaProvider>
         <View style={styles.splashContainer}>
-          <Text style={styles.splashAppName}>{APP_INFO.NAME}</Text>
-          <Text style={styles.splashTagline}>{APP_INFO.DESCRIPTION}</Text>
+          <Image
+            source={require('./assets/splash.png')}
+            style={styles.splashImage}
+            resizeMode="contain"
+            onLoad={hideNativeSplash}
+          />
           {jmdictStatusText && (
-            <View style={styles.progressContainer}>
+            <View style={styles.progressContainerFixed}>
               <View style={styles.progressBar}>
                 <Animated.View
                   style={[
@@ -168,7 +196,7 @@ export default function App(): React.JSX.Element {
                         {
                           translateX: progressAnim.interpolate({
                             inputRange: [0, 1],
-                            outputRange: [-100, 250],
+                            outputRange: [-150, 350],
                           }),
                         },
                       ],
@@ -207,21 +235,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  splashAppName: {
-    fontSize: FontSizes.xxxl,
-    fontWeight: '700',
-    color: Colors.textInverse,
-    marginBottom: Spacing.sm,
+  splashImage: {
+    ...StyleSheet.absoluteFillObject,
   },
-  splashTagline: {
-    fontSize: FontSizes.lg,
-    color: Colors.textInverse,
-    opacity: 0.8,
-  },
-  progressContainer: {
-    marginTop: Spacing.xl,
+  progressContainerFixed: {
+    position: 'absolute',
+    bottom: 110, // iPhone SE等でも収まるよう微調整
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    width: '80%',
+    paddingHorizontal: '10%',
+    zIndex: 10,
+    elevation: 5,
   },
   progressBar: {
     width: '100%',

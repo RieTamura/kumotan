@@ -12,6 +12,7 @@ import {
   Pressable,
   Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../constants/colors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -49,9 +50,9 @@ export function TutorialTooltip({
   visible,
   title,
   description,
-  tooltipPosition,
+  tooltipPosition: _unused, // We'll calculate this dynamically
   highlightArea,
-  arrowDirection,
+  arrowDirection: _unused_direction, // We'll calculate this dynamically
   onNext,
   onSkip,
   currentStep,
@@ -59,9 +60,37 @@ export function TutorialTooltip({
   nextLabel,
   skipLabel,
 }: TutorialTooltipProps): React.JSX.Element | null {
+  const insets = useSafeAreaInsets();
   if (!visible) return null;
 
   const isLastStep = currentStep === totalSteps;
+
+  // --- Ultra-Smart Positioning Logic ---
+  // Constants for physical constraints
+  const ESTIMATED_TOOLTIP_HEIGHT = 220; // Estimated height including padding and buttons
+  const SAFE_MARGIN = 20;               // Minimum margin from screen edges
+  const ARROW_GAP = 12;                 // Gap between target and tooltip
+
+  // Check if highlight area is valid
+  const hasValidHighlight = highlightArea && highlightArea.width > 0 && highlightArea.height > 0;
+
+  // Decide position based on available space
+  let showAbove = false;
+  if (hasValidHighlight) {
+    const spaceBelow = SCREEN_HEIGHT - (highlightArea.y + highlightArea.height) - insets.bottom - SAFE_MARGIN;
+    const spaceAbove = highlightArea.y - insets.top - SAFE_MARGIN;
+
+    // Show above if not enough space below AND there is more space above
+    showAbove = spaceBelow < ESTIMATED_TOOLTIP_HEIGHT && spaceAbove > spaceBelow;
+  }
+
+  const arrowDirection = showAbove ? 'down' : 'up';
+
+  const verticalPosition = hasValidHighlight
+    ? showAbove
+      ? { bottom: SCREEN_HEIGHT - highlightArea.y + ARROW_GAP }
+      : { top: highlightArea.y + highlightArea.height + ARROW_GAP }
+    : { top: SCREEN_HEIGHT / 3 }; // Fallback to a clear area if measurement fails
 
   return (
     <Modal
@@ -72,7 +101,7 @@ export function TutorialTooltip({
     >
       <View style={styles.overlay}>
         {/* Highlight cutout */}
-        {highlightArea && (
+        {hasValidHighlight && (
           <View
             style={[
               styles.highlight,
@@ -87,15 +116,26 @@ export function TutorialTooltip({
         )}
 
         {/* Tooltip */}
-        <View style={[styles.tooltipContainer, tooltipPosition]}>
+        <View
+          style={[
+            styles.tooltipContainer,
+            {
+              left: Spacing.lg,
+              right: Spacing.lg,
+              ...verticalPosition
+            }
+          ]}
+        >
           {/* Arrow */}
           <View
             style={[
               styles.arrow,
               arrowDirection === 'up' && styles.arrowUp,
               arrowDirection === 'down' && styles.arrowDown,
-              arrowDirection === 'left' && styles.arrowLeft,
-              arrowDirection === 'right' && styles.arrowRight,
+              // Dynamically position arrow to point to highlight center
+              highlightArea && {
+                left: Math.max(12, Math.min(SCREEN_WIDTH - Spacing.lg * 2 - 28, highlightArea.x + (highlightArea.width / 2) - Spacing.lg - 10)),
+              }
             ]}
           />
 
@@ -156,12 +196,12 @@ const styles = StyleSheet.create({
   },
   tooltipContainer: {
     position: 'absolute',
-    maxWidth: SCREEN_WIDTH - Spacing.xl * 2,
   },
   tooltipContent: {
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
+    width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -176,8 +216,6 @@ const styles = StyleSheet.create({
   },
   arrowUp: {
     top: -10,
-    left: '50%',
-    marginLeft: -10,
     borderLeftWidth: 10,
     borderRightWidth: 10,
     borderBottomWidth: 10,
@@ -187,8 +225,6 @@ const styles = StyleSheet.create({
   },
   arrowDown: {
     bottom: -10,
-    left: '50%',
-    marginLeft: -10,
     borderLeftWidth: 10,
     borderRightWidth: 10,
     borderTopWidth: 10,

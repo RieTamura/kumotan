@@ -38,7 +38,7 @@ import { TimelinePost } from '../types/bluesky';
 import { addWord } from '../services/database/words';
 import { likePost, unlikePost } from '../services/bluesky/feed';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 /**
  * Word popup state interface
@@ -72,29 +72,49 @@ export function HomeScreen(): React.JSX.Element {
   const { t: tc } = useTranslation('common');
   const { t: tt } = useTranslation('tutorial');
 
+  const tipsRef = useRef<View>(null);
+  const [tutorialPositions, setTutorialPositions] = useState<{
+    tips?: { x: number; y: number; width: number; height: number };
+    bookIcon?: { x: number; y: number; width: number; height: number };
+    firstWord?: { x: number; y: number; width: number; height: number };
+    contentColumn?: { x: number; y: number; width: number; height: number };
+  }>({});
+
   // Tutorial steps configuration
   const tutorialSteps: TutorialStep[] = useMemo(() => [
     {
       id: 'wordSelection',
       title: tt('steps.wordSelection.title'),
       description: tt('steps.wordSelection.description'),
-      targetPosition: {
+      targetPosition: tutorialPositions.contentColumn || {
         x: 20,
-        y: insets.top + 200,
+        y: insets.top + 160,
         width: SCREEN_WIDTH - 40,
-        height: 80,
+        height: 100,
       },
-      arrowDirection: 'down',
+      arrowDirection: 'up',
     },
     {
       id: 'bookSearch',
       title: tt('steps.bookSearch.title'),
       description: tt('steps.bookSearch.description'),
-      targetPosition: {
-        x: SCREEN_WIDTH - 100,
+      targetPosition: tutorialPositions.bookIcon || {
+        x: SCREEN_WIDTH - 60,
         y: insets.top + 280,
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
+      },
+      arrowDirection: 'up',
+    },
+    {
+      id: 'apiSetup',
+      title: tt('steps.apiSetup.title'),
+      description: tt('steps.apiSetup.description'),
+      targetPosition: tutorialPositions.bookIcon || {
+        x: SCREEN_WIDTH - 60,
+        y: insets.top + 340,
+        width: 44,
+        height: 44,
       },
       arrowDirection: 'up',
     },
@@ -102,27 +122,15 @@ export function HomeScreen(): React.JSX.Element {
       id: 'tips',
       title: tt('steps.tips.title'),
       description: tt('steps.tips.description'),
-      targetPosition: {
-        x: SCREEN_WIDTH - 50,
-        y: insets.top + 8,
-        width: 40,
-        height: 40,
-      },
-      arrowDirection: 'down',
-    },
-    {
-      id: 'apiSetup',
-      title: tt('steps.apiSetup.title'),
-      description: tt('steps.apiSetup.description'),
-      targetPosition: {
-        x: SCREEN_WIDTH / 2 - 100,
-        y: insets.top + 150,
-        width: 200,
-        height: 60,
+      targetPosition: tutorialPositions.tips || {
+        x: SCREEN_WIDTH - 58,
+        y: insets.top + 2,
+        width: 48,
+        height: 48,
       },
       arrowDirection: 'up',
     },
-  ], [tt, insets.top]);
+  ], [tt, insets.top, tutorialPositions]);
 
   // Tutorial hook
   const {
@@ -202,7 +210,7 @@ export function HomeScreen(): React.JSX.Element {
   const closeWordPopup = useCallback(() => {
     // Keep postUri to allow PostCard to clear selection before full reset
     setWordPopup(prev => ({ ...prev, visible: false }));
-    
+
     // Reset postUri after a short delay to allow PostCard to process clearSelection
     setTimeout(() => {
       setWordPopup(prev => ({ ...initialWordPopupState }));
@@ -323,10 +331,38 @@ export function HomeScreen(): React.JSX.Element {
   );
 
   /**
+   * Handle first post elements layout for tutorial
+   */
+  const handlePostLayoutElements = useCallback((elements: any) => {
+    setTutorialPositions(prev => ({
+      ...prev,
+      bookIcon: elements.bookIcon,
+      firstWord: elements.firstWord,
+      contentColumn: elements.contentColumn,
+    }));
+  }, []);
+
+  /**
+   * Measure tips button for tutorial
+   */
+  const measureTips = useCallback(() => {
+    if (tipsRef.current) {
+      // Small delay to ensure layout is stable
+      setTimeout(() => {
+        tipsRef.current?.measureInWindow((x, y, width, height) => {
+          if (x !== 0 || y !== 0) {
+            setTutorialPositions(prev => ({ ...prev, tips: { x, y, width, height } }));
+          }
+        });
+      }, 500);
+    }
+  }, []);
+
+  /**
    * Render individual post item
    */
   const renderPost = useCallback(
-    ({ item }: { item: TimelinePost }) => {
+    ({ item, index }: { item: TimelinePost, index: number }) => {
       // Only clear selection for the post that had a word selected
       // and only when the popup is closed but postUri hasn't been reset yet
       const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri && wordPopup.postUri !== '';
@@ -338,10 +374,11 @@ export function HomeScreen(): React.JSX.Element {
           onPostPress={handlePostPress}
           onLikePress={handleLikePress}
           clearSelection={shouldClearSelection}
+          onLayoutElements={index === 0 ? handlePostLayoutElements : undefined}
         />
       );
     },
-    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, wordPopup.visible, wordPopup.postUri]
+    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
   );
 
   /**
@@ -448,6 +485,8 @@ export function HomeScreen(): React.JSX.Element {
           <Text style={styles.headerSubtitle}>{t('headerSubtitle')}</Text>
         </View>
         <Pressable
+          ref={tipsRef}
+          onLayout={measureTips}
           onPress={() => navigation.navigate('Tips')}
           style={styles.tipsButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -541,13 +580,9 @@ export function HomeScreen(): React.JSX.Element {
           visible={isTutorialActive}
           title={currentStepData.title}
           description={currentStepData.description}
-          tooltipPosition={
-            currentStepData.arrowDirection === 'down'
-              ? { top: (currentStepData.targetPosition?.y ?? 0) + (currentStepData.targetPosition?.height ?? 0) + 20, left: Spacing.lg }
-              : { top: (currentStepData.targetPosition?.y ?? 0) - 150, left: Spacing.lg }
-          }
+          tooltipPosition={{}} // Handled automatically
           highlightArea={currentStepData.targetPosition}
-          arrowDirection={currentStepData.arrowDirection ?? 'up'}
+          arrowDirection="up" // Handled automatically
           currentStep={currentStepIndex}
           totalSteps={totalSteps}
           onNext={nextStep}

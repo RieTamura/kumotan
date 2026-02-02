@@ -37,6 +37,7 @@ import { useToast } from '../hooks/useToast';
 import { changeLanguage, getCurrentLanguage, type Language } from '../locales';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { FeedbackModal, type FeedbackType } from '../components/FeedbackModal';
+import { useTutorial } from '../hooks/useTutorial';
 
 /**
  * Settings item component props
@@ -124,6 +125,7 @@ export function SettingsScreen(): React.JSX.Element {
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('bug');
   const { toastState, showSuccess, showError, hideToast } = useToast();
+  const { resetTutorial } = useTutorial([], false);
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -461,6 +463,26 @@ export function SettingsScreen(): React.JSX.Element {
             title={t('tips.title')}
             subtitle={t('tips.subtitle')}
             onPress={() => navigation.navigate('Tips')}
+          />
+          <SettingsItem
+            title={t('tips.reset')}
+            subtitle={t('tips.resetSubtitle')}
+            onPress={() => {
+              Alert.alert(
+                t('tips.resetConfirmTitle'),
+                t('tips.resetConfirmMessage'),
+                [
+                  { text: tc('buttons.cancel'), style: 'cancel' },
+                  {
+                    text: tc('buttons.ok'),
+                    onPress: async () => {
+                      await resetTutorial();
+                      showSuccess(t('tips.resetSuccess'));
+                    },
+                  },
+                ]
+              );
+            }}
           />
         </SettingsSection>
 

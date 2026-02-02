@@ -89,7 +89,12 @@
   },
   "tips": {
     "title": "Usage Tips",
-    "subtitle": "Learn how to use the app"
+    "subtitle": "Learn how to use the app",
+    "reset": "Reset Tutorial",
+    "resetSubtitle": "Show introductory guide again",
+    "resetConfirmTitle": "Reset Tutorial",
+    "resetConfirmMessage": "The tutorial will be shown again when you restart the app. Are you sure?",
+    "resetSuccess": "Tutorial has been reset. It will appear on next launch."
   },
   "version": "Version {{version}}",
   "linkError": "Could not open link."
