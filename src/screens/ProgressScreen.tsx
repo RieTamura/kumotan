@@ -21,7 +21,7 @@ import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame, HelpCircle, AlertTriangle } from 'lucide-react-native';
+import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame, HelpCircle, AlertTriangle, Lightbulb } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -106,6 +106,7 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
 export function ProgressScreen(): React.JSX.Element {
   const { t } = useTranslation('progress');
   const { t: tc } = useTranslation('common');
+  const { t: th } = useTranslation('home');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isConnected = useNetworkStatus();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -430,20 +431,34 @@ export function ProgressScreen(): React.JSX.Element {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
-        <TouchableOpacity
-          onPress={handleShare}
-          disabled={!isConnected}
-          style={styles.shareButton}
-          accessible={true}
-          accessibilityLabel={t('share.accessibilityLabel')}
-          accessibilityHint={t('share.accessibilityHint')}
-          accessibilityRole="button"
-        >
-          <ShareIcon
-            size={24}
-            color={isConnected ? colors.primary : colors.textSecondary}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Tips')}
+            style={[
+              styles.headerIconButton,
+            ]}
+            accessible={true}
+            accessibilityLabel={th('tips')}
+            accessibilityHint={th('tipsHint')}
+            accessibilityRole="button"
+          >
+            <Lightbulb size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleShare}
+            disabled={!isConnected}
+            style={styles.shareButton}
+            accessible={true}
+            accessibilityLabel={t('share.accessibilityLabel')}
+            accessibilityHint={t('share.accessibilityHint')}
+            accessibilityRole="button"
+          >
+            <ShareIcon
+              size={24}
+              color={isConnected ? colors.primary : colors.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -746,6 +761,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18, // FontSizes.xl
     fontWeight: '700',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4, // Spacing.xs
+  },
+  headerIconButton: {
+    padding: 8, // Spacing.sm
+    borderRadius: 9999, // BorderRadius.full
   },
   shareButton: {
     padding: 8, // Spacing.sm

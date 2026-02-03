@@ -13,8 +13,10 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { BookOpen, Trash2 } from 'lucide-react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BookOpen, Trash2, Lightbulb } from 'lucide-react-native';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { Word, WordFilter } from '../types/word';
@@ -42,7 +44,9 @@ type SortOption = 'created_at' | 'english';
 export function WordListScreen(): React.JSX.Element {
   const { t } = useTranslation('wordList');
   const { t: tc } = useTranslation('common');
+  const { t: th } = useTranslation('home');
   const { colors, isDark } = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   // Use word store
   const {
@@ -252,14 +256,17 @@ export function WordListScreen(): React.JSX.Element {
       <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
         <Pressable
-          onPress={handleSortChange}
-          style={styles.sortButton}
+          onPress={() => navigation.navigate('Tips')}
+          style={({ pressed }) => [
+            styles.headerIconButton,
+            pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
+          ]}
           accessible={true}
-          accessibilityLabel={t('sort.title')}
-          accessibilityHint={getSortLabel()}
+          accessibilityLabel={th('tips')}
+          accessibilityHint={th('tipsHint')}
           accessibilityRole="button"
         >
-          <Text style={[styles.sortIcon, { color: colors.primary }]}>⇅</Text>
+          <Lightbulb size={24} color={colors.primary} />
         </Pressable>
       </View>
 
@@ -270,68 +277,80 @@ export function WordListScreen(): React.JSX.Element {
 
       {/* Filter tabs */}
       <View style={[styles.filterContainer, { backgroundColor: colors.backgroundSecondary, borderBottomColor: colors.border }]}>
-        <Pressable
-          style={[
-            styles.filterTab,
-            filter === 'all' && [styles.filterTabActive, { backgroundColor: colors.primary }],
-          ]}
-          onPress={() => handleFilterChange('all')}
-          accessible={true}
-          accessibilityLabel={t('filters.all')}
-          accessibilityRole="button"
-          accessibilityState={{ selected: filter === 'all' }}
-        >
-          <Text
+        <View style={styles.filterTabsWrapper}>
+          <Pressable
             style={[
-              styles.filterTabText,
-              { color: colors.textSecondary },
-              filter === 'all' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
+              styles.filterTab,
+              filter === 'unread' && [styles.filterTabActive, { backgroundColor: colors.primary }],
             ]}
+            onPress={() => handleFilterChange('unread')}
+            accessible={true}
+            accessibilityLabel={t('filters.unread')}
+            accessibilityRole="button"
+            accessibilityState={{ selected: filter === 'unread' }}
           >
-            {t('filters.all')}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.filterTab,
-            filter === 'unread' && [styles.filterTabActive, { backgroundColor: colors.primary }],
-          ]}
-          onPress={() => handleFilterChange('unread')}
-          accessible={true}
-          accessibilityLabel={t('filters.unread')}
-          accessibilityRole="button"
-          accessibilityState={{ selected: filter === 'unread' }}
-        >
-          <Text
+            <Text
+              style={[
+                styles.filterTabText,
+                { color: colors.textSecondary },
+                filter === 'unread' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
+              ]}
+            >
+              {t('filters.unread')}
+            </Text>
+          </Pressable>
+          <Pressable
             style={[
-              styles.filterTabText,
-              { color: colors.textSecondary },
-              filter === 'unread' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
+              styles.filterTab,
+              filter === 'read' && [styles.filterTabActive, { backgroundColor: colors.primary }],
             ]}
+            onPress={() => handleFilterChange('read')}
+            accessible={true}
+            accessibilityLabel={t('filters.read')}
+            accessibilityRole="button"
+            accessibilityState={{ selected: filter === 'read' }}
           >
-            {t('filters.unread')}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.filterTab,
-            filter === 'read' && [styles.filterTabActive, { backgroundColor: colors.primary }],
-          ]}
-          onPress={() => handleFilterChange('read')}
-          accessible={true}
-          accessibilityLabel={t('filters.read')}
-          accessibilityRole="button"
-          accessibilityState={{ selected: filter === 'read' }}
-        >
-          <Text
+            <Text
+              style={[
+                styles.filterTabText,
+                { color: colors.textSecondary },
+                filter === 'read' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
+              ]}
+            >
+              {t('filters.read')}
+            </Text>
+          </Pressable>
+          <Pressable
             style={[
-              styles.filterTabText,
-              { color: colors.textSecondary },
-              filter === 'read' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
+              styles.filterTab,
+              filter === 'all' && [styles.filterTabActive, { backgroundColor: colors.primary }],
             ]}
+            onPress={() => handleFilterChange('all')}
+            accessible={true}
+            accessibilityLabel={t('filters.all')}
+            accessibilityRole="button"
+            accessibilityState={{ selected: filter === 'all' }}
           >
-            {t('filters.read')}
-          </Text>
+            <Text
+              style={[
+                styles.filterTabText,
+                { color: colors.textSecondary },
+                filter === 'all' && [styles.filterTabTextActive, { color: '#FFFFFF' }],
+              ]}
+            >
+              {t('filters.all')}
+            </Text>
+          </Pressable>
+        </View>
+        <Pressable
+          onPress={handleSortChange}
+          style={styles.sortButton}
+          accessible={true}
+          accessibilityLabel={t('sort.title')}
+          accessibilityHint={getSortLabel()}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.sortIcon, { color: colors.primary }]}>⇅</Text>
         </Pressable>
       </View>
 
@@ -377,8 +396,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
   },
-  sortButton: {
+  headerIconButton: {
     padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
+  },
+  sortButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
   },
   sortIcon: {
     fontSize: FontSizes.xl,
@@ -395,11 +419,16 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.backgroundSecondary,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+  },
+  filterTabsWrapper: {
+    flexDirection: 'row',
   },
   filterTab: {
     paddingVertical: Spacing.sm,

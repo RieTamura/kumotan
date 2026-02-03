@@ -3,7 +3,7 @@
  * Displays quiz results and incorrect answers
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import {
-  Trophy,
   RotateCcw,
   Home,
   X,
@@ -25,7 +24,6 @@ import {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from '../components/common/Button';
-import { Confetti } from '../components/common/Confetti';
 import { formatTimeSpent, getEncouragementKey } from '../services/quiz/quizEngine';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -110,14 +108,9 @@ export function QuizResultScreen(): React.JSX.Element {
   const { colors } = useTheme();
 
   const { result } = route.params;
-  const [showConfetti, setShowConfetti] = useState(true);
 
   const timeFormatted = formatTimeSpent(result.timeSpentSeconds);
   const encouragementKey = getEncouragementKey(result.accuracy);
-
-  const handleConfettiEnd = useCallback(() => {
-    setShowConfetti(false);
-  }, []);
 
   // Handle retry with same settings
   const handleRetry = useCallback(() => {
@@ -139,9 +132,9 @@ export function QuizResultScreen(): React.JSX.Element {
           { paddingBottom: insets.bottom + 24 },
         ]}
       >
-        {/* Trophy icon */}
+        {/* Celebration icon */}
         <View style={styles.trophyContainer}>
-          <Trophy size={48} color={colors.primary} />
+          <Text style={styles.celebrationIcon}>🎉</Text>
         </View>
 
         {/* Score display */}
@@ -222,11 +215,6 @@ export function QuizResultScreen(): React.JSX.Element {
           />
         </View>
       </ScrollView>
-
-      {/* Confetti animation */}
-      {showConfetti && (
-        <Confetti count={60} onAnimationEnd={handleConfettiEnd} />
-      )}
     </View>
   );
 }
@@ -244,6 +232,9 @@ const styles = StyleSheet.create({
   },
   trophyContainer: {
     marginBottom: 24,
+  },
+  celebrationIcon: {
+    fontSize: 48,
   },
   scoreCircle: {
     width: 160,

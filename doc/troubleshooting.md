@@ -5285,3 +5285,111 @@ export function QuizResultScreen() {
 - `react-native-reanimated`はパフォーマンスの良いアニメーションを実装するのに適している
 - 多数のアニメーション要素を同時に動かす場合、各要素にランダム性を持たせることで自然な動きになる
 - `pointerEvents="none"`を使用することで、オーバーレイ要素がユーザーインタラクションを妨げないようにできる
+
+---
+
+## 25. 単語帳ページのUIレイアウト改善
+
+### 発生日
+2026年2月3日
+
+### 背景
+単語帳ページのヘッダーにあった並び替えアイコン（⇅）の位置が、削除ボタンの列と揃っておらず、UIの一貫性が欠けていた。また、フィルタータブの順番が「すべて」「未読」「既読」となっており、よく使う「未読」が最初に来ていなかった。
+
+### 変更内容
+
+#### 1. ソートアイコンの位置変更
+
+**変更前**: ヘッダー右上にTipsアイコンと並んで配置
+**変更後**: フィルタータブ行の右端（削除ボタンの列と同じ位置）に移動
+
+```typescript
+// 変更前 - ヘッダーにソートボタン
+<View style={styles.header}>
+  <Text style={styles.headerTitle}>{t('header')}</Text>
+  <View style={styles.headerRight}>
+    <Pressable onPress={() => navigation.navigate('Tips')}>
+      <Lightbulb />
+    </Pressable>
+    <Pressable onPress={handleSortChange}>
+      <Text style={styles.sortIcon}>⇅</Text>
+    </Pressable>
+  </View>
+</View>
+
+// 変更後 - フィルタータブ行にソートボタン
+<View style={styles.header}>
+  <Text style={styles.headerTitle}>{t('header')}</Text>
+  <Pressable onPress={() => navigation.navigate('Tips')}>
+    <Lightbulb />
+  </Pressable>
+</View>
+
+<View style={styles.filterContainer}>
+  <View style={styles.filterTabsWrapper}>
+    {/* フィルタータブ */}
+  </View>
+  <Pressable onPress={handleSortChange}>
+    <Text style={styles.sortIcon}>⇅</Text>
+  </Pressable>
+</View>
+```
+
+#### 2. スタイルの追加・修正
+
+```typescript
+// filterContainerにjustifyContentとalignItemsを追加
+filterContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',  // 追加
+  alignItems: 'center',              // 追加
+  paddingHorizontal: Spacing.md,
+  paddingVertical: Spacing.sm,
+  backgroundColor: Colors.backgroundSecondary,
+  borderBottomWidth: 1,
+  borderBottomColor: Colors.border,
+},
+
+// フィルタータブをまとめるラッパーを追加
+filterTabsWrapper: {
+  flexDirection: 'row',
+},
+
+// sortButtonのpaddingを調整
+sortButton: {
+  paddingVertical: Spacing.sm,
+  paddingHorizontal: Spacing.lg,  // 削除ボタンと同じ幅に
+},
+```
+
+#### 3. フィルタータブの順番変更
+
+**変更前**: 「すべて」→「未読」→「既読」
+**変更後**: 「未読」→「既読」→「すべて」
+
+```typescript
+// 変更後のフィルタータブの順序
+<View style={styles.filterTabsWrapper}>
+  <Pressable onPress={() => handleFilterChange('unread')}>
+    <Text>{t('filters.unread')}</Text>  {/* 未読 */}
+  </Pressable>
+  <Pressable onPress={() => handleFilterChange('read')}>
+    <Text>{t('filters.read')}</Text>    {/* 既読 */}
+  </Pressable>
+  <Pressable onPress={() => handleFilterChange('all')}>
+    <Text>{t('filters.all')}</Text>     {/* すべて */}
+  </Pressable>
+</View>
+```
+
+#### 4. 不要なスタイルの削除
+
+`headerRight`スタイルは使用されなくなったため削除。
+
+### 関連ファイル
+- `src/screens/WordListScreen.tsx` - 単語帳画面
+
+### 教訓
+- UIの一貫性を保つために、関連する要素（ソートアイコンと削除ボタン）の配置を揃えることが重要
+- フィルタータブは使用頻度の高いオプションを先頭に配置することで、ユーザビリティが向上
+- `flexDirection: 'row'`と`justifyContent: 'space-between'`の組み合わせで、左右に要素を分散配置できる

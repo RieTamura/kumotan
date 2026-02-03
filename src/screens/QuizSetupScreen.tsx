@@ -11,12 +11,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Pressable,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, HelpCircle } from 'lucide-react-native';
+import { ArrowRight, HelpCircle, Lightbulb } from 'lucide-react-native';
 
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
@@ -70,7 +71,8 @@ export function QuizSetupScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('quiz');
   const { t: tNav } = useTranslation('navigation');
-  const { colors } = useTheme();
+  const { t: th } = useTranslation('home');
+  const { colors, isDark } = useTheme();
 
   // Quiz settings state
   const [questionType, setQuestionType] = useState<QuestionType>('en_to_ja');
@@ -125,6 +127,19 @@ export function QuizSetupScreen(): React.JSX.Element {
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           {tNav('headers.quizSetup')}
         </Text>
+        <Pressable
+          onPress={() => navigation.navigate('Tips')}
+          style={({ pressed }) => [
+            styles.headerIconButton,
+            pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
+          ]}
+          accessible={true}
+          accessibilityLabel={th('tips')}
+          accessibilityHint={th('tipsHint')}
+          accessibilityRole="button"
+        >
+          <Lightbulb size={24} color={colors.primary} />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -216,6 +231,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -223,6 +239,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
+  },
+  headerIconButton: {
+    padding: 8,
+    borderRadius: 9999,
   },
   container: {
     flex: 1,
