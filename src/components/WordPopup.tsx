@@ -981,7 +981,7 @@ export function WordPopup({
               onPress={handleBackdropPress}
               variant="outline"
               disabled={isAdding}
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { backgroundColor: colors.background }]}
             />
           </View>
         </Animated.View>
