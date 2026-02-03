@@ -26,7 +26,6 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
 import { Button } from '../components/common/Button';
 import { Confetti } from '../components/common/Confetti';
-import { QuizResult } from '../types/quiz';
 import { formatTimeSpent, getEncouragementKey } from '../services/quiz/quizEngine';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -164,7 +163,7 @@ export function QuizResultScreen(): React.JSX.Element {
               {result.correctCount}
             </Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              {t('result.score', { correct: '', total: '' }).split('/')[0].trim()}
+              {t('result.correctWords')}
             </Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
@@ -182,7 +181,7 @@ export function QuizResultScreen(): React.JSX.Element {
               {timeFormatted.minutes}:{timeFormatted.seconds.toString().padStart(2, '0')}
             </Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              {t('result.timeTaken', { minutes: '', seconds: '' }).split(':')[0].trim()}
+              {t('result.timeLabel')}
             </Text>
           </View>
         </View>

@@ -4801,3 +4801,487 @@ const renderEmpty = useCallback(() => {
 ### 教訓
 - `useCallback` や `useMemo` を使用する際、レンダリング結果がテーマ（ `colors` ）に依存している場合は、必ず依存配列に含める必要がある。
 - コンポーネント化されている部分は正しく表示されていても、画面（Screen）レベルで定義されているレンダリング関数内のインラインスタイルなどが盲点になりやすい。
+
+---
+
+## 21. クイズ終了確認ダイアログのボタンが見づらい問題
+
+### 発生日
+2026年2月3日
+
+### 症状
+- クイズ中に戻ろうとすると終了確認ダイアログが表示される
+- 「終了」ボタンが赤文字でグレー背景に表示され、視認性が非常に低い
+- ダークモードでは特に見づらい
+
+### 原因
+React Nativeの`Alert.alert()`を使用しており、`style: 'destructive'`を指定するとプラットフォームネイティブのスタイルが適用される。iOSではこれが赤いテキストになるが、ダークモードのグレー背景との組み合わせでコントラストが低くなっていた。
+
+### 解決策
+
+**1. カスタム確認モーダルコンポーネントを作成：**
+
+`src/components/common/ConfirmModal.tsx`を新規作成：
+
+```typescript
+interface ConfirmModalButton {
+  text: string;
+  onPress: () => void;
+  style?: 'default' | 'cancel' | 'destructive';
+}
+
+interface ConfirmModalProps {
+  visible: boolean;
+  title: string;
+  message?: string;
+  buttons: ConfirmModalButton[];
+  onClose?: () => void;
+}
+
+export function ConfirmModal({
+  visible,
+  title,
+  message,
+  buttons,
+  onClose,
+}: ConfirmModalProps): React.JSX.Element {
+  const { colors } = useTheme();
+
+  const getButtonStyle = (style?: 'default' | 'cancel' | 'destructive') => {
+    switch (style) {
+      case 'destructive':
+        return {
+          backgroundColor: colors.error,  // 赤背景
+          textColor: '#FFFFFF',           // 白文字
+        };
+      case 'cancel':
+        return {
+          backgroundColor: colors.backgroundSecondary,
+          textColor: colors.text,
+        };
+      default:
+        return {
+          backgroundColor: colors.primary,
+          textColor: '#FFFFFF',
+        };
+    }
+  };
+
+  // ... モーダルのレンダリング
+}
+```
+
+**2. QuizScreen.tsxでカスタムモーダルを使用：**
+
+```typescript
+// 変更前 - ネイティブAlert
+const handleExit = useCallback(() => {
+  Alert.alert(
+    t('quiz.exitConfirmTitle'),
+    t('quiz.exitConfirmMessage'),
+    [
+      { text: t('quiz.continue'), style: 'cancel' },
+      {
+        text: t('quiz.exit'),
+        style: 'destructive',
+        onPress: () => {
+          isExitingRef.current = true;
+          navigation.goBack();
+        },
+      },
+    ]
+  );
+}, [navigation, t]);
+
+// 変更後 - カスタムモーダル
+const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+const handleExit = useCallback(() => {
+  setShowExitConfirm(true);
+}, []);
+
+// レンダリング部分
+<ConfirmModal
+  visible={showExitConfirm}
+  title={t('quiz.exitConfirmTitle')}
+  message={t('quiz.exitConfirmMessage')}
+  buttons={[
+    {
+      text: t('quiz.continue'),
+      onPress: () => setShowExitConfirm(false),
+      style: 'cancel',
+    },
+    {
+      text: t('quiz.exit'),
+      onPress: handleConfirmExit,
+      style: 'destructive',
+    },
+  ]}
+  onClose={() => setShowExitConfirm(false)}
+/>
+```
+
+### 実装のポイント
+
+- `destructive`スタイルのボタンは赤背景＋白文字で視認性を大幅に向上
+- `cancel`スタイルのボタンはグレー背景で「終了」ボタンと明確に区別
+- テーマカラーを使用してダークモード/ライトモードの両方に対応
+- ネイティブAlertの制限を回避し、アプリ全体で一貫したデザインを実現
+
+### 関連ファイル
+
+- `src/components/common/ConfirmModal.tsx` - 確認モーダルコンポーネント（新規作成）
+- `src/screens/QuizScreen.tsx` - クイズ画面
+
+### 教訓
+
+- React NativeのネイティブAlertはプラットフォームのスタイルに依存するため、細かなカスタマイズが難しい
+- ダークモード対応を考慮する場合、カスタムモーダルの方が制御しやすい
+- 重要なアクション（削除、終了など）のボタンは、背景色で強調することで視認性と操作の明確さが向上
+
+---
+
+## 22. クイズ完了後に結果画面に遷移せず終了確認ダイアログが表示される問題
+
+### 発生日
+2026年2月3日
+
+### 症状
+- クイズの最後の問題に回答し、「結果」ボタンを押す
+- 結果画面に遷移せず、終了確認ダイアログ（「クイズを終了しますか？」）が表示される
+- ダイアログで「終了」を押すと、クイズ設定画面に戻ってしまう
+- 結果画面を見ることができない
+
+### 原因
+`navigation.replace('QuizResult', ...)`が呼び出されると、現在の画面（QuizScreen）が削除されて新しい画面に置き換えられる。この「画面削除」のイベントが`beforeRemove`リスナーをトリガーし、終了確認ダイアログが表示されていた。
+
+`beforeRemove`リスナーの条件チェック：
+```typescript
+useEffect(() => {
+  const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+    // 意図的な離脱の場合は許可
+    if (isExitingRef.current) {
+      return;
+    }
+
+    // フィードバック表示中またはローディング中は許可
+    if (showFeedback || isLoading) {
+      return;
+    }
+
+    // それ以外は終了確認を表示
+    e.preventDefault();
+    handleExit();
+  });
+
+  return unsubscribe;
+}, [navigation, showFeedback, isLoading, handleExit]);
+```
+
+問題点：
+- クイズ完了時、`handleNext`で`setShowFeedback(false)`を呼び出した後に`navigation.replace`が実行される
+- この時点で`showFeedback`は`false`、`isLoading`も`false`になっている可能性がある
+- `isExitingRef`は設定されていないため、`beforeRemove`がブロックされる
+
+### 解決策
+
+**1. クイズ完了を追跡するrefを追加：**
+
+```typescript
+const inputRef = useRef<TextInput>(null);
+const isExitingRef = useRef(false);
+const isCompletingRef = useRef(false);  // 追加
+```
+
+**2. クイズ完了時にrefを設定：**
+
+```typescript
+if (nextIndex >= session.questions.length) {
+  // Quiz completed
+  setIsLoading(true);
+  try {
+    const result = await completeQuiz(session);
+    setIsLoading(false);
+
+    if (result.success) {
+      isCompletingRef.current = true;  // 追加
+      navigation.replace('QuizResult', { result: result.data });
+    } else {
+      Alert.alert(t('common:errors.error'), result.error.message);
+    }
+  } catch (error) {
+    // エラーハンドリング
+  }
+}
+```
+
+**3. beforeRemoveリスナーでrefをチェック：**
+
+```typescript
+useEffect(() => {
+  const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+    // 意図的な離脱またはクイズ完了時は許可
+    if (isExitingRef.current || isCompletingRef.current) {
+      return;
+    }
+
+    if (showFeedback || isLoading) {
+      return;
+    }
+
+    e.preventDefault();
+    handleExit();
+  });
+
+  return unsubscribe;
+}, [navigation, showFeedback, isLoading, handleExit]);
+```
+
+### 実装のポイント
+- `useRef`を使用することで、state更新の非同期性に影響されない同期的な値を保持
+- `isExitingRef`（途中離脱用）と`isCompletingRef`（完了時用）を分けることで、意図を明確に区別
+- `navigation.replace`は現在の画面を削除するため、`beforeRemove`がトリガーされることを認識する必要がある
+
+### 関連ファイル
+- `src/screens/QuizScreen.tsx` - クイズ画面
+
+### 教訓
+- `navigation.replace()`は`beforeRemove`イベントをトリガーする
+- stateの更新は非同期であるため、リスナー内でstateに依存すると予期しない動作になる場合がある
+- `useRef`を使用することで、state更新のタイミングに依存しない制御が可能
+- ナビゲーションのブロック機能を実装する際は、正常な遷移パターンも考慮する必要がある
+
+---
+
+## 23. クイズ結果画面の統計行で「正解した単語」ラベルが表示されない問題
+
+### 発生日
+2026年2月3日
+
+### 症状
+- クイズ結果画面の統計行（Stats row）に3つの統計値が表示される
+- 正解数の下にラベルが表示されない（空白）
+- 不正解数の下には「間違えた単語」と表示される
+- 時間の下にもラベルが表示されない
+
+### 原因
+`QuizResultScreen.tsx`で、翻訳キーから不適切な方法でラベルを抽出しようとしていた：
+
+```typescript
+// 問題のあるコード
+<Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+  {t('result.score', { correct: '', total: '' }).split('/')[0].trim()}
+</Text>
+```
+
+`result.score`の翻訳値は`"{{correct}} / {{total}} 正解"`であり、パラメータに空文字を渡して`split('/')`すると意味のない結果になっていた。
+
+同様に時間のラベルも：
+```typescript
+{t('result.timeTaken', { minutes: '', seconds: '' }).split(':')[0].trim()}
+```
+
+`result.timeTaken`は`"所要時間: {{minutes}}分{{seconds}}秒"`であり、これも適切に動作していなかった。
+
+### 解決策
+
+**1. 翻訳ファイルに専用のラベルキーを追加：**
+
+`src/locales/ja/quiz.json`に追加：
+
+```json
+{
+  "result": {
+    "header": "結果",
+    "score": "{{correct}} / {{total}} 正解",
+    "accuracy": "正答率: {{percentage}}%",
+    "timeTaken": "所要時間: {{minutes}}分{{seconds}}秒",
+    "timeLabel": "所要時間",           // 追加
+    "perfect": "パーフェクト！すばらしい！",
+    "great": "よくできました！",
+    "good": "頑張りました！",
+    "keepTrying": "もう少し頑張ろう！",
+    "correctWords": "正解した単語",    // 追加
+    "incorrectWords": "間違えた単語",
+    // ...
+  }
+}
+```
+
+**2. QuizResultScreen.tsxで翻訳キーを直接使用：**
+
+```typescript
+// 変更前
+<View style={styles.statItem}>
+  <Text style={[styles.statValue, { color: colors.text }]}>
+    {result.correctCount}
+  </Text>
+  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+    {t('result.score', { correct: '', total: '' }).split('/')[0].trim()}
+  </Text>
+</View>
+
+// 変更後
+<View style={styles.statItem}>
+  <Text style={[styles.statValue, { color: colors.text }]}>
+    {result.correctCount}
+  </Text>
+  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+    {t('result.correctWords')}
+  </Text>
+</View>
+```
+
+時間のラベルも同様に修正：
+```typescript
+// 変更前
+{t('result.timeTaken', { minutes: '', seconds: '' }).split(':')[0].trim()}
+
+// 変更後
+{t('result.timeLabel')}
+```
+
+### 実装のポイント
+- 翻訳文字列を`split()`等で加工してラベルを抽出するのは避けるべき
+- 必要なラベルは専用の翻訳キーとして定義する
+- i18nの翻訳キーは明確で直接的な命名にする
+
+### 関連ファイル
+- `src/locales/ja/quiz.json` - 日本語翻訳ファイル
+- `src/screens/QuizResultScreen.tsx` - クイズ結果画面
+
+### 教訓
+- 翻訳文字列を文字列操作（split、substring等）で加工するのはアンチパターン
+- 言語によって文字列の構造が異なるため、特定の区切り文字を前提にした処理は機能しない
+- 必要なテキストは個別の翻訳キーとして定義し、直接参照する
+- i18nを適切に使用することで、多言語対応が容易になり、コードの保守性も向上
+
+---
+
+## 24. クイズ結果画面に花吹雪（Confetti）アニメーションを追加
+
+### 発生日
+2026年2月3日
+
+### 背景
+クイズ完了時に、お祝いの演出として花吹雪アニメーションを表示したいという要望があった。
+
+### 実装
+
+**1. Confettiコンポーネントを作成：**
+
+`src/components/common/Confetti.tsx`を新規作成。`react-native-reanimated`を使用してアニメーションを実装：
+
+```typescript
+const CONFETTI_COLORS = [
+  '#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3',
+  '#F38181', '#AA96DA', '#FCBAD3', '#1DA1F2', '#17BF63',
+];
+
+function ConfettiPiece({ index, startDelay, onAnimationEnd, isLast }) {
+  const translateY = useSharedValue(-50);
+  const translateX = useSharedValue(0);
+  const rotate = useSharedValue(0);
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    // 落下アニメーション
+    translateY.value = withDelay(
+      startDelay,
+      withTiming(SCREEN_HEIGHT + 100, {
+        duration: 2500 + Math.random() * 1500,
+        easing: Easing.out(Easing.quad),
+      })
+    );
+
+    // 横方向のドリフト
+    translateX.value = withDelay(
+      startDelay,
+      withTiming((Math.random() - 0.5) * 150, { ... })
+    );
+
+    // 回転
+    rotate.value = withDelay(
+      startDelay,
+      withTiming(360 + Math.random() * 720, { ... })
+    );
+
+    // フェードアウト
+    opacity.value = withDelay(
+      startDelay + duration * 0.7,
+      withTiming(0, { ... })
+    );
+  }, []);
+
+  return (
+    <Animated.View style={[styles.confettiPiece, animatedStyle, { ... }]} />
+  );
+}
+
+export function Confetti({ count = 50, onAnimationEnd }) {
+  const pieces = useMemo(() =>
+    Array.from({ length: count }, (_, i) => ({
+      index: i,
+      startDelay: Math.random() * 500,
+    })),
+    [count]
+  );
+
+  return (
+    <View style={styles.container} pointerEvents="none">
+      {pieces.map((piece, idx) => (
+        <ConfettiPiece
+          key={piece.index}
+          index={piece.index}
+          startDelay={piece.startDelay}
+          isLast={idx === pieces.length - 1}
+          onAnimationEnd={onAnimationEnd}
+        />
+      ))}
+    </View>
+  );
+}
+```
+
+**2. QuizResultScreenでConfettiを使用：**
+
+```typescript
+import { Confetti } from '../components/common/Confetti';
+
+export function QuizResultScreen() {
+  const [showConfetti, setShowConfetti] = useState(true);
+
+  const handleConfettiEnd = useCallback(() => {
+    setShowConfetti(false);
+  }, []);
+
+  return (
+    <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
+      <ScrollView>
+        {/* 結果表示コンテンツ */}
+      </ScrollView>
+
+      {/* Confetti animation */}
+      {showConfetti && (
+        <Confetti count={60} onAnimationEnd={handleConfettiEnd} />
+      )}
+    </View>
+  );
+}
+```
+
+### 実装のポイント
+- `react-native-reanimated`のWorkletベースのアニメーションを使用して滑らかな動きを実現
+- 各紙吹雪は個別の開始遅延、落下速度、回転速度、ドリフト方向を持つ
+- 紙吹雪の形状は円形と長方形をランダムに混合
+- `pointerEvents="none"`により、紙吹雪がタッチイベントをブロックしない
+- アニメーション終了後は`showConfetti`を`false`にしてコンポーネントをアンマウント
+
+### 関連ファイル
+- `src/components/common/Confetti.tsx` - 花吹雪コンポーネント（新規作成）
+- `src/screens/QuizResultScreen.tsx` - クイズ結果画面
+
+### 教訓
+- `react-native-reanimated`はパフォーマンスの良いアニメーションを実装するのに適している
+- 多数のアニメーション要素を同時に動かす場合、各要素にランダム性を持たせることで自然な動きになる
+- `pointerEvents="none"`を使用することで、オーバーレイ要素がユーザーインタラクションを妨げないようにできる
