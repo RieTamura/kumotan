@@ -5533,3 +5533,36 @@ headerIconButton: {
 - スタイル値はハードコードせず、定義済みの定数を使用することで、変更時の影響範囲を限定できる
 - UIの一貫性は細部（ヘッダー高さなど）にも注意を払うことで、アプリ全体の品質が向上する
 
+
+### 追加修正（同日）
+
+#### 問題
+SettingsScreenのヘッダーはアイコンボタンがないため、テキストのみの高さとなり、他のページ（WordListScreen等）のヘッダーより低くなっていた。
+
+#### 原因
+WordListScreenのヘッダーには24pxのアイコン（padding: Spacing.sm = 8px）があり、これがヘッダーの実際の高さを決定していた。SettingsScreenはテキストのみでアイコンがないため、コンテンツ高さが低くなっていた。
+
+#### 解決策
+全ての画面のヘッダーに `minHeight: 56` を追加して、コンテンツに関係なく一貫した高さを保証。
+
+```typescript
+// 全画面で統一されたヘッダースタイル
+header: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  paddingHorizontal: Spacing.lg,
+  paddingVertical: Spacing.md,
+  borderBottomWidth: 1,
+  borderBottomColor: Colors.border,
+  backgroundColor: Colors.background,
+  minHeight: 56,  // 追加：最小高さを保証
+},
+```
+
+#### 修正したファイル
+- `src/screens/WordListScreen.tsx` - minHeight: 56 追加
+- `src/screens/HomeScreen.tsx` - minHeight: 56 追加
+- `src/screens/QuizSetupScreen.tsx` - minHeight: 56 追加
+- `src/screens/SettingsScreen.tsx` - flexDirection, alignItems, justifyContent, minHeight: 56 追加
+

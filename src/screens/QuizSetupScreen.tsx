@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
+    minHeight: 56,
   },
   headerTitle: {
     fontSize: FontSizes.xl,

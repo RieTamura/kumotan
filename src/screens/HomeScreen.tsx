@@ -630,6 +630,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
+    minHeight: 56,
   },
   headerLeft: {
     flex: 1,
