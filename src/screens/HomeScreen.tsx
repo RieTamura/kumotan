@@ -479,14 +479,13 @@ export function HomeScreen(): React.JSX.Element {
   }
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <OfflineBanner />
 
       {/* Header */}
       <View style={[styles.header, {
         backgroundColor: colors.background,
         borderBottomColor: colors.border,
-        paddingTop: insets.top,
       }]}>
         <View style={styles.headerLeft}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
@@ -613,7 +612,7 @@ export function HomeScreen(): React.JSX.Element {
           skipLabel={tt('skip')}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

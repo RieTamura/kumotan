@@ -5393,3 +5393,143 @@ sortButton: {
 - UIの一貫性を保つために、関連する要素（ソートアイコンと削除ボタン）の配置を揃えることが重要
 - フィルタータブは使用頻度の高いオプションを先頭に配置することで、ユーザビリティが向上
 - `flexDirection: 'row'`と`justifyContent: 'space-between'`の組み合わせで、左右に要素を分散配置できる
+
+---
+
+## 26. 各ページのヘッダー高さが統一されていない問題
+
+### 発生日
+2026年2月3日
+
+### 症状
+- 単語帳ページ、ホームページ、クイズページ、設定ページでヘッダーの高さが異なっていた
+- ホームページとクイズページのヘッダーが他のページより高く表示されていた
+- タブを切り替えるとヘッダー部分の高さが変わり、視覚的に不統一だった
+
+### 原因
+各ページでセーフエリアの処理方法が異なっていた：
+
+**WordListScreen（正しい実装）:**
+- `SafeAreaView edges={['top']}` を使用
+- ヘッダーには `paddingVertical: Spacing.md` のみ
+
+**HomeScreen / QuizSetupScreen（問題のある実装）:**
+- 通常の `View` を使用
+- ヘッダーに手動で `paddingTop: insets.top` を追加
+- この結果、セーフエリアのパディングがヘッダー内に含まれ、ヘッダーが高くなっていた
+
+**SettingsScreen:**
+- 既に `SafeAreaView edges={['top']}` を使用しており、正しい高さだった
+
+### 解決策
+
+**1. HomeScreen.tsxの修正：**
+
+```typescript
+// 変更前 - ViewとpaddingTopを使用
+return (
+  <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <View style={[styles.header, {
+      backgroundColor: colors.background,
+      borderBottomColor: colors.border,
+      paddingTop: insets.top,  // 手動でセーフエリアを追加
+    }]}>
+
+// 変更後 - SafeAreaViewを使用
+return (
+  <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={[styles.header, {
+      backgroundColor: colors.background,
+      borderBottomColor: colors.border,
+      // paddingTopを削除
+    }]}>
+```
+
+閉じタグも `</View>` から `</SafeAreaView>` に変更。
+
+**2. QuizSetupScreen.tsxの修正：**
+
+```typescript
+// 変更前 - useSafeAreaInsetsとpaddingTopを使用
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+export function QuizSetupScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
+  
+  return (
+    <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, {
+        backgroundColor: colors.background,
+        borderBottomColor: colors.border,
+        paddingTop: insets.top,
+      }]}>
+
+// 変更後 - SafeAreaViewを使用
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+export function QuizSetupScreen(): React.JSX.Element {
+  // useSafeAreaInsetsを削除
+  
+  return (
+    <SafeAreaView style={[styles.screenContainer, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, {
+        backgroundColor: colors.background,
+        borderBottomColor: colors.border,
+        // paddingTopを削除
+      }]}>
+```
+
+**3. QuizSetupScreenのスタイルをSpacing定数に統一：**
+
+```typescript
+// 変更前 - ハードコードされた値
+header: {
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+},
+headerTitle: {
+  fontSize: 20,
+},
+headerIconButton: {
+  padding: 8,
+  borderRadius: 9999,
+},
+
+// 変更後 - Spacing定数を使用
+import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
+
+header: {
+  paddingHorizontal: Spacing.lg,
+  paddingVertical: Spacing.md,
+},
+headerTitle: {
+  fontSize: FontSizes.xl,
+},
+headerIconButton: {
+  padding: Spacing.sm,
+  borderRadius: BorderRadius.full,
+},
+```
+
+**4. SettingsScreen:**
+既に `SafeAreaView edges={['top']}` を使用し、`Spacing.lg` と `Spacing.md` を使用していたため、変更不要。
+
+### 実装のポイント
+- `SafeAreaView edges={['top']}` を使用すると、セーフエリアの処理がコンポーネント外で行われる
+- 手動で `paddingTop: insets.top` を追加すると、ヘッダー内にセーフエリアが含まれてしまう
+- 全ページで同じSpacing定数（`Spacing.lg`, `Spacing.md`）を使用することで一貫性を保つ
+- ハードコードされた値（`16`, `12`など）は定数に置き換えて保守性を向上
+
+### 関連ファイル
+- `src/screens/HomeScreen.tsx` - ホーム画面
+- `src/screens/QuizSetupScreen.tsx` - クイズ設定画面
+- `src/screens/SettingsScreen.tsx` - 設定画面（変更なし）
+- `src/screens/WordListScreen.tsx` - 単語帳画面（基準として参照）
+- `src/constants/colors.ts` - Spacing, FontSizes, BorderRadius定数
+
+### 教訓
+- セーフエリアの処理は `SafeAreaView` コンポーネントに任せ、手動でパディングを追加しない
+- 新しい画面を作成する際は、既存の画面の実装パターンを確認して一貫性を保つ
+- スタイル値はハードコードせず、定義済みの定数を使用することで、変更時の影響範囲を限定できる
+- UIの一貫性は細部（ヘッダー高さなど）にも注意を払うことで、アプリ全体の品質が向上する
+

@@ -15,12 +15,13 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, HelpCircle, Lightbulb } from 'lucide-react-native';
 
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
+import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
 import { Button } from '../components/common/Button';
 import { QuestionType, QuestionCount, QuizSettings } from '../types/quiz';
 import { getQuizableWordCount } from '../services/database/quiz';
@@ -68,7 +69,6 @@ function OptionButton({ label, selected, onPress, disabled }: OptionButtonProps)
 
 export function QuizSetupScreen(): React.JSX.Element {
   const navigation = useNavigation<NavigationProp>();
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation('quiz');
   const { t: tNav } = useTranslation('navigation');
   const { t: th } = useTranslation('home');
@@ -117,12 +117,11 @@ export function QuizSetupScreen(): React.JSX.Element {
   const questionCountOptions: QuestionCount[] = [5, 10, 20];
 
   return (
-    <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.screenContainer, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, {
         backgroundColor: colors.background,
         borderBottomColor: colors.border,
-        paddingTop: insets.top,
       }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           {tNav('headers.quizSetup')}
@@ -144,10 +143,7 @@ export function QuizSetupScreen(): React.JSX.Element {
 
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={[
-          styles.contentContainer,
-          { paddingBottom: insets.bottom + 24 },
-        ]}
+        contentContainerStyle={styles.contentContainer}
       >
       {/* Available words info */}
       <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
@@ -220,7 +216,7 @@ export function QuizSetupScreen(): React.JSX.Element {
         </View>
       )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -232,23 +228,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: FontSizes.xl,
     fontWeight: '700',
   },
   headerIconButton: {
-    padding: 8,
-    borderRadius: 9999,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
   container: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
   },
   infoCard: {
     flexDirection: 'row',
