@@ -393,6 +393,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   headerTitle: {
+    flex: 1,
     fontSize: FontSizes.xl,
     fontWeight: '700',
     color: Colors.text,

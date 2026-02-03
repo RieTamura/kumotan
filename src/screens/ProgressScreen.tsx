@@ -433,18 +433,6 @@ export function ProgressScreen(): React.JSX.Element {
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Tips')}
-            style={[
-              styles.headerIconButton,
-            ]}
-            accessible={true}
-            accessibilityLabel={th('tips')}
-            accessibilityHint={th('tipsHint')}
-            accessibilityRole="button"
-          >
-            <Lightbulb size={24} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={handleShare}
             disabled={!isConnected}
             style={styles.shareButton}
@@ -457,6 +445,18 @@ export function ProgressScreen(): React.JSX.Element {
               size={24}
               color={isConnected ? colors.primary : colors.textSecondary}
             />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Tips')}
+            style={[
+              styles.headerIconButton,
+            ]}
+            accessible={true}
+            accessibilityLabel={th('tips')}
+            accessibilityHint={th('tipsHint')}
+            accessibilityRole="button"
+          >
+            <Lightbulb size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -486,7 +486,7 @@ export function ProgressScreen(): React.JSX.Element {
 
         {/* Calendar Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('calendar.title')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('calendar.title')}</Text>
 
           {/* Month Navigation */}
           <View style={styles.monthNav}>
@@ -527,7 +527,7 @@ export function ProgressScreen(): React.JSX.Element {
 
         {/* Stats Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('statistics.title')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('statistics.title')}</Text>
           <View style={styles.statsGrid}>
             <StatsCard
               title={t('statistics.totalWords')}
@@ -562,7 +562,7 @@ export function ProgressScreen(): React.JSX.Element {
 
         {/* Quiz Stats Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('quiz.title')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t('quiz.title')}</Text>
 
           {quizStats && quizStats.totalAttempts > 0 ? (
             <>
@@ -784,9 +784,11 @@ const styles = StyleSheet.create({
     marginBottom: 24, // Spacing.xl
   },
   sectionTitle: {
-    fontSize: 16, // FontSizes.lg
+    fontSize: 12, // FontSizes.sm
     fontWeight: '600',
-    marginBottom: 12, // Spacing.md
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8, // Spacing.sm
   },
   statsGrid: {
     flexDirection: 'row',

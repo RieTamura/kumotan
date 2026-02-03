@@ -13,6 +13,9 @@ export const useTheme = (): UseThemeResult => {
   const { mode, setMode } = useThemeStore();
   const systemColorScheme = useColorScheme();
 
+  // Debug: システムのカラースキームを確認
+  console.log('[useTheme] systemColorScheme:', systemColorScheme, 'mode:', mode);
+
   const isDark =
     mode === 'dark' ||
     (mode === 'system' && systemColorScheme === 'dark');

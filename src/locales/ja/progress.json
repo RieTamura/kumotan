@@ -6,12 +6,12 @@
     "wordsLearned": "{{count}}個の単語を学習"
   },
   "calendar": {
-    "title": "【カレンダー】",
+    "title": "カレンダー",
     "legend": "学習した日",
     "weekdays": ["日", "月", "火", "水", "木", "金", "土"]
   },
   "statistics": {
-    "title": "【統計】",
+    "title": "統計",
     "totalWords": "総単語",
     "readWords": "既読",
     "readRate": "既読率",
@@ -56,7 +56,7 @@
     "shareNotAvailable": "このデバイスでは共有機能が利用できません。"
   },
   "quiz": {
-    "title": "【クイズ】",
+    "title": "クイズ",
     "sessionsCompleted": "完了セッション",
     "accuracy": "正答率",
     "weakWords": "苦手な単語",
