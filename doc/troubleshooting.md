@@ -5566,3 +5566,62 @@ header: {
 - `src/screens/QuizSetupScreen.tsx` - minHeight: 56 追加
 - `src/screens/SettingsScreen.tsx` - flexDirection, alignItems, justifyContent, minHeight: 56 追加
 
+---
+
+## 27. 文章モードのWordPopupでキャンセルボタンが透ける問題
+
+### 発生日
+2026年2月4日
+
+### 症状
+- 投稿フィードの文章モード（本アイコン）で文章を選択し、単語登録ポップアップを表示する
+- ポップアップ内の「キャンセル」ボタンの背景が透けて、下にある単語リストが見えてしまう
+- スクロールすると透けた部分の内容も一緒に動く
+
+### 原因
+`WordPopup.tsx`の`actions`コンテナ（ボタン配置領域）には背景色が設定されておらず、キャンセルボタンは`variant="outline"`で`backgroundColor: 'transparent'`が適用されていた。
+
+1. **actionsスタイル** - `position: absolute`でポップアップの下部に配置されているが、背景色がない
+2. **キャンセルボタン** - `variant="outline"`を使用
+3. **Button.tsxのoutlineバリアント** - `backgroundColor: 'transparent'`が設定されている
+
+この結果、スクロールコンテンツ（単語リストなど）が`actions`の下に重なり、キャンセルボタンの透明な背景を通して見えてしまっていた。
+
+### 解決策
+
+**WordPopup.tsxの修正 - キャンセルボタンに直接背景色を適用：**
+
+```typescript
+// 変更前 - 背景色なし
+<Button
+  title="キャンセル"
+  onPress={handleBackdropPress}
+  variant="outline"
+  disabled={isAdding}
+  style={styles.cancelButton}
+/>
+
+// 変更後 - テーマ対応の背景色を追加
+<Button
+  title="キャンセル"
+  onPress={handleBackdropPress}
+  variant="outline"
+  disabled={isAdding}
+  style={[styles.cancelButton, { backgroundColor: colors.background }]}
+/>
+```
+
+### 実装のポイント
+- `actions`コンテナ全体に背景色を設定すると、ボタン領域全体に色が広がってしまう
+- キャンセルボタンのスタイルに直接`backgroundColor: colors.background`を追加することで、ボタン部分のみに背景色が適用される
+- `colors.background`を使用することで、ライトモード・ダークモードどちらでも適切な背景色が設定される
+
+### 関連ファイル
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント
+- `src/components/common/Button.tsx` - 共通ボタンコンポーネント（outlineバリアントの定義）
+
+### 教訓
+- `variant="outline"`のボタンは背景が透明になるため、絶対配置されたコンテナ内で使用する場合は注意が必要
+- ボタンスタイルを上書きする際は、コンテナ全体ではなくボタン自体に適用することで、意図しない領域への影響を避けられる
+- テーマ対応のアプリでは、ハードコードした色ではなく`colors`オブジェクトを使用して一貫性を保つ
+
