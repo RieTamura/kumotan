@@ -440,19 +440,17 @@ export async function translateWithJMdict(
   word: string
 ): Promise<Result<JMdictTranslateResult, AppError>> {
   const normalizedWord = word.toLowerCase().trim();
-
-  // キャッシュ確認
   const cacheKey = createCacheKey('jmdict', normalizedWord);
-  const cachedResult = jmdictCache.get(cacheKey);
-  if (cachedResult) {
-    if (__DEV__) {
-      console.log(`JMdict cache hit: "${word}"`);
-    }
-    return { success: true, data: cachedResult };
-  }
 
-  // 1. まずオーバーライド（差分）をチェック
+  // 1. まずオーバーライド（差分）をチェック（キャッシュより優先）
   const overrides = await getOverrides();
+
+  if (__DEV__) {
+    console.log('JMdict overrides:', overrides ? `${overrides.entries.length} entries` : 'null');
+    if (overrides && overrides.entries.length > 0) {
+      console.log('JMdict override entries:', JSON.stringify(overrides.entries.map(e => e.word)));
+    }
+  }
 
   // 削除対象として登録されている場合はエラーを返す
   if (isWordDeleted(overrides, normalizedWord)) {
@@ -482,7 +480,16 @@ export async function translateWithJMdict(
     return { success: true, data: result };
   }
 
-  // 2. オーバーライドがなければ通常の辞書検索
+  // 2. オーバーライドがなければキャッシュを確認
+  const cachedResult = jmdictCache.get(cacheKey);
+  if (cachedResult) {
+    if (__DEV__) {
+      console.log(`JMdict cache hit: "${word}"`);
+    }
+    return { success: true, data: cachedResult };
+  }
+
+  // 3. キャッシュもなければ通常の辞書検索
   const lookupResult = await lookupJMdict(word);
   if (!lookupResult.success) {
     return { success: false, error: lookupResult.error };
