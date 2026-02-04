@@ -24,7 +24,14 @@ import {
 import { normalizeJapanese } from '../../utils/japanese';
 import { AppError, ErrorCode } from '../../utils/errors';
 import { LRUCache, createCacheKey } from '../../utils/cache';
-import { isDictionaryInstalled } from './ExternalDictionaryService';
+import {
+  isDictionaryInstalled,
+  getOverrides,
+  findOverrideForWord,
+  isWordDeleted,
+  type DictionaryOverride,
+  type OverridesFile,
+} from './ExternalDictionaryService';
 
 /**
  * JMdict検索結果のキャッシュ（200エントリ、30分TTL）
@@ -408,9 +415,26 @@ export async function lookupJMdict(
 }
 
 /**
+ * オーバーライドから結果を生成
+ */
+function createResultFromOverride(
+  override: DictionaryOverride
+): JMdictTranslateResult {
+  const meaning = override.corrected_meaning || override.meaning || '';
+  return {
+    text: meaning,
+    readings: override.reading ? [override.reading] : [],
+    partOfSpeech: [],
+    isCommon: true,
+    source: 'override',
+  };
+}
+
+/**
  * 英単語を日本語に翻訳（JMdict使用）
  *
  * DeepLの代替として使用可能。単語レベルの翻訳に最適化。
+ * フィードバックから承認されたオーバーライドを優先適用します。
  */
 export async function translateWithJMdict(
   word: string
@@ -427,7 +451,38 @@ export async function translateWithJMdict(
     return { success: true, data: cachedResult };
   }
 
-  // JMdict検索
+  // 1. まずオーバーライド（差分）をチェック
+  const overrides = await getOverrides();
+
+  // 削除対象として登録されている場合はエラーを返す
+  if (isWordDeleted(overrides, normalizedWord)) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.WORD_NOT_FOUND,
+        `「${word}」は辞書から削除されました。`
+      ),
+    };
+  }
+
+  // オーバーライドが見つかった場合は優先適用
+  const override = findOverrideForWord(overrides, normalizedWord);
+  if (override) {
+    const result = createResultFromOverride(override);
+
+    // キャッシュに保存
+    jmdictCache.set(cacheKey, result);
+
+    if (__DEV__) {
+      console.log(
+        `JMdict override applied: "${word}" → "${result.text}" (issue #${override.source_issue})`
+      );
+    }
+
+    return { success: true, data: result };
+  }
+
+  // 2. オーバーライドがなければ通常の辞書検索
   const lookupResult = await lookupJMdict(word);
   if (!lookupResult.success) {
     return { success: false, error: lookupResult.error };

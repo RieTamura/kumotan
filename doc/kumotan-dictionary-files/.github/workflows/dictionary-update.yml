@@ -1,0 +1,99 @@
+# 辞書自動更新ワークフロー
+# フィードバックIssueに「approved」ラベルが付与されたとき、
+# overrides.jsonに自動で修正エントリを追加します。
+
+name: Dictionary Auto Update
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  update-overrides:
+    # 条件: 「approved」ラベルが付与され、かつ「word_search」ラベルを持つIssue
+    if: github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'word_search')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse Issue and Update overrides.json
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const issue = context.payload.issue;
+
+            // Issue本文から情報を抽出
+            const body = issue.body || '';
+
+            // フィードバックフォームのフォーマットに合わせて抽出
+            // 例: **対象/件名**: example
+            // 例: **詳細/期待内容**: 正しい意味
+            const wordMatch = body.match(/\*\*対象\/件名\*\*:\s*(.+)/);
+            const correctionMatch = body.match(/\*\*詳細\/期待内容\*\*:\s*(.+)/);
+
+            // 英語フォーマットにも対応
+            const wordMatchEn = body.match(/\*\*Word\*\*:\s*(.+)/);
+            const correctionMatchEn = body.match(/\*\*Correct meaning\*\*:\s*(.+)/);
+
+            const word = (wordMatch?.[1] || wordMatchEn?.[1] || '').trim();
+            const correctedMeaning = (correctionMatch?.[1] || correctionMatchEn?.[1] || '').trim();
+
+            if (!word || !correctedMeaning) {
+              console.log('Required fields not found in issue body');
+              console.log('Issue body:', body);
+              console.log('Word found:', word);
+              console.log('Correction found:', correctedMeaning);
+              return;
+            }
+
+            // overrides.json を読み込み
+            let overrides = { version: "1.0.0", updated_at: "", entries: [] };
+            const filePath = 'overrides.json';
+            if (fs.existsSync(filePath)) {
+              try {
+                overrides = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+              } catch (e) {
+                console.log('Failed to parse existing overrides.json, creating new one');
+              }
+            }
+
+            // 重複チェック（同じ単語が既に登録されている場合は更新）
+            const existingIndex = overrides.entries.findIndex(
+              e => e.word.toLowerCase() === word.toLowerCase()
+            );
+
+            const newEntry = {
+              id: `override_${Date.now()}`,
+              type: "correction",
+              word: word,
+              corrected_meaning: correctedMeaning,
+              source_issue: issue.number,
+              approved_at: new Date().toISOString()
+            };
+
+            if (existingIndex >= 0) {
+              // 既存エントリを更新
+              overrides.entries[existingIndex] = newEntry;
+              console.log(`Updated existing entry for word: ${word}`);
+            } else {
+              // 新しいエントリを追加
+              overrides.entries.push(newEntry);
+              console.log(`Added new entry for word: ${word}`);
+            }
+
+            overrides.updated_at = new Date().toISOString();
+
+            // ファイルを保存（整形して出力）
+            fs.writeFileSync(filePath, JSON.stringify(overrides, null, 2) + '\n');
+            console.log(`Successfully updated overrides.json with ${overrides.entries.length} entries`);
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add overrides.json
+          git diff --staged --quiet || git commit -m "chore: add dictionary override from issue #${{ github.event.issue.number }}"
+          git push

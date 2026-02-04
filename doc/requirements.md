@@ -236,12 +236,20 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - テンプレート: 検索語、誤訳、正しい訳、コメント
 - **運用コスト**: 無料（GAS + GitHub Actions + Google Sheets）
 - **実装優先度**: 中（辞書精度改善の基盤として重要）
-- **将来の改善計画**（段階的アプローチ）:
-  - **現状（v1.x）**: フィードバック経由で報告 → 開発者が手動で辞書データを修正
-  - **Phase 2（ユーザー増加後）**: 以下のいずれかを検討
-    - コミュニティ辞書機能（ユーザーが修正提案 → 一定数の承認で反映）
-    - 管理者向け辞書編集機能（管理画面から直接編集）
-  - **判断基準**: リリース後のフィードバック傾向を分析し、需要と実装コストを考慮して決定
+- **半自動更新機能**（v1.24実装）:
+  - **概要**: フィードバックから辞書データの修正を半自動化
+  - **フロー**:
+    1. ユーザーがフィードバック送信 → GitHub Issue作成
+    2. 開発者がレビュー後「approved」ラベル付与
+    3. GitHub Actionsが`overrides.json`に自動追記
+    4. GitHub Pagesで配信 → アプリが差分を自動適用
+  - **差分ファイル形式**: `overrides.json`（correction/addition/deletionタイプ対応）
+  - **キャッシュ**: AsyncStorage + メモリキャッシュ（1時間TTL）
+  - **詳細**: `doc/dictionary-auto-update-plan.md`参照
+- **将来の拡張計画**:
+  - **バッチ統合**: 差分が一定数溜まったら辞書DBを再ビルド
+  - **コミュニティ機能**: 複数ユーザーの承認を必要とする仕組み
+  - **自動承認**: AIによる内容チェックで明らかに正しいものは自動承認
 
 ### Phase 3: プラットフォーム拡張
 - 日本語→英語の学習モード対応
@@ -847,11 +855,26 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年2月2日
-**バージョン**: 1.23
+**最終更新日**: 2026年2月4日
+**バージョン**: 1.24
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.24 (2026-02-04)
+
+- **辞書データ半自動更新機能の実装**
+  - フィードバックから承認された修正を自動で辞書に反映する仕組み
+  - 差分ファイル（`overrides.json`）方式を採用
+  - アプリ側実装：
+    - `src/constants/config.ts`: オーバーライド関連設定を追加
+    - `src/services/dictionary/ExternalDictionaryService.ts`: 差分取得・キャッシュ機能
+    - `src/services/dictionary/jmdict.ts`: 差分優先適用ロジック
+    - `src/types/word.ts`: `source`フィールドに`'override'`タイプ追加
+  - GitHub Actions設定（kumotan-dictionaryリポジトリ）：
+    - 「approved」ラベル付与時に`overrides.json`を自動更新
+    - GitHub Pagesで配信
+  - 詳細：`doc/dictionary-auto-update-plan.md`参照
 
 ### v1.23 (2026-02-02)
 

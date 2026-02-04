@@ -26,7 +26,7 @@ export const API = {
     BASE_URL: 'https://api.dictionaryapi.dev/api/v2/entries/en',
   },
   FEEDBACK: {
-    GAS_URL: 'https://script.google.com/macros/s/AKfycbzE_a77O9AIelKq7eR4e9rWI0mfHQg5VDKbs3AL1YJlzXStpcehP8NMW-UU-P3a8a1k/exec', // 手動で置き換えてください
+    GAS_URL: 'https://script.google.com/macros/s/AKfycbzimG7RHCjZaBxr9AT28VTt0EKRXhsBchY60y9ruriDlvxWIXT7A39g-rYiIKC7_-ai/exec', // 手動で置き換えてください
   },
 } as const;
 
@@ -131,12 +131,20 @@ export const DICTIONARY_CONFIG = {
   COMPRESSED_FILE: 'jmdict.db.gz',
   /** 解凍後の辞書ファイル名 */
   DATABASE_FILE: 'jmdict.db',
+  /** 差分ファイル名（フィードバックからの修正を適用） */
+  OVERRIDES_FILE: 'overrides.json',
   /** AsyncStorageキー：辞書インストール完了フラグ */
   STORAGE_KEY_INSTALLED: '@kumotan:dictionary_installed',
   /** AsyncStorageキー：インストール済みバージョン */
   STORAGE_KEY_VERSION: '@kumotan:dictionary_version',
+  /** AsyncStorageキー：差分データのキャッシュ */
+  STORAGE_KEY_OVERRIDES: '@kumotan:dictionary_overrides',
+  /** AsyncStorageキー：差分データの最終更新日時 */
+  STORAGE_KEY_OVERRIDES_UPDATED: '@kumotan:dictionary_overrides_updated',
   /** ダウンロードタイムアウト（ms） */
   DOWNLOAD_TIMEOUT: 5 * 60 * 1000, // 5分
+  /** 差分キャッシュの有効期限（ms） */
+  OVERRIDES_CACHE_TTL: 60 * 60 * 1000, // 1時間
 } as const;
 
 /**

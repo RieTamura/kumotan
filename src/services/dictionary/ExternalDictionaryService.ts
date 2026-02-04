@@ -24,6 +24,31 @@ import { Result } from '../../types/result';
 import { AppError, ErrorCode } from '../../utils/errors';
 
 /**
+ * 辞書オーバーライドエントリ
+ * フィードバックから承認された修正データ
+ */
+export interface DictionaryOverride {
+  id: string;
+  type: 'correction' | 'addition' | 'deletion';
+  word: string;
+  original_meaning?: string;
+  corrected_meaning?: string;
+  meaning?: string;
+  reading?: string;
+  source_issue: number;
+  approved_at: string;
+}
+
+/**
+ * オーバーライドファイル形式
+ */
+export interface OverridesFile {
+  version: string;
+  updated_at: string;
+  entries: DictionaryOverride[];
+}
+
+/**
  * 辞書メタデータ
  */
 export interface DictionaryMetadata {
@@ -500,4 +525,229 @@ export async function getDictionaryStatus(): Promise<{
     installedVersion,
     fileSize,
   };
+}
+
+// ========== 差分ファイル（オーバーライド）管理 ==========
+
+/**
+ * オーバーライドファイルのURL
+ */
+const getOverridesUrl = (): string => {
+  return `${DICTIONARY_CONFIG.BASE_URL}/${DICTIONARY_CONFIG.OVERRIDES_FILE}`;
+};
+
+/**
+ * メモリキャッシュ
+ */
+let overridesCache: OverridesFile | null = null;
+let overridesCacheTimestamp: number = 0;
+
+/**
+ * リモートのオーバーライドファイルを取得
+ */
+export async function fetchRemoteOverrides(): Promise<
+  Result<OverridesFile, AppError>
+> {
+  try {
+    const response = await fetch(getOverridesUrl(), {
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // ファイルが存在しない場合は空のオーバーライドを返す
+        return {
+          success: true,
+          data: { version: '1.0.0', updated_at: '', entries: [] },
+        };
+      }
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.NETWORK_ERROR,
+          `オーバーライドファイルの取得に失敗しました: ${response.status}`
+        ),
+      };
+    }
+
+    const overrides = (await response.json()) as OverridesFile;
+    return { success: true, data: overrides };
+  } catch (error) {
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.NETWORK_ERROR,
+        'オーバーライドファイルの取得中にエラーが発生しました',
+        error
+      ),
+    };
+  }
+}
+
+/**
+ * オーバーライドをAsyncStorageにキャッシュ
+ */
+async function cacheOverrides(overrides: OverridesFile): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      DICTIONARY_CONFIG.STORAGE_KEY_OVERRIDES,
+      JSON.stringify(overrides)
+    );
+    await AsyncStorage.setItem(
+      DICTIONARY_CONFIG.STORAGE_KEY_OVERRIDES_UPDATED,
+      Date.now().toString()
+    );
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('Failed to cache overrides:', error);
+    }
+  }
+}
+
+/**
+ * AsyncStorageからキャッシュされたオーバーライドを取得
+ */
+async function getCachedOverrides(): Promise<OverridesFile | null> {
+  try {
+    const cached = await AsyncStorage.getItem(
+      DICTIONARY_CONFIG.STORAGE_KEY_OVERRIDES
+    );
+    if (!cached) return null;
+
+    const updatedAt = await AsyncStorage.getItem(
+      DICTIONARY_CONFIG.STORAGE_KEY_OVERRIDES_UPDATED
+    );
+    if (!updatedAt) return null;
+
+    const cacheAge = Date.now() - parseInt(updatedAt, 10);
+    if (cacheAge > DICTIONARY_CONFIG.OVERRIDES_CACHE_TTL) {
+      // キャッシュ期限切れ
+      return null;
+    }
+
+    return JSON.parse(cached) as OverridesFile;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * オーバーライドを取得（キャッシュ優先）
+ *
+ * 1. メモリキャッシュを確認
+ * 2. AsyncStorageのキャッシュを確認
+ * 3. リモートから取得してキャッシュを更新
+ */
+export async function getOverrides(): Promise<OverridesFile | null> {
+  // メモリキャッシュを確認
+  const now = Date.now();
+  if (
+    overridesCache &&
+    now - overridesCacheTimestamp < DICTIONARY_CONFIG.OVERRIDES_CACHE_TTL
+  ) {
+    return overridesCache;
+  }
+
+  // AsyncStorageのキャッシュを確認
+  const cachedOverrides = await getCachedOverrides();
+  if (cachedOverrides) {
+    overridesCache = cachedOverrides;
+    overridesCacheTimestamp = now;
+    return cachedOverrides;
+  }
+
+  // リモートから取得
+  const result = await fetchRemoteOverrides();
+  if (result.success) {
+    overridesCache = result.data;
+    overridesCacheTimestamp = now;
+    await cacheOverrides(result.data);
+    return result.data;
+  }
+
+  // エラー時はnullを返す（オフライン等）
+  if (__DEV__) {
+    console.log('Failed to fetch overrides:', result.error.message);
+  }
+  return null;
+}
+
+/**
+ * 単語に対するオーバーライドを検索
+ */
+export function findOverrideForWord(
+  overrides: OverridesFile | null,
+  word: string
+): DictionaryOverride | null {
+  if (!overrides || overrides.entries.length === 0) {
+    return null;
+  }
+
+  const normalizedWord = word.toLowerCase().trim();
+
+  // type: 'deletion' のエントリは除外して検索
+  const override = overrides.entries.find(
+    (entry) =>
+      entry.type !== 'deletion' &&
+      entry.word.toLowerCase() === normalizedWord
+  );
+
+  return override || null;
+}
+
+/**
+ * 単語がオーバーライドで削除対象かチェック
+ */
+export function isWordDeleted(
+  overrides: OverridesFile | null,
+  word: string
+): boolean {
+  if (!overrides || overrides.entries.length === 0) {
+    return false;
+  }
+
+  const normalizedWord = word.toLowerCase().trim();
+
+  return overrides.entries.some(
+    (entry) =>
+      entry.type === 'deletion' &&
+      entry.word.toLowerCase() === normalizedWord
+  );
+}
+
+/**
+ * オーバーライドキャッシュをクリア
+ */
+export async function clearOverridesCache(): Promise<void> {
+  overridesCache = null;
+  overridesCacheTimestamp = 0;
+  try {
+    await AsyncStorage.removeItem(DICTIONARY_CONFIG.STORAGE_KEY_OVERRIDES);
+    await AsyncStorage.removeItem(DICTIONARY_CONFIG.STORAGE_KEY_OVERRIDES_UPDATED);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * オーバーライドを強制的に更新
+ */
+export async function refreshOverrides(): Promise<
+  Result<OverridesFile, AppError>
+> {
+  const result = await fetchRemoteOverrides();
+  if (result.success) {
+    overridesCache = result.data;
+    overridesCacheTimestamp = Date.now();
+    await cacheOverrides(result.data);
+
+    if (__DEV__) {
+      console.log(
+        `ExternalDictionary: Refreshed overrides (${result.data.entries.length} entries)`
+      );
+    }
+  }
+  return result;
 }

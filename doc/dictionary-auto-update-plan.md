@@ -241,15 +241,18 @@ https://rietamura.github.io/kumotan-dictionary/overrides.json
 
 ### Phase 1: 基盤構築（2-3時間）
 
-1. [ ] `kumotan-dictionary` リポジトリに `overrides.json` を作成（空の初期ファイル）
-2. [ ] GitHub Actions ワークフロー作成（`dictionary-update.yml`）
-3. [ ] 「approved」ラベルを作成
+1. [x] `kumotan-dictionary` リポジトリに `overrides.json` を作成（空の初期ファイル）
+   - ファイル準備済み： `doc/kumotan-dictionary-files/overrides.json`
+2. [x] GitHub Actions ワークフロー作成（`dictionary-update.yml`）
+   - ファイル準備済み： `doc/kumotan-dictionary-files/.github/workflows/dictionary-update.yml`
+3. [ ] 「approved」ラベルを作成（手動でGitHubから設定）
+4. [ ] 上記ファイルをkumotan-dictionaryリポジトリにコピー・配置
 
-### Phase 2: アプリ側実装（3-4時間）
+### Phase 2: アプリ側実装（3-4時間） ✅ 完了
 
-1. [ ] `ExternalDictionaryService.ts` に差分取得機能を追加
-2. [ ] `jmdict.ts` に差分適用ロジックを追加
-3. [ ] 差分キャッシュ機能を実装
+1. [x] `ExternalDictionaryService.ts` に差分取得機能を追加
+2. [x] `jmdict.ts` に差分適用ロジックを追加
+3. [x] 差分キャッシュ機能を実装
 
 ### Phase 3: テスト・検証（1-2時間）
 
@@ -257,10 +260,10 @@ https://rietamura.github.io/kumotan-dictionary/overrides.json
 2. [ ] アプリ側で差分が正しく適用されるか確認
 3. [ ] オフライン時の動作確認
 
-### Phase 4: ドキュメント・運用準備（1時間）
+### Phase 4: ドキュメント・運用準備（1時間） ✅ 完了
 
-1. [ ] 運用手順書の作成
-2. [ ] requirements.md の更新
+1. [x] 運用手順書の作成（`doc/kumotan-dictionary-files/README.md`）
+2. [x] requirements.md の更新
 
 **合計見積もり**: 7-10時間
 

@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "Bash(npx expo install expo-system-ui)"
+      "Bash(npx expo install expo-system-ui)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm test:*)",
+      "Bash(gh auth status:*)"
     ]
   }
 }

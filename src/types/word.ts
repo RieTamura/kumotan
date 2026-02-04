@@ -159,7 +159,8 @@ export interface JMdictTranslateResult {
   readings: string[];
   partOfSpeech: string[];
   isCommon: boolean;
-  source: 'jmdict';
+  /** 'jmdict' = 通常の辞書検索, 'override' = フィードバックからの修正適用 */
+  source: 'jmdict' | 'override';
 }
 
 /**
