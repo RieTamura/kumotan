@@ -5625,3 +5625,61 @@ header: {
 - ボタンスタイルを上書きする際は、コンテナ全体ではなくボタン自体に適用することで、意図しない領域への影響を避けられる
 - テーマ対応のアプリでは、ハードコードした色ではなく`colors`オブジェクトを使用して一貫性を保つ
 
+---
+
+## 28. 文章モードのWordPopupにフィードバックアイコンがない問題
+
+### 発生日
+2026年2月4日
+
+### 症状
+- 単語モードでWordPopupを表示すると、ヘッダー右側にフィードバックアイコン（MessageSquareShare）が表示される
+- しかし、文章モードでWordPopupを表示すると、フィードバックアイコンが表示されない
+- 文章モードでも翻訳結果に対するフィードバックを送信したい場合がある
+
+### 原因
+`WordPopup.tsx`のヘッダー部分で、フィードバックアイコンの表示条件に`{!isSentenceMode && ...}`が設定されており、文章モード時にはフィードバックアイコンが非表示になっていた。
+
+```typescript
+// 変更前 - 文章モードでは非表示
+{/* Feedback Icon */}
+{!isSentenceMode && (
+  <Pressable
+    onPress={() => setIsFeedbackVisible(true)}
+    style={styles.feedbackButton}
+    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+  >
+    <MessageSquareShare size={22} color={colors.primary} />
+  </Pressable>
+)}
+```
+
+### 解決策
+
+**WordPopup.tsxの修正 - 条件を削除してフィードバックアイコンを常に表示：**
+
+```typescript
+// 変更後 - 文章モードでも表示
+{/* Feedback Icon */}
+<Pressable
+  onPress={() => setIsFeedbackVisible(true)}
+  style={styles.feedbackButton}
+  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+>
+  <MessageSquareShare size={22} color={colors.primary} />
+</Pressable>
+```
+
+### 実装のポイント
+- `{!isSentenceMode && ...}`の条件分岐を削除し、フィードバックアイコンを無条件で表示
+- フィードバックモーダル（FeedbackModal）自体は変更不要で、既存の実装がそのまま動作する
+- 文章モードでも単語モードでも同じユーザー体験を提供
+
+### 関連ファイル
+- `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント（761-769行目）
+
+### 教訓
+- UIの機能は、特別な理由がない限りモードによって差別化しないほうが一貫性がある
+- フィードバック機能のような汎用的な機能は、全てのモードで利用可能にすることでユーザビリティが向上する
+- 条件分岐で機能を制限する場合は、その理由を明確にしておくことが重要
+

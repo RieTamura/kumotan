@@ -759,15 +759,13 @@ export function WordPopup({
             </View>
 
             {/* Feedback Icon */}
-            {!isSentenceMode && (
-              <Pressable
-                onPress={() => setIsFeedbackVisible(true)}
-                style={styles.feedbackButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <MessageSquareShare size={22} color={colors.primary} />
-              </Pressable>
-            )}
+            <Pressable
+              onPress={() => setIsFeedbackVisible(true)}
+              style={styles.feedbackButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <MessageSquareShare size={22} color={colors.primary} />
+            </Pressable>
           </View>
 
           {/* Scrollable Content */}
