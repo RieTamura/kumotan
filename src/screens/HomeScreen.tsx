@@ -34,7 +34,10 @@ import { Button } from '../components/common/Button';
 import { WordPopup } from '../components/WordPopup';
 import { PostCreationModal } from '../components/PostCreationModal';
 import { TutorialTooltip } from '../components/Tutorial';
+import { IndexTabs, TabType } from '../components/IndexTabs';
+import { ProfileView } from '../components/ProfileView';
 import { TimelinePost } from '../types/bluesky';
+import { useAuthProfile } from '../store/authStore';
 import { addWord } from '../services/database/words';
 import { likePost, unlikePost } from '../services/bluesky/feed';
 import { useTheme } from '../hooks/useTheme';
@@ -73,6 +76,10 @@ export function HomeScreen(): React.JSX.Element {
   const { t: tc } = useTranslation('common');
   const { t: tt } = useTranslation('tutorial');
   const { colors, isDark } = useTheme();
+  const profile = useAuthProfile();
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>('following');
 
   const tipsRef = useRef<View>(null);
   const [tutorialPositions, setTutorialPositions] = useState<{
@@ -463,14 +470,36 @@ export function HomeScreen(): React.JSX.Element {
   }, [isLoading, error, isConnected, refresh, t]);
 
 
-  // Show loading state on initial load
-  if (isLoading && posts.length === 0) {
+  // Show loading state on initial load (only for Following tab)
+  if (isLoading && posts.length === 0 && activeTab === 'following') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-          <View style={styles.headerTitleContainer}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
-            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{t('headerSubtitle')}</Text>
+        <View style={[styles.header, {
+          backgroundColor: colors.indexTabActive,
+          borderBottomColor: colors.indexTabBorder,
+        }]}>
+          <View style={styles.headerTabsContainer}>
+            <IndexTabs
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              avatarUri={profile?.avatar}
+            />
+          </View>
+          <View style={styles.headerRight}>
+            <Pressable
+              ref={tipsRef}
+              onPress={() => navigation.navigate('Tips')}
+              style={({ pressed }) => [
+                styles.headerIconButton,
+                pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
+              ]}
+              accessible={true}
+              accessibilityLabel={t('tips')}
+              accessibilityHint={t('tipsHint')}
+              accessibilityRole="button"
+            >
+              <Lightbulb size={24} color={colors.primary} />
+            </Pressable>
           </View>
         </View>
         <Loading fullScreen message={t('loadingTimeline')} />
@@ -482,13 +511,17 @@ export function HomeScreen(): React.JSX.Element {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <OfflineBanner />
 
-      {/* Header */}
+      {/* Header with Index Tabs */}
       <View style={[styles.header, {
-        backgroundColor: colors.background,
-        borderBottomColor: colors.border,
+        backgroundColor: colors.indexTabActive,
+        borderBottomColor: colors.indexTabBorder,
       }]}>
-        <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('header')}</Text>
+        <View style={styles.headerTabsContainer}>
+          <IndexTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            avatarUri={profile?.avatar}
+          />
         </View>
         <View style={styles.headerRight}>
           <Pressable
@@ -508,6 +541,10 @@ export function HomeScreen(): React.JSX.Element {
         </View>
       </View>
 
+      {/* Content based on active tab */}
+      {activeTab === 'profile' ? (
+        <ProfileView />
+      ) : (
       <FlatList
         ref={flatListRef}
         data={posts}
@@ -554,27 +591,32 @@ export function HomeScreen(): React.JSX.Element {
         maxToRenderPerBatch={10}
         windowSize={5}
       />
-
-      {/* Floating Action Button */}
-      {showScrollToTop && (
-        <Pressable
-          style={[styles.scrollToTopButton, styles.scrollToTopPressable, { backgroundColor: colors.primary }]}
-          onPress={scrollToTop}
-          accessibilityLabel={t('scrollToTop')}
-          accessibilityRole="button"
-        >
-          <ArrowUp size={24} color="#FFF" />
-        </Pressable>
       )}
 
-      <Pressable
-        style={[styles.fab, { backgroundColor: colors.primary, ...Shadows.lg }]}
-        onPress={() => setIsPostModalVisible(true)}
-        accessibilityLabel={t('createPost')}
-        accessibilityRole="button"
-      >
-        <Plus size={28} color="#FFF" />
-      </Pressable>
+      {/* Floating Action Buttons - only show on Following tab */}
+      {activeTab === 'following' && (
+        <>
+          {showScrollToTop && (
+            <Pressable
+              style={[styles.scrollToTopButton, styles.scrollToTopPressable, { backgroundColor: colors.primary }]}
+              onPress={scrollToTop}
+              accessibilityLabel={t('scrollToTop')}
+              accessibilityRole="button"
+            >
+              <ArrowUp size={24} color="#FFF" />
+            </Pressable>
+          )}
+
+          <Pressable
+            style={[styles.fab, { backgroundColor: colors.primary, ...Shadows.lg }]}
+            onPress={() => setIsPostModalVisible(true)}
+            accessibilityLabel={t('createPost')}
+            accessibilityRole="button"
+          >
+            <Plus size={28} color="#FFF" />
+          </Pressable>
+        </>
+      )}
 
       <PostCreationModal
         visible={isPostModalVisible}
@@ -623,16 +665,18 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingRight: Spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
     minHeight: 56,
   },
   headerLeft: {
+    flex: 1,
+  },
+  headerTabsContainer: {
     flex: 1,
   },
   headerRight: {

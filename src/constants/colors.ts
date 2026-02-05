@@ -71,6 +71,14 @@ export const LightColors = {
   // Skeleton loading
   skeleton: '#E1E8ED',
   skeletonHighlight: '#F7F9FA',
+
+  // Index tabs
+  indexTabActive: '#F5F0E8',
+  indexTabInactive: '#E8E3DB',
+  indexTabBorder: '#D4CFC7',
+  indexTabShadow: 'rgba(0, 0, 0, 0.1)',
+  indexTabText: '#5D5347',
+  indexTabTextActive: '#3D3530',
 } as const;
 
 export const DarkColors = {
@@ -141,6 +149,14 @@ export const DarkColors = {
   // Skeleton loading
   skeleton: '#253341',
   skeletonHighlight: '#1E2732',
+
+  // Index tabs
+  indexTabActive: '#2A2A2A',
+  indexTabInactive: '#1F1F1F',
+  indexTabBorder: '#3A3A3A',
+  indexTabShadow: 'rgba(0, 0, 0, 0.3)',
+  indexTabText: '#A0A0A0',
+  indexTabTextActive: '#FFFFFF',
 } as const;
 
 export type ThemeColors = Record<keyof typeof LightColors, string>;

@@ -1,6 +1,17 @@
 {
   "header": "Following",
   "headerSubtitle": "Posts from people you follow",
+  "tabs": {
+    "following": "Following",
+    "profile": "Profile"
+  },
+  "profile": {
+    "loading": "Loading profile...",
+    "notFound": "Profile not found",
+    "following": "Following",
+    "followers": "Followers",
+    "posts": "Posts"
+  },
   "loading": "Loading...",
   "loadingTimeline": "Loading timeline...",
   "loadingMore": "Loading...",
