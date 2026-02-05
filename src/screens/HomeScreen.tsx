@@ -17,6 +17,7 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
+import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Lightbulb, ArrowUp, Plus } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -80,6 +81,30 @@ export function HomeScreen(): React.JSX.Element {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('following');
+  const pagerRef = useRef<PagerView>(null);
+
+  // Tab index mapping
+  const TAB_INDEX_MAP: Record<TabType, number> = { following: 0, profile: 1 };
+  const INDEX_TAB_MAP: TabType[] = ['following', 'profile'];
+
+  /**
+   * Handle tab change from IndexTabs
+   */
+  const handleTabChange = useCallback((tab: TabType) => {
+    setActiveTab(tab);
+    pagerRef.current?.setPage(TAB_INDEX_MAP[tab]);
+  }, []);
+
+  /**
+   * Handle page change from swipe
+   */
+  const handlePageSelected = useCallback((event: PagerViewOnPageSelectedEvent) => {
+    const pageIndex = event.nativeEvent.position;
+    const tab = INDEX_TAB_MAP[pageIndex];
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [activeTab]);
 
   const tipsRef = useRef<View>(null);
   const [tutorialPositions, setTutorialPositions] = useState<{
@@ -481,7 +506,7 @@ export function HomeScreen(): React.JSX.Element {
           <View style={styles.headerTabsContainer}>
             <IndexTabs
               activeTab={activeTab}
-              onTabChange={setActiveTab}
+              onTabChange={handleTabChange}
               avatarUri={profile?.avatar}
             />
           </View>
@@ -519,7 +544,7 @@ export function HomeScreen(): React.JSX.Element {
         <View style={styles.headerTabsContainer}>
           <IndexTabs
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
             avatarUri={profile?.avatar}
           />
         </View>
@@ -541,57 +566,69 @@ export function HomeScreen(): React.JSX.Element {
         </View>
       </View>
 
-      {/* Content based on active tab */}
-      {activeTab === 'profile' ? (
-        <ProfileView />
-      ) : (
-      <FlatList
-        ref={flatListRef}
-        data={posts}
-        renderItem={renderPost}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>{t('feed.empty')}</Text>
-              <Button
-                title={t('feed.retry')}
-                onPress={refresh}
-                variant="outline"
-                size="small"
-                style={{ marginTop: Spacing.md }}
+      {/* Swipeable tab content */}
+      <PagerView
+        ref={pagerRef}
+        style={styles.tabContent}
+        initialPage={0}
+        onPageSelected={handlePageSelected}
+        overdrag={true}
+      >
+        {/* Following tab - page 0 */}
+        <View key="following" style={styles.pageContainer}>
+          <FlatList
+            ref={flatListRef}
+            data={posts}
+            renderItem={renderPost}
+            keyExtractor={keyExtractor}
+            contentContainerStyle={styles.listContent}
+            ListHeaderComponent={renderHeader}
+            ListEmptyComponent={
+              !isLoading ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>{t('feed.empty')}</Text>
+                  <Button
+                    title={t('feed.retry')}
+                    onPress={refresh}
+                    variant="outline"
+                    size="small"
+                    style={{ marginTop: Spacing.md }}
+                  />
+                </View>
+              ) : null
+            }
+            ListFooterComponent={
+              isLoading && !isRefreshing ? (
+                <View style={styles.footerLoader}>
+                  <Loading size="small" />
+                </View>
+              ) : <View style={{ height: 100 }} />
+            }
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={refresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+                enabled={isConnected}
               />
-            </View>
-          ) : null
-        }
-        ListFooterComponent={
-          isLoading && !isRefreshing ? (
-            <View style={styles.footerLoader}>
-              <Loading size="small" />
-            </View>
-          ) : <View style={{ height: 100 }} />
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={refresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-            enabled={isConnected}
+            }
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.5}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
           />
-        }
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-      />
-      )}
+        </View>
+
+        {/* Profile tab - page 1 */}
+        <View key="profile" style={styles.pageContainer}>
+          <ProfileView />
+        </View>
+      </PagerView>
 
       {/* Floating Action Buttons - only show on Following tab */}
       {activeTab === 'following' && (
@@ -687,6 +724,12 @@ const styles = StyleSheet.create({
   headerIconButton: {
     padding: Spacing.sm,
     borderRadius: BorderRadius.full,
+  },
+  tabContent: {
+    flex: 1,
+  },
+  pageContainer: {
+    flex: 1,
   },
   headerTitleContainer: {
     flex: 1,

@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { StoredAuth, BlueskyProfile } from '../types/bluesky';
 import * as AuthService from '../services/bluesky/auth';
+import * as ProfileCache from '../services/cache/profileCache';
 import { Result } from '../types/result';
 import { AppError, ErrorCode } from '../utils/errors';
 
@@ -33,6 +34,7 @@ interface AuthState {
   clearError: () => void;
   fetchProfile: () => Promise<Result<BlueskyProfile, AppError>>;
   refreshProfile: () => Promise<void>;
+  loadCachedProfile: () => Promise<void>;
 }
 
 /**
@@ -131,6 +133,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     set({ isLoading: true });
     await AuthService.logout();
+    await ProfileCache.clearProfileCache();
     set({
       isAuthenticated: false,
       isLoading: false,
@@ -222,15 +225,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   /**
-   * Fetch user profile
+   * Fetch user profile with cache support
+   * - Returns cached profile immediately if available
+   * - Fetches from API in background if cache is stale
    */
   fetchProfile: async () => {
     const currentProfile = get().profile;
+    const user = get().user;
 
+    // Return current profile if already loaded
     if (currentProfile) {
       return { success: true, data: currentProfile };
     }
 
+    // Try to load from cache first
+    if (user?.did) {
+      const cachedProfile = await ProfileCache.loadProfileFromCache(user.did);
+      if (cachedProfile) {
+        set({ profile: cachedProfile });
+
+        // Check if cache is stale and refresh in background
+        const isStale = await ProfileCache.isCacheStale(user.did);
+        if (isStale) {
+          // Background refresh without loading state
+          AuthService.getProfile().then((result) => {
+            if (result.success) {
+              set({ profile: result.data });
+              ProfileCache.saveProfileToCache(result.data, user.did);
+            }
+          });
+        }
+
+        return { success: true, data: cachedProfile };
+      }
+    }
+
+    // No cache, fetch from API
     set({ isProfileLoading: true });
 
     const result = await AuthService.getProfile();
@@ -240,17 +270,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         profile: result.data,
         isProfileLoading: false,
       });
+
+      // Save to cache
+      if (user?.did) {
+        ProfileCache.saveProfileToCache(result.data, user.did);
+      }
+
       return result;
     } else {
+      // Try to use stale cache as fallback
+      if (user?.did) {
+        const staleProfile = await ProfileCache.getCachedProfileForOffline(user.did);
+        if (staleProfile) {
+          set({
+            profile: staleProfile,
+            isProfileLoading: false,
+          });
+          return { success: true, data: staleProfile };
+        }
+      }
+
       set({ isProfileLoading: false });
       return result;
     }
   },
 
   /**
-   * Refresh user profile from API
+   * Refresh user profile from API (ignores cache)
    */
   refreshProfile: async () => {
+    const user = get().user;
     set({ isProfileLoading: true });
 
     const result = await AuthService.getProfile();
@@ -260,8 +309,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         profile: result.data,
         isProfileLoading: false,
       });
+
+      // Update cache
+      if (user?.did) {
+        ProfileCache.saveProfileToCache(result.data, user.did);
+      }
     } else {
       set({ isProfileLoading: false });
+    }
+  },
+
+  /**
+   * Load cached profile on app startup (before API call)
+   */
+  loadCachedProfile: async () => {
+    const user = get().user;
+    if (!user?.did) return;
+
+    const cachedProfile = await ProfileCache.getCachedProfileForOffline(user.did);
+    if (cachedProfile && !get().profile) {
+      set({ profile: cachedProfile });
     }
   },
 }));

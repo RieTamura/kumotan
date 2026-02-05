@@ -3,14 +3,18 @@
  * File index-style tab navigation for the home screen
  */
 
-import React, { memo } from 'react';
+import React, { memo, useCallback, useEffect } from 'react';
 import {
   View,
-  Text,
   Pressable,
   StyleSheet,
-  Image,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  interpolate,
+} from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
@@ -23,8 +27,83 @@ interface IndexTabsProps {
   avatarUri?: string;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// Spring config for smooth animations
+const SPRING_CONFIG = {
+  damping: 15,
+  stiffness: 150,
+  mass: 0.5,
+};
+
 /**
- * IndexTabs - File index-style tab component
+ * Individual animated tab component
+ */
+interface AnimatedTabProps {
+  isActive: boolean;
+  onPress: () => void;
+  accessibilityLabel: string;
+  children: React.ReactNode;
+  style?: any;
+}
+
+const AnimatedTab = memo(function AnimatedTab({
+  isActive,
+  onPress,
+  accessibilityLabel,
+  children,
+  style,
+}: AnimatedTabProps) {
+  // Animation values
+  const scale = useSharedValue(1);
+  const activeProgress = useSharedValue(isActive ? 1 : 0);
+
+  // Update active progress when isActive changes
+  useEffect(() => {
+    activeProgress.value = withSpring(isActive ? 1 : 0, SPRING_CONFIG);
+  }, [isActive, activeProgress]);
+
+  // Press animation handlers
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(0.95, SPRING_CONFIG);
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, SPRING_CONFIG);
+  }, [scale]);
+
+  // Animated styles
+  const animatedStyle = useAnimatedStyle(() => {
+    const height = interpolate(
+      activeProgress.value,
+      [0, 1],
+      [TAB_HEIGHT, TAB_HEIGHT_ACTIVE]
+    );
+
+    return {
+      transform: [{ scale: scale.value }],
+      height,
+      marginBottom: interpolate(activeProgress.value, [0, 1], [0, -1]),
+    };
+  });
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[style, animatedStyle]}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      accessibilityLabel={accessibilityLabel}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+});
+
+/**
+ * IndexTabs - File index-style tab component with animations
  */
 export const IndexTabs = memo(function IndexTabs({
   activeTab,
@@ -37,13 +116,48 @@ export const IndexTabs = memo(function IndexTabs({
   const isFollowingActive = activeTab === 'following';
   const isProfileActive = activeTab === 'profile';
 
+  // Avatar size animation
+  const avatarScale = useSharedValue(isProfileActive ? 1 : 0);
+
+  useEffect(() => {
+    avatarScale.value = withSpring(isProfileActive ? 1 : 0, SPRING_CONFIG);
+  }, [isProfileActive, avatarScale]);
+
+  const avatarAnimatedStyle = useAnimatedStyle(() => {
+    const size = interpolate(
+      avatarScale.value,
+      [0, 1],
+      [AVATAR_SIZE, AVATAR_SIZE_ACTIVE]
+    );
+
+    return {
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+    };
+  });
+
+  const profileTabAnimatedStyle = useAnimatedStyle(() => {
+    const width = interpolate(
+      avatarScale.value,
+      [0, 1],
+      [TAB_HEIGHT + Spacing.sm * 2, TAB_HEIGHT_ACTIVE + Spacing.sm * 2]
+    );
+
+    return {
+      width,
+    };
+  });
+
   return (
     <View style={styles.container}>
       {/* Tab row */}
       <View style={styles.tabRow}>
         {/* Following tab */}
-        <Pressable
+        <AnimatedTab
+          isActive={isFollowingActive}
           onPress={() => onTabChange('following')}
+          accessibilityLabel={t('tabs.following')}
           style={[
             styles.tab,
             styles.followingTab,
@@ -53,15 +167,10 @@ export const IndexTabs = memo(function IndexTabs({
                 : colors.indexTabInactive,
               borderColor: colors.indexTabBorder,
               zIndex: isFollowingActive ? 2 : 1,
-              height: isFollowingActive ? TAB_HEIGHT_ACTIVE : TAB_HEIGHT,
-              marginBottom: isFollowingActive ? -1 : 0,
             },
           ]}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: isFollowingActive }}
-          accessibilityLabel={t('tabs.following')}
         >
-          <Text
+          <Animated.Text
             style={[
               styles.tabText,
               {
@@ -73,61 +182,54 @@ export const IndexTabs = memo(function IndexTabs({
             ]}
           >
             {t('tabs.following')}
-          </Text>
-        </Pressable>
+          </Animated.Text>
+        </AnimatedTab>
 
         {/* Profile tab (avatar) */}
-        <Pressable
+        <AnimatedTab
+          isActive={isProfileActive}
           onPress={() => onTabChange('profile')}
+          accessibilityLabel={t('tabs.profile')}
           style={[
             styles.tab,
             styles.profileTab,
+            profileTabAnimatedStyle,
             {
               backgroundColor: isProfileActive
                 ? colors.indexTabActive
                 : colors.indexTabInactive,
               borderColor: colors.indexTabBorder,
               zIndex: isProfileActive ? 2 : 1,
-              height: isProfileActive ? TAB_HEIGHT_ACTIVE : TAB_HEIGHT,
-              width: isProfileActive ? TAB_HEIGHT_ACTIVE + Spacing.sm * 2 : TAB_HEIGHT + Spacing.sm * 2,
-              marginBottom: isProfileActive ? -1 : 0,
             },
           ]}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: isProfileActive }}
-          accessibilityLabel={t('tabs.profile')}
         >
           {avatarUri ? (
-            <Image
+            <Animated.Image
               source={{ uri: avatarUri }}
               style={[
                 styles.avatar,
+                avatarAnimatedStyle,
                 {
                   borderColor: isProfileActive
                     ? colors.indexTabTextActive
                     : colors.indexTabText,
-                  width: isProfileActive ? AVATAR_SIZE_ACTIVE : AVATAR_SIZE,
-                  height: isProfileActive ? AVATAR_SIZE_ACTIVE : AVATAR_SIZE,
-                  borderRadius: isProfileActive ? AVATAR_SIZE_ACTIVE / 2 : AVATAR_SIZE / 2,
                 },
               ]}
             />
           ) : (
-            <View
+            <Animated.View
               style={[
                 styles.avatarPlaceholder,
+                avatarAnimatedStyle,
                 {
                   backgroundColor: isProfileActive
                     ? colors.indexTabTextActive
                     : colors.indexTabText,
-                  width: isProfileActive ? AVATAR_SIZE_ACTIVE : AVATAR_SIZE,
-                  height: isProfileActive ? AVATAR_SIZE_ACTIVE : AVATAR_SIZE,
-                  borderRadius: isProfileActive ? AVATAR_SIZE_ACTIVE / 2 : AVATAR_SIZE / 2,
                 },
               ]}
             />
           )}
-        </Pressable>
+        </AnimatedTab>
       </View>
     </View>
   );
