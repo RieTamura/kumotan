@@ -13,9 +13,7 @@ import {
   Alert,
   Linking,
   Image,
-  ActivityIndicator,
   Share,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -124,7 +122,7 @@ export function SettingsScreen(): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
-  const { user, logout, isLoading, profile, isProfileLoading } = useAuthStore();
+  const { logout, isLoading } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
   const [yahooClientIdSet, setYahooClientIdSet] = useState(false);
@@ -428,74 +426,6 @@ export function SettingsScreen(): React.JSX.Element {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Account Section */}
-        <SettingsSection title={t('sections.account')}>
-          <View style={styles.accountInfo}>
-            {isProfileLoading ? (
-              <View style={styles.accountLoading}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.accountLoadingText, { color: colors.textSecondary }]}>{t('account.loading')}</Text>
-              </View>
-            ) : (
-              <>
-                {/* Avatar */}
-                {profile?.avatar ? (
-                  <Image
-                    source={{ uri: profile.avatar }}
-                    style={styles.accountAvatar}
-                  />
-                ) : (
-                  <View style={[styles.accountAvatarPlaceholder, { backgroundColor: colors.backgroundTertiary }]}>
-                    <Text style={[styles.accountAvatarText, { color: colors.textSecondary }]}>
-                      {profile?.handle?.[0]?.toUpperCase() ?? '?'}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Profile Details */}
-                <View style={styles.accountDetails}>
-                  {profile?.displayName && (
-                    <Text style={[styles.accountDisplayName, { color: colors.text }]}>
-                      {profile.displayName}
-                    </Text>
-                  )}
-                  <Text style={[styles.accountHandle, { color: colors.textSecondary }]}>
-                    @{profile?.handle ?? user?.handle ?? 'unknown'}
-                  </Text>
-                  {profile?.description && (
-                    <Text style={[styles.accountDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-                      {profile.description}
-                    </Text>
-                  )}
-                  {/* Stats */}
-                  {(profile?.followersCount !== undefined || profile?.followsCount !== undefined) && (
-                    <View style={styles.accountStats}>
-                      {profile.postsCount !== undefined && (
-                        <Text style={[styles.accountStat, { color: colors.textSecondary }]}>
-                          <Text style={[styles.accountStatValue, { color: colors.text }]}>{profile.postsCount}</Text>
-                          {` ${t('account.posts')}`}
-                        </Text>
-                      )}
-                      {profile.followersCount !== undefined && (
-                        <Text style={[styles.accountStat, { color: colors.textSecondary }]}>
-                          <Text style={[styles.accountStatValue, { color: colors.text }]}>{profile.followersCount}</Text>
-                          {` ${t('account.followers')}`}
-                        </Text>
-                      )}
-                      {profile.followsCount !== undefined && (
-                        <Text style={[styles.accountStat, { color: colors.textSecondary }]}>
-                          <Text style={[styles.accountStatValue, { color: colors.text }]}>{profile.followsCount}</Text>
-                          {` ${t('account.following')}`}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-                </View>
-              </>
-            )}
-          </View>
-        </SettingsSection>
-
         {/* Tips Section */}
         <SettingsSection title={t('sections.tips')}>
           <SettingsItem
@@ -792,76 +722,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xxl,
     color: Colors.textTertiary,
     marginLeft: Spacing.sm,
-  },
-  accountInfo: {
-    flexDirection: 'row',
-    padding: Spacing.lg,
-  },
-  accountLoading: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.lg,
-  },
-  accountLoadingText: {
-    marginLeft: Spacing.sm,
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-  },
-  accountAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  accountAvatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  accountAvatarText: {
-    fontSize: FontSizes.xxl,
-    fontWeight: '700',
-    color: Colors.textInverse,
-  },
-  accountDetails: {
-    marginLeft: Spacing.md,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  accountDisplayName: {
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 2,
-  },
-  accountHandle: {
-    fontSize: FontSizes.md,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  accountDescription: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  accountStats: {
-    flexDirection: 'row',
-    marginTop: Spacing.sm,
-    gap: Spacing.md,
-  },
-  accountStat: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-  },
-  accountStatValue: {
-    fontWeight: '600',
-    color: Colors.text,
   },
   logoutButtonContainer: {
     marginTop: Spacing.lg,
