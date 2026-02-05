@@ -475,7 +475,7 @@ export function HomeScreen(): React.JSX.Element {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, {
-          backgroundColor: colors.indexTabActive,
+          backgroundColor: 'transparent',
           borderBottomColor: colors.indexTabBorder,
         }]}>
           <View style={styles.headerTabsContainer}>
@@ -513,7 +513,7 @@ export function HomeScreen(): React.JSX.Element {
 
       {/* Header with Index Tabs */}
       <View style={[styles.header, {
-        backgroundColor: colors.indexTabActive,
+        backgroundColor: 'transparent',
         borderBottomColor: colors.indexTabBorder,
       }]}>
         <View style={styles.headerTabsContainer}>

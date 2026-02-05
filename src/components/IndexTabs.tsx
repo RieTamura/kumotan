@@ -53,8 +53,9 @@ export const IndexTabs = memo(function IndexTabs({
                 : colors.indexTabInactive,
               borderColor: colors.indexTabBorder,
               zIndex: isFollowingActive ? 2 : 1,
+              height: isFollowingActive ? TAB_HEIGHT_ACTIVE : TAB_HEIGHT,
+              marginBottom: isFollowingActive ? -1 : 0,
             },
-            isFollowingActive && styles.activeTab,
           ]}
           accessibilityRole="tab"
           accessibilityState={{ selected: isFollowingActive }}
@@ -87,8 +88,10 @@ export const IndexTabs = memo(function IndexTabs({
                 : colors.indexTabInactive,
               borderColor: colors.indexTabBorder,
               zIndex: isProfileActive ? 2 : 1,
+              height: isProfileActive ? TAB_HEIGHT_ACTIVE : TAB_HEIGHT,
+              width: isProfileActive ? TAB_HEIGHT_ACTIVE + Spacing.sm * 2 : TAB_HEIGHT + Spacing.sm * 2,
+              marginBottom: isProfileActive ? -1 : 0,
             },
-            isProfileActive && styles.activeTab,
           ]}
           accessibilityRole="tab"
           accessibilityState={{ selected: isProfileActive }}
@@ -103,6 +106,9 @@ export const IndexTabs = memo(function IndexTabs({
                   borderColor: isProfileActive
                     ? colors.indexTabTextActive
                     : colors.indexTabText,
+                  width: isProfileActive ? AVATAR_SIZE_ACTIVE : AVATAR_SIZE,
+                  height: isProfileActive ? AVATAR_SIZE_ACTIVE : AVATAR_SIZE,
+                  borderRadius: isProfileActive ? AVATAR_SIZE_ACTIVE / 2 : AVATAR_SIZE / 2,
                 },
               ]}
             />
@@ -114,33 +120,27 @@ export const IndexTabs = memo(function IndexTabs({
                   backgroundColor: isProfileActive
                     ? colors.indexTabTextActive
                     : colors.indexTabText,
+                  width: isProfileActive ? AVATAR_SIZE_ACTIVE : AVATAR_SIZE,
+                  height: isProfileActive ? AVATAR_SIZE_ACTIVE : AVATAR_SIZE,
+                  borderRadius: isProfileActive ? AVATAR_SIZE_ACTIVE / 2 : AVATAR_SIZE / 2,
                 },
               ]}
             />
           )}
         </Pressable>
       </View>
-
-      {/* Bottom border that connects to content */}
-      <View
-        style={[
-          styles.bottomBorder,
-          {
-            backgroundColor: colors.indexTabActive,
-            borderColor: colors.indexTabBorder,
-          },
-        ]}
-      />
     </View>
   );
 });
 
-const TAB_HEIGHT = 40;
-const AVATAR_SIZE = 28;
+const TAB_HEIGHT = 36;
+const TAB_HEIGHT_ACTIVE = 44;
+const AVATAR_SIZE = 24;
+const AVATAR_SIZE_ACTIVE = 30;
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.xs,
     paddingHorizontal: Spacing.lg,
   },
   tabRow: {
@@ -149,23 +149,18 @@ const styles = StyleSheet.create({
   },
   tab: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
     borderTopLeftRadius: BorderRadius.md,
     borderTopRightRadius: BorderRadius.md,
     borderWidth: 1,
     borderBottomWidth: 0,
-    minHeight: TAB_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   followingTab: {
-    marginRight: -1,
+    marginRight: Spacing.xs,
   },
   profileTab: {
-    paddingHorizontal: Spacing.md,
-  },
-  activeTab: {
-    marginBottom: -1,
+    paddingHorizontal: Spacing.sm,
   },
   tabText: {
     fontSize: FontSizes.md,
@@ -175,24 +170,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
     borderWidth: 2,
   },
   avatarPlaceholder: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
     opacity: 0.5,
-  },
-  bottomBorder: {
-    height: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderTopWidth: 0,
-    marginTop: -1,
   },
 });
 

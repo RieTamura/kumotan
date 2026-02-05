@@ -73,12 +73,12 @@ export const LightColors = {
   skeletonHighlight: '#F7F9FA',
 
   // Index tabs
-  indexTabActive: '#F5F0E8',
-  indexTabInactive: '#E8E3DB',
-  indexTabBorder: '#D4CFC7',
+  indexTabActive: '#FFFFFF',
+  indexTabInactive: '#F7F9FA',
+  indexTabBorder: '#E1E8ED',
   indexTabShadow: 'rgba(0, 0, 0, 0.1)',
-  indexTabText: '#5D5347',
-  indexTabTextActive: '#3D3530',
+  indexTabText: '#657786',
+  indexTabTextActive: '#14171A',
 } as const;
 
 export const DarkColors = {
@@ -151,11 +151,11 @@ export const DarkColors = {
   skeletonHighlight: '#1E2732',
 
   // Index tabs
-  indexTabActive: '#2A2A2A',
-  indexTabInactive: '#1F1F1F',
-  indexTabBorder: '#3A3A3A',
+  indexTabActive: '#15202B',
+  indexTabInactive: '#1E2732',
+  indexTabBorder: '#38444D',
   indexTabShadow: 'rgba(0, 0, 0, 0.3)',
-  indexTabText: '#A0A0A0',
+  indexTabText: '#8899A6',
   indexTabTextActive: '#FFFFFF',
 } as const;
 
