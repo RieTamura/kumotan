@@ -10,7 +10,11 @@
     "notFound": "Profile not found",
     "following": "Following",
     "followers": "Followers",
-    "posts": "Posts"
+    "posts": "Posts",
+    "myPosts": "Posts",
+    "noPosts": "No posts yet",
+    "loadingPosts": "Loading posts...",
+    "feedError": "Failed to load posts"
   },
   "loading": "Loading...",
   "loadingTimeline": "Loading timeline...",

@@ -1,42 +1,264 @@
 /**
  * ProfileView Component
- * Displays the logged-in user's Bluesky profile
+ * Displays the logged-in user's Bluesky profile with their posts
  */
 
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Image,
-  ScrollView,
+  FlatList,
   RefreshControl,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore, useAuthProfile, useIsProfileLoading } from '../store/authStore';
+import { useAuthorFeed } from '../hooks/useAuthorFeed';
 import { Loading } from './common/Loading';
-import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
+import { PostCard } from './PostCard';
+import { Spacing, FontSizes } from '../constants/colors';
+import { TimelinePost } from '../types/bluesky';
+import type { RootStackParamList } from '../navigation/AppNavigator';
+import { likePost, unlikePost } from '../services/bluesky/feed';
 
 /**
- * ProfileView - Displays user profile information
+ * ProfileView - Displays user profile information with their posts
  */
 export const ProfileView = memo(function ProfileView(): React.JSX.Element {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation('home');
   const { colors } = useTheme();
   const profile = useAuthProfile();
-  const isLoading = useIsProfileLoading();
+  const isProfileLoading = useIsProfileLoading();
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const fetchProfile = useAuthStore((state) => state.fetchProfile);
 
+  // Author feed hook
+  const {
+    posts,
+    isLoading: isFeedLoading,
+    isRefreshing,
+    isLoadingMore,
+    hasMore,
+    refresh: refreshFeed,
+    loadMore,
+  } = useAuthorFeed();
+
   // Fetch profile on mount if not loaded
   useEffect(() => {
-    if (!profile && !isLoading) {
+    if (!profile && !isProfileLoading) {
       fetchProfile();
     }
-  }, [profile, isLoading, fetchProfile]);
+  }, [profile, isProfileLoading, fetchProfile]);
 
-  if (isLoading && !profile) {
+  /**
+   * Handle refresh (both profile and feed)
+   */
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refreshProfile(), refreshFeed()]);
+  }, [refreshProfile, refreshFeed]);
+
+  /**
+   * Handle post press - navigate to thread
+   */
+  const handlePostPress = useCallback(
+    (postUri: string) => {
+      navigation.navigate('Thread', { postUri });
+    },
+    [navigation]
+  );
+
+  /**
+   * Handle like press
+   */
+  const handleLikePress = useCallback(
+    async (post: TimelinePost, shouldLike: boolean) => {
+      try {
+        if (shouldLike) {
+          const result = await likePost(post.uri, post.cid);
+          if (!result.success && __DEV__) {
+            console.error('Failed to like post:', result.error);
+          }
+        } else {
+          if (post.viewer?.like) {
+            const result = await unlikePost(post.viewer.like);
+            if (!result.success && __DEV__) {
+              console.error('Failed to unlike post:', result.error);
+            }
+          }
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Like operation failed:', error);
+        }
+      }
+    },
+    []
+  );
+
+  /**
+   * Handle end reached for infinite scroll
+   */
+  const handleEndReached = useCallback(() => {
+    if (!isLoadingMore && hasMore) {
+      loadMore();
+    }
+  }, [isLoadingMore, hasMore, loadMore]);
+
+  /**
+   * Render profile header
+   */
+  const renderHeader = useCallback(() => {
+    if (!profile) return null;
+
+    return (
+      <View>
+        {/* Banner area */}
+        <View style={[styles.bannerArea, { backgroundColor: colors.backgroundSecondary }]}>
+          {profile.banner && (
+            <Image
+              source={{ uri: profile.banner }}
+              style={styles.bannerImage}
+              resizeMode="cover"
+            />
+          )}
+        </View>
+
+        {/* Avatar */}
+        <View style={styles.avatarContainer}>
+          {profile.avatar ? (
+            <Image
+              source={{ uri: profile.avatar }}
+              style={[styles.avatar, { borderColor: colors.background }]}
+            />
+          ) : (
+            <View
+              style={[
+                styles.avatar,
+                styles.avatarPlaceholder,
+                { borderColor: colors.background, backgroundColor: colors.backgroundTertiary },
+              ]}
+            />
+          )}
+        </View>
+
+        {/* Profile info */}
+        <View style={styles.infoContainer}>
+          {/* Display name */}
+          <Text style={[styles.displayName, { color: colors.text }]}>
+            {profile.displayName || profile.handle}
+          </Text>
+
+          {/* Handle */}
+          <Text style={[styles.handle, { color: colors.textSecondary }]}>
+            @{profile.handle}
+          </Text>
+
+          {/* Description */}
+          {profile.description && (
+            <Text style={[styles.description, { color: colors.text }]}>
+              {profile.description}
+            </Text>
+          )}
+
+          {/* Stats */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {formatNumber(profile.followsCount ?? 0)}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                {t('profile.following')}
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {formatNumber(profile.followersCount ?? 0)}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                {t('profile.followers')}
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>
+                {formatNumber(profile.postsCount ?? 0)}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                {t('profile.posts')}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Posts section header */}
+        <View style={[styles.sectionHeader, { borderTopColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {t('profile.myPosts')}
+          </Text>
+        </View>
+      </View>
+    );
+  }, [profile, colors, t]);
+
+  /**
+   * Render post item
+   */
+  const renderPost = useCallback(
+    ({ item }: { item: TimelinePost }) => (
+      <PostCard
+        post={item}
+        onPostPress={handlePostPress}
+        onLikePress={handleLikePress}
+      />
+    ),
+    [handlePostPress, handleLikePress]
+  );
+
+  /**
+   * Render empty state for posts
+   */
+  const renderEmpty = useCallback(() => {
+    if (isFeedLoading) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Loading size="small" message={t('profile.loadingPosts')} />
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+          {t('profile.noPosts')}
+        </Text>
+      </View>
+    );
+  }, [isFeedLoading, colors, t]);
+
+  /**
+   * Render footer (loading more indicator)
+   */
+  const renderFooter = useCallback(() => {
+    if (!isLoadingMore) return <View style={{ height: 100 }} />;
+
+    return (
+      <View style={styles.footerLoader}>
+        <Loading size="small" />
+      </View>
+    );
+  }, [isLoadingMore]);
+
+  /**
+   * Extract key for FlatList
+   */
+  const keyExtractor = useCallback((item: TimelinePost) => item.uri, []);
+
+  // Show loading state on initial profile load
+  if (isProfileLoading && !profile) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <Loading size="large" message={t('profile.loading')} />
@@ -44,6 +266,7 @@ export const ProfileView = memo(function ProfileView(): React.JSX.Element {
     );
   }
 
+  // Show error state if no profile
   if (!profile) {
     return (
       <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
@@ -55,95 +278,29 @@ export const ProfileView = memo(function ProfileView(): React.JSX.Element {
   }
 
   return (
-    <ScrollView
+    <FlatList
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
+      data={posts}
+      renderItem={renderPost}
+      keyExtractor={keyExtractor}
+      ListHeaderComponent={renderHeader}
+      ListEmptyComponent={renderEmpty}
+      ListFooterComponent={renderFooter}
       refreshControl={
         <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refreshProfile}
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
           tintColor={colors.primary}
           colors={[colors.primary]}
         />
       }
-    >
-      {/* Banner area */}
-      <View style={[styles.bannerArea, { backgroundColor: colors.backgroundSecondary }]}>
-        {profile.banner && (
-          <Image
-            source={{ uri: profile.banner }}
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
-        )}
-      </View>
-
-      {/* Avatar */}
-      <View style={styles.avatarContainer}>
-        {profile.avatar ? (
-          <Image
-            source={{ uri: profile.avatar }}
-            style={[styles.avatar, { borderColor: colors.background }]}
-          />
-        ) : (
-          <View
-            style={[
-              styles.avatar,
-              styles.avatarPlaceholder,
-              { borderColor: colors.background, backgroundColor: colors.backgroundTertiary },
-            ]}
-          />
-        )}
-      </View>
-
-      {/* Profile info */}
-      <View style={styles.infoContainer}>
-        {/* Display name */}
-        <Text style={[styles.displayName, { color: colors.text }]}>
-          {profile.displayName || profile.handle}
-        </Text>
-
-        {/* Handle */}
-        <Text style={[styles.handle, { color: colors.textSecondary }]}>
-          @{profile.handle}
-        </Text>
-
-        {/* Description */}
-        {profile.description && (
-          <Text style={[styles.description, { color: colors.text }]}>
-            {profile.description}
-          </Text>
-        )}
-
-        {/* Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.text }]}>
-              {formatNumber(profile.followsCount ?? 0)}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              {t('profile.following')}
-            </Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.text }]}>
-              {formatNumber(profile.followersCount ?? 0)}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              {t('profile.followers')}
-            </Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.text }]}>
-              {formatNumber(profile.postsCount ?? 0)}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              {t('profile.posts')}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
+      showsVerticalScrollIndicator={false}
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={10}
+      windowSize={5}
+    />
   );
 });
 
@@ -167,9 +324,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  contentContainer: {
-    paddingBottom: Spacing.xxl,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -180,6 +334,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
+    minHeight: 200,
   },
   emptyText: {
     fontSize: FontSizes.md,
@@ -239,6 +394,21 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: FontSizes.sm,
     marginTop: 2,
+  },
+  sectionHeader: {
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    borderTopWidth: 1,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+  },
+  footerLoader: {
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
   },
 });
 

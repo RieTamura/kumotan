@@ -10,7 +10,11 @@
     "notFound": "プロフィールが見つかりません",
     "following": "フォロー中",
     "followers": "フォロワー",
-    "posts": "投稿"
+    "posts": "投稿",
+    "myPosts": "投稿",
+    "noPosts": "まだ投稿がありません",
+    "loadingPosts": "投稿を読み込み中...",
+    "feedError": "投稿の読み込みに失敗しました"
   },
   "loading": "読み込み中...",
   "loadingTimeline": "タイムラインを読み込み中...",
