@@ -100,5 +100,14 @@
     "dark": "Dark",
     "system": "Follow System Settings",
     "selectTheme": "Select Theme"
+  },
+  "pds": {
+    "restore": "Restore from PDS",
+    "restoreDescription": "Restore vocabulary data saved in your Bluesky PDS",
+    "restoreTitle": "Restore from PDS",
+    "restoreConfirm": "Restore vocabulary data from PDS? Already registered words will be skipped.",
+    "restoreSuccess": "Restored {{restored}} words ({{skipped}} skipped)",
+    "restoreEmpty": "No vocabulary data found in PDS",
+    "restoreError": "Failed to restore data. Please try again."
   }
 }

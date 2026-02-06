@@ -100,5 +100,14 @@
     "dark": "ダーク",
     "system": "システム設定に従う",
     "selectTheme": "テーマを選択"
+  },
+  "pds": {
+    "restore": "PDSからデータを復元",
+    "restoreDescription": "Bluesky PDSに保存された単語データを復元",
+    "restoreTitle": "PDSからデータを復元",
+    "restoreConfirm": "PDSに保存された単語データを復元します。既に登録済みの単語はスキップされます。",
+    "restoreSuccess": "{{restored}}件の単語を復元しました（{{skipped}}件スキップ）",
+    "restoreEmpty": "PDSに単語データが見つかりません",
+    "restoreError": "データの復元に失敗しました。もう一度お試しください。"
   }
 }

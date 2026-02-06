@@ -288,6 +288,22 @@ async function runMigrations(
     }
   }
 
+  // Migration to version 6: Add pds_rkey column for PDS sync
+  if (currentVersion < 6) {
+    await database.execAsync(`
+      ALTER TABLE words ADD COLUMN pds_rkey TEXT DEFAULT NULL;
+    `);
+
+    await database.runAsync(
+      'INSERT INTO schema_version (version) VALUES (?)',
+      [6]
+    );
+
+    if (__DEV__) {
+      console.log('Migration to version 6 completed: Added pds_rkey column for PDS sync');
+    }
+  }
+
   // Add more migrations as needed
 }
 

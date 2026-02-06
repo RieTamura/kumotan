@@ -8,6 +8,9 @@ import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { addWord } from '../services/database/words';
+import { syncWordToPds } from '../services/pds/vocabularySync';
+import { getAgent } from '../services/bluesky/auth';
+import { useAuthStore } from '../store/authStore';
 
 /**
  * Word popup state interface
@@ -49,6 +52,7 @@ export interface UseWordRegistrationReturn {
 export function useWordRegistration(): UseWordRegistrationReturn {
   const { t } = useTranslation('home');
   const { t: tc } = useTranslation('common');
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [wordPopup, setWordPopup] = useState<WordPopupState>(initialWordPopupState);
 
@@ -119,6 +123,14 @@ export function useWordRegistration(): UseWordRegistrationReturn {
 
         if (result.success) {
           Alert.alert(tc('status.success'), t('wordAdded'));
+
+          // PDS同期（非同期・バックグラウンド、失敗許容）
+          if (isAuthenticated) {
+            const agent = getAgent();
+            syncWordToPds(agent, result.data).catch((err) => {
+              console.error('[useWordRegistration] PDS sync failed:', err);
+            });
+          }
         } else {
           Alert.alert(tc('status.error'), result.error.message);
         }
@@ -127,7 +139,7 @@ export function useWordRegistration(): UseWordRegistrationReturn {
         console.error('Failed to add word:', error);
       }
     },
-    [t, tc]
+    [t, tc, isAuthenticated]
   );
 
   return {

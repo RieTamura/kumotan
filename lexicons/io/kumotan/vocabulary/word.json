@@ -1,0 +1,47 @@
+{
+  "lexicon": 1,
+  "id": "io.kumotan.vocabulary.word",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A vocabulary word saved by the user in Kumotan app",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["english", "createdAt"],
+        "properties": {
+          "english": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "English word or phrase"
+          },
+          "japanese": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Japanese translation"
+          },
+          "definition": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "English definition"
+          },
+          "postUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the original Bluesky post"
+          },
+          "postText": {
+            "type": "string",
+            "maxLength": 3000,
+            "description": "Original post text for context"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the word was registered"
+          }
+        }
+      }
+    }
+  }
+}

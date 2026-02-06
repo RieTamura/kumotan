@@ -26,6 +26,8 @@ import { Button } from '../components/common/Button';
 import { hasApiKey } from '../services/dictionary/deepl';
 import { hasClientId } from '../services/dictionary/yahooJapan';
 import { exportWords, deleteAllWords } from '../services/database/words';
+import { restoreWordsFromPds } from '../services/pds/vocabularySync';
+import { getAgent } from '../services/bluesky/auth';
 import {
   getDictionaryStatus,
   deleteDictionary,
@@ -122,8 +124,9 @@ export function SettingsScreen(): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
-  const { logout, isLoading } = useAuthStore();
+  const { logout, isLoading, isAuthenticated } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
   const [yahooClientIdSet, setYahooClientIdSet] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -340,6 +343,50 @@ export function SettingsScreen(): React.JSX.Element {
   }, [showSuccess, showError, t, tc]);
 
   /**
+   * Handle PDS restore
+   */
+  const handlePdsRestore = useCallback(() => {
+    if (!isAuthenticated) {
+      showError(t('pds.restoreError'));
+      return;
+    }
+
+    Alert.alert(
+      t('pds.restoreTitle'),
+      t('pds.restoreConfirm'),
+      [
+        { text: tc('buttons.cancel'), style: 'cancel' },
+        {
+          text: tc('buttons.ok'),
+          onPress: async () => {
+            setIsRestoring(true);
+            try {
+              const agent = getAgent();
+              const result = await restoreWordsFromPds(agent);
+
+              if (result.total === 0) {
+                showError(t('pds.restoreEmpty'));
+              } else {
+                showSuccess(
+                  t('pds.restoreSuccess', {
+                    restored: result.restored,
+                    skipped: result.skipped,
+                  })
+                );
+              }
+            } catch (error) {
+              console.error('PDS restore error:', error);
+              showError(t('pds.restoreError'));
+            } finally {
+              setIsRestoring(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [isAuthenticated, showSuccess, showError, t, tc]);
+
+  /**
    * Handle license screen navigation
    */
   const handleLicensePress = useCallback(() => {
@@ -535,6 +582,12 @@ export function SettingsScreen(): React.JSX.Element {
             subtitle={t('data.exportSubtitle')}
             onPress={handleExportData}
             disabled={isExporting}
+          />
+          <SettingsItem
+            title={t('pds.restore')}
+            subtitle={t('pds.restoreDescription')}
+            onPress={handlePdsRestore}
+            disabled={isRestoring || !isAuthenticated}
           />
           <SettingsItem
             title={t('data.deleteAll')}
