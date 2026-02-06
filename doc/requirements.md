@@ -873,11 +873,29 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年2月5日
-**バージョン**: 1.25
+**最終更新日**: 2026年2月6日
+**バージョン**: 1.26
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.26 (2026-02-06)
+
+- **useWordRegistration カスタムフック抽出 & プロフィールタブへの単語登録機能追加**
+  - `src/hooks/useWordRegistration.ts` 新規作成
+    - HomeScreenに密結合していた単語登録・文章モードのロジックをカスタムフックに抽出
+    - `WordPopupState`、`handleWordSelect`、`handleSentenceSelect`、`closeWordPopup`、`handleAddWord` を管理
+    - `addWord` DB呼び出しと `Alert` 表示のロジックを内包
+  - `src/screens/HomeScreen.tsx` リファクタリング
+    - インラインの状態管理・ハンドラ定義を `useWordRegistration()` フック呼び出しに置換
+    - 未使用になった `Alert` import と `tc` 翻訳を削除
+    - 既存動作に影響なし（同一インターフェースを維持）
+  - `src/components/ProfileView.tsx` 機能追加
+    - `useWordRegistration` フックと `WordPopup` コンポーネントを統合
+    - `PostCard` に `onWordSelect`、`onSentenceSelect`、`clearSelection` を追加
+    - `FlatList` を `View` でラップし `WordPopup` を配置
+    - プロフィールタブの投稿フィードで単語登録・文章モードが利用可能に
+  - 詳細：`doc/word-registration-hook-extraction-plan.md` 参照
 
 ### v1.25 (2026-02-05)
 

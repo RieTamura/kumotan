@@ -16,10 +16,12 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
+import { useWordRegistration } from '../hooks/useWordRegistration';
 import { useAuthStore, useAuthProfile, useIsProfileLoading } from '../store/authStore';
 import { useAuthorFeed } from '../hooks/useAuthorFeed';
 import { Loading } from './common/Loading';
 import { PostCard } from './PostCard';
+import { WordPopup } from './WordPopup';
 import { Spacing, FontSizes } from '../constants/colors';
 import { TimelinePost } from '../types/bluesky';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -36,6 +38,15 @@ export const ProfileView = memo(function ProfileView(): React.JSX.Element {
   const isProfileLoading = useIsProfileLoading();
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const fetchProfile = useAuthStore((state) => state.fetchProfile);
+
+  // Word registration hook
+  const {
+    wordPopup,
+    handleWordSelect,
+    handleSentenceSelect,
+    closeWordPopup,
+    handleAddWord,
+  } = useWordRegistration();
 
   // Author feed hook
   const {
@@ -208,14 +219,21 @@ export const ProfileView = memo(function ProfileView(): React.JSX.Element {
    * Render post item
    */
   const renderPost = useCallback(
-    ({ item }: { item: TimelinePost }) => (
-      <PostCard
-        post={item}
-        onPostPress={handlePostPress}
-        onLikePress={handleLikePress}
-      />
-    ),
-    [handlePostPress, handleLikePress]
+    ({ item }: { item: TimelinePost }) => {
+      const shouldClearSelection =
+        !wordPopup.visible && wordPopup.postUri === item.uri && wordPopup.postUri !== '';
+      return (
+        <PostCard
+          post={item}
+          onPostPress={handlePostPress}
+          onLikePress={handleLikePress}
+          onWordSelect={handleWordSelect}
+          onSentenceSelect={handleSentenceSelect}
+          clearSelection={shouldClearSelection}
+        />
+      );
+    },
+    [handlePostPress, handleLikePress, handleWordSelect, handleSentenceSelect, wordPopup.visible, wordPopup.postUri]
   );
 
   /**
@@ -278,29 +296,40 @@ export const ProfileView = memo(function ProfileView(): React.JSX.Element {
   }
 
   return (
-    <FlatList
-      style={[styles.container, { backgroundColor: colors.background }]}
-      data={posts}
-      renderItem={renderPost}
-      keyExtractor={keyExtractor}
-      ListHeaderComponent={renderHeader}
-      ListEmptyComponent={renderEmpty}
-      ListFooterComponent={renderFooter}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={handleRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-        />
-      }
-      onEndReached={handleEndReached}
-      onEndReachedThreshold={0.5}
-      showsVerticalScrollIndicator={false}
-      removeClippedSubviews={true}
-      maxToRenderPerBatch={10}
-      windowSize={5}
-    />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <FlatList
+        style={styles.container}
+        data={posts}
+        renderItem={renderPost}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={renderFooter}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+      />
+      <WordPopup
+        visible={wordPopup.visible}
+        word={wordPopup.word}
+        isSentenceMode={wordPopup.isSentenceMode}
+        postUri={wordPopup.postUri}
+        postText={wordPopup.postText}
+        onClose={closeWordPopup}
+        onAddToWordList={handleAddWord}
+      />
+    </View>
   );
 });
 

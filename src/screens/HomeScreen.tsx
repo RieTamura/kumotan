@@ -11,7 +11,6 @@ import {
   FlatList,
   RefreshControl,
   Pressable,
-  Alert,
   NativeSyntheticEvent,
   NativeScrollEvent,
   Animated,
@@ -28,6 +27,7 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useTutorial, TutorialStep } from '../hooks/useTutorial';
+import { useWordRegistration } from '../hooks/useWordRegistration';
 import { PostCard } from '../components/PostCard';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { Loading } from '../components/common/Loading';
@@ -39,33 +39,10 @@ import { IndexTabs, TabType } from '../components/IndexTabs';
 import { ProfileView } from '../components/ProfileView';
 import { TimelinePost } from '../types/bluesky';
 import { useAuthProfile } from '../store/authStore';
-import { addWord } from '../services/database/words';
 import { likePost, unlikePost } from '../services/bluesky/feed';
 import { useTheme } from '../hooks/useTheme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-/**
- * Word popup state interface
- */
-interface WordPopupState {
-  visible: boolean;
-  word: string;
-  isSentenceMode: boolean;
-  postUri: string;
-  postText: string;
-}
-
-/**
- * Initial word popup state
- */
-const initialWordPopupState: WordPopupState = {
-  visible: false,
-  word: '',
-  isSentenceMode: false,
-  postUri: '',
-  postText: '',
-};
 
 /**
  * HomeScreen Component
@@ -74,7 +51,6 @@ export function HomeScreen(): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('home');
-  const { t: tc } = useTranslation('common');
   const { t: tt } = useTranslation('tutorial');
   const { colors, isDark } = useTheme();
   const profile = useAuthProfile();
@@ -192,8 +168,14 @@ export function HomeScreen(): React.JSX.Element {
   // Network status
   const isConnected = useNetworkStatus();
 
-  // Word popup state
-  const [wordPopup, setWordPopup] = useState<WordPopupState>(initialWordPopupState);
+  // Word registration hook
+  const {
+    wordPopup,
+    handleWordSelect,
+    handleSentenceSelect,
+    closeWordPopup,
+    handleAddWord,
+  } = useWordRegistration();
 
   // Post creation modal state
   const [isPostModalVisible, setIsPostModalVisible] = useState(false);
@@ -205,84 +187,6 @@ export function HomeScreen(): React.JSX.Element {
 
   // Threshold for showing scroll to top button (in pixels)
   const SCROLL_THRESHOLD = 500;
-
-  /**
-   * Handle word selection from a post
-   */
-  const handleWordSelect = useCallback(
-    (word: string, postUri: string, postText: string) => {
-      setWordPopup({
-        visible: true,
-        word: word.toLowerCase(),
-        isSentenceMode: false,
-        postUri,
-        postText,
-      });
-    },
-    []
-  );
-
-  /**
-   * Handle sentence selection from a post
-   */
-  const handleSentenceSelect = useCallback(
-    (sentence: string, postUri: string, postText: string) => {
-      setWordPopup({
-        visible: true,
-        word: sentence,
-        isSentenceMode: true,
-        postUri,
-        postText,
-      });
-    },
-    []
-  );
-
-  /**
-   * Close word popup
-   */
-  const closeWordPopup = useCallback(() => {
-    // Keep postUri to allow PostCard to clear selection before full reset
-    setWordPopup(prev => ({ ...prev, visible: false }));
-
-    // Reset postUri after a short delay to allow PostCard to process clearSelection
-    setTimeout(() => {
-      setWordPopup(prev => ({ ...initialWordPopupState }));
-    }, 100);
-  }, []);
-
-  /**
-   * Handle add word to vocabulary
-   */
-  const handleAddWord = useCallback(
-    async (
-      word: string,
-      japanese: string | null,
-      definition: string | null,
-      postUri: string | null,
-      postText: string | null
-    ) => {
-      try {
-        const result = await addWord(
-          word,
-          japanese ?? undefined,
-          definition ?? undefined,
-          postUri ?? undefined,
-          postText ?? undefined
-        );
-
-        if (result.success) {
-          Alert.alert(tc('status.success'), t('wordAdded'));
-        } else {
-          Alert.alert(tc('status.error'), result.error.message);
-        }
-      } catch (error) {
-        Alert.alert(tc('status.error'), t('wordAddError'));
-        console.error('Failed to add word:', error);
-      }
-    },
-    []
-  );
 
   /**
    * Handle end reached for infinite scroll
