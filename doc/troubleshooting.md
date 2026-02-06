@@ -5673,7 +5673,7 @@ header: {
 ### 実装のポイント
 - `{!isSentenceMode && ...}`の条件分岐を削除し、フィードバックアイコンを無条件で表示
 - フィードバックモーダル（FeedbackModal）自体は変更不要で、既存の実装がそのまま動作する
-- 文章モードでも単語モードでも同じユーザー体験を提供
+- 文章モード・単語モードの両方で同じユーザー体験を提供
 
 ### 関連ファイル
 - `src/components/WordPopup.tsx` - 単語ポップアップコンポーネント（761-769行目）
@@ -5683,3 +5683,104 @@ header: {
 - フィードバック機能のような汎用的な機能は、全てのモードで利用可能にすることでユーザビリティが向上する
 - 条件分岐で機能を制限する場合は、その理由を明確にしておくことが重要
 
+---
+
+## 29. 単語帳の投稿URLがBluesky公式サイトで開かれる問題
+
+### 発生日
+2026年2月6日
+
+### 症状
+- 単語帳ページで登録した単語をタップして展開し、投稿URLをタップすると外部ブラウザでBluesky公式サイト（bsky.app）が開かれる
+- アプリから離脱してしまい、投稿の確認後にアプリに戻る手間がかかる
+- kumotanアプリ内で投稿を確認したい
+
+### 原因
+`src/components/WordListItem.tsx`の`handleUrlPress`関数で、AT Protocol URI（`at://...`）をHTTPS URL（`https://bsky.app/...`）に変換し、`Linking.openURL()`で外部ブラウザに遷移していた。
+
+```typescript
+// 変更前 - 外部ブラウザで開く
+const handleUrlPress = useCallback(async () => {
+  if (word.postUrl) {
+    let urlToOpen = word.postUrl;
+    if (word.postUrl.startsWith('at://')) {
+      const match = word.postUrl.match(/^at:\/\/([^\/]+)\/app\.bsky\.feed\.post\/(.+)$/);
+      if (match) {
+        const [, did, rkey] = match;
+        urlToOpen = `https://bsky.app/profile/${did}/post/${rkey}`;
+      }
+    }
+    await Linking.openURL(urlToOpen);
+  }
+}, [word.postUrl]);
+```
+
+### 調査過程
+
+1. **既存のThreadScreenの確認** - アプリ内にはホーム画面やプロフィール画面から投稿スレッドを表示する`ThreadScreen`が既に実装されていた
+
+2. **ナビゲーション構成の確認** - `AppNavigator.tsx`で`Thread: { postUri: string }`ルートが定義済みであり、`postUri`（AT Protocol URI）をパラメータとして受け取る仕組みが既にあった
+
+3. **WordListScreenのナビゲーション確認** - WordListScreenは`useNavigation<NativeStackNavigationProp<RootStackParamList>>()`を既にインポートしており、ナビゲーションの準備が整っていた
+
+4. **結論** - 新しい画面を作成する必要はなく、既存のThreadScreenを単語帳から呼び出す導線を追加するだけで実現可能
+
+### 解決策
+
+**1. WordListItem.tsxの修正 - onPostPressコールバックの追加：**
+
+propsに`onPostPress`コールバックを追加し、`handleUrlPress`を簡素化：
+
+```typescript
+// Props interfaceに追加
+interface WordListItemProps {
+  word: Word;
+  onToggleRead?: (word: Word) => void;
+  onDelete?: (word: Word) => void;
+  onPostPress?: (postUri: string) => void;  // 追加
+}
+
+// handleUrlPressの変更
+const handleUrlPress = useCallback(() => {
+  if (word.postUrl && onPostPress) {
+    onPostPress(word.postUrl);
+  }
+}, [word.postUrl, onPostPress]);
+```
+
+不要になった`Linking`と`Alert`のインポートも削除。
+
+**2. WordListScreen.tsxの修正 - ナビゲーション遷移の追加：**
+
+```typescript
+// handlePostPress関数を追加
+const handlePostPress = useCallback((postUri: string) => {
+  navigation.navigate('Thread', { postUri });
+}, [navigation]);
+
+// WordListItemにonPostPressを渡す
+<WordListItem
+  word={item}
+  onToggleRead={handleToggleRead}
+  onPostPress={handlePostPress}
+/>
+```
+
+### 実装のポイント
+
+- 新しい画面を作成せず、既存の`ThreadScreen`を再利用することでコードの重複をゼロに抑えた
+- WordListItemは`onPostPress`コールバックを受け取る形にし、ナビゲーションロジックを親コンポーネント（WordListScreen）に委譲。これによりWordListItemはナビゲーションに依存しない汎用的なコンポーネントのまま維持
+- 変更は2ファイル、計10行程度の最小限で完結
+
+### 関連ファイル
+
+- `src/components/WordListItem.tsx` - 単語カードコンポーネント（onPostPressコールバック追加、Linking/Alert削除）
+- `src/screens/WordListScreen.tsx` - 単語帳画面（handlePostPress追加、WordListItemへの受け渡し）
+- `src/screens/ThreadScreen.tsx` - スレッド表示画面（変更なし、既存のまま再利用）
+- `src/navigation/AppNavigator.tsx` - ナビゲーション定義（変更なし、Threadルート既存）
+
+### 教訓
+
+- 新しい画面を作成する前に、既存の画面で要件を満たせないか確認する
+- コールバックパターンを使用してナビゲーションロジックを親に委譲することで、子コンポーネントの再利用性を維持できる
+- 外部ブラウザへの遷移をアプリ内ナビゲーションに変更するだけで、ユーザー体験が大幅に向上する

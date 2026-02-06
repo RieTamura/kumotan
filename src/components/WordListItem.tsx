@@ -11,8 +11,7 @@ import {
   Pressable, Animated,
   LayoutAnimation,
   Platform,
-  UIManager, Linking,
-  Alert,
+  UIManager,
 } from 'react-native';
 import {
   Colors,
@@ -32,6 +31,7 @@ interface WordListItemProps {
   word: Word;
   onToggleRead?: (word: Word) => void;
   onDelete?: (word: Word) => void;
+  onPostPress?: (postUri: string) => void;
 }
 
 /**
@@ -61,6 +61,7 @@ export function WordListItem({
   word,
   onToggleRead,
   onDelete,
+  onPostPress,
 }: WordListItemProps): React.JSX.Element {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -81,41 +82,13 @@ export function WordListItem({
   }, [word, onToggleRead]);
 
   /**
-   * Handle URL press - open in browser
+   * Handle URL press - open post in Thread screen
    */
-  const handleUrlPress = useCallback(async () => {
-    if (word.postUrl) {
-      try {
-        // Convert AT Protocol URI to HTTPS URL if needed
-        let urlToOpen = word.postUrl;
-
-        // Check if it's an AT Protocol URI (at://...)
-        if (word.postUrl.startsWith('at://')) {
-          // Parse: at://did:plc:xxxxx/app.bsky.feed.post/xxxxx
-          const match = word.postUrl.match(/^at:\/\/([^\/]+)\/app\.bsky\.feed\.post\/(.+)$/);
-          if (match) {
-            const [, did, rkey] = match;
-            urlToOpen = `https://bsky.app/profile/${did}/post/${rkey}`;
-          } else {
-            Alert.alert('エラー', '投稿URLの形式が正しくありません');
-            return;
-          }
-        }
-
-        console.log('Opening URL:', urlToOpen);
-
-        // Try to open the URL - suppress errors as they may be false positives
-        await Linking.openURL(urlToOpen).catch((err) => {
-          console.warn('Linking.openURL error (may be ignorable):', err);
-          // If openURL fails, it might still work, so we don't show an alert
-        });
-      } catch (error) {
-        console.error('Failed to open URL:', error);
-        // Only show alert for actual failures
-        Alert.alert('エラー', 'URLを開く際にエラーが発生しました');
-      }
+  const handleUrlPress = useCallback(() => {
+    if (word.postUrl && onPostPress) {
+      onPostPress(word.postUrl);
     }
-  }, [word.postUrl]);
+  }, [word.postUrl, onPostPress]);
 
   return (
     <Pressable

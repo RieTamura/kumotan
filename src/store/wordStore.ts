@@ -33,7 +33,7 @@ interface WordState {
  * Default filter settings
  */
 const defaultFilter: WordFilter = {
-  isRead: null,
+  isRead: false,
   sortBy: 'created_at',
   sortOrder: 'desc',
   limit: 1000,

@@ -158,6 +158,13 @@ export function WordListScreen(): React.JSX.Element {
   }, [toggleReadStatusStore, showError]);
 
   /**
+   * Handle post press - navigate to Thread screen
+   */
+  const handlePostPress = useCallback((postUri: string) => {
+    navigation.navigate('Thread', { postUri });
+  }, [navigation]);
+
+  /**
    * Handle word delete
    */
   const handleWordDelete = useCallback(async (word: Word) => {
@@ -192,6 +199,7 @@ export function WordListScreen(): React.JSX.Element {
           <WordListItem
             word={item}
             onToggleRead={handleToggleRead}
+            onPostPress={handlePostPress}
           />
         </View>
         <Pressable
@@ -207,7 +215,7 @@ export function WordListScreen(): React.JSX.Element {
         </Pressable>
       </View>
     ),
-    [handleToggleRead, handleWordDelete, colors]
+    [handleToggleRead, handleWordDelete, handlePostPress, colors]
   );
 
   /**
