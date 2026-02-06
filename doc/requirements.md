@@ -206,6 +206,20 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - Bluesky OAuth実装完了後
     - 無料プランまたは低コストで利用可能な場合
     - DeepL使用量が上限に近いユーザーが一定数発生した場合
+- **検索機能**
+  - **Phase 1: 保存済み単語のキーワード検索**
+    - 単語帳画面に検索バーを追加
+    - SQLite LIKE検索で `english` / `japanese` / `definition` / `postText` を横断検索
+    - 既存の `WordFilter` に `searchQuery` を追加、デバウンス付きインクリメンタル検索
+  - **Phase 2: Bluesky投稿検索**
+    - AT Protocol `app.bsky.feed.searchPosts` APIを利用
+    - ホーム画面ヘッダーに検索アイコンを配置、スタック遷移で検索画面を表示
+    - 検索結果は既存 `PostCard` で表示し、単語タップ→保存の既存フローを活用
+    - 英語学習向けプリセットタグ（`#EnglishLearning` 等）のサジェスト
+  - **Phase 3: ユーザー検索**
+    - `app.bsky.actor.searchActors` APIを利用
+    - 検索画面にタブ切替（投稿 / ユーザー）を追加
+  - **詳細**: `doc/search-feature-implementation-plan.md` 参照
 
 ### Phase 2.5: 辞書フィードバック機能 ✅ 完了 (2026-01-30)
 
