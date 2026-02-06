@@ -58,6 +58,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ApiKeySetup'>;
  * API Key Setup Screen Component
  */
 export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Element {
+  const { t } = useTranslation('apiSetup');
   const { t: tc } = useTranslation('common');
   const { colors } = useTheme();
 

@@ -5844,3 +5844,58 @@ npx expo start --clear
 - `npx expo install --check`で定期的にバージョン互換性を確認する
 - エラーが発生した場合、まず`npx expo install --fix`でパッケージを更新し、`npx expo start --clear`でキャッシュをクリアすることで解決する場合が多い
 - 最初のエラー（NativeJSLogger）が根本原因で、2番目のエラー（main not registered）はその結果であるという連鎖関係を理解することが重要
+
+---
+
+## 31. API設定画面で「ReferenceError: Property 't' doesn't exist」エラーが発生する問題
+
+### 発生日
+2026年2月6日
+
+### 症状
+- 設定ページのDeepL API Key項目をタップすると、`[ReferenceError: Property 't' doesn't exist]` エラーが表示される
+- API設定画面（`ApiKeySetupScreen`）が正常に表示されない
+- 同時に `Sending 'onAnimatedValueUpdate' with no listeners registered.` の警告も表示される
+
+### 調査過程
+
+1. **i18n初期化タイミングの疑い** - 最初は `useTranslation` フックがi18n初期化前に呼ばれている可能性を調査したが、`useSuspense: false` 設定により初期化前でも `t` 関数は利用可能だった
+
+2. **core-jsポリフィルの疑い** - `App.tsx`の `import 'core-js/proposals/explicit-resource-management'` がHermesエンジンと互換性問題を起こしている可能性を検討し、一時的にコメントアウトしたが、エラーは解消されなかった
+
+3. **全コンポーネントの `t` 使用箇所の確認** - プロジェクト全体で `useTranslation` から `t` を取得している箇所を確認した
+
+4. **ApiKeySetupScreen.tsxの確認** - `ApiKeySetupScreen`のコードを確認したところ、**`useTranslation('apiSetup')` の呼び出しが欠落している**ことが判明
+
+### 原因
+`src/screens/ApiKeySetupScreen.tsx`で、`common`ネームスペースの翻訳関数（`tc`）のみを取得し、`apiSetup`ネームスペースの翻訳関数（`t`）を取得していなかった：
+
+```typescript
+// 変更前 - 'apiSetup' ネームスペースの t が未定義
+export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Element {
+  const { t: tc } = useTranslation('common');
+  const { colors } = useTheme();
+```
+
+コンポーネント内では `t('deepl.inputRequired')` や `t('deepl.saveSuccess')` など多数の `t()` 呼び出しがあるが、`t` 変数がスコープに存在しないため、Hermesエンジンが `ReferenceError: Property 't' doesn't exist` を投げていた。
+
+### 解決策
+
+`src/screens/ApiKeySetupScreen.tsx`に `apiSetup` ネームスペースの `useTranslation` 呼び出しを追加：
+
+```typescript
+// 変更後 - 'apiSetup' ネームスペースの t を追加
+export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Element {
+  const { t } = useTranslation('apiSetup');
+  const { t: tc } = useTranslation('common');
+  const { colors } = useTheme();
+```
+
+### 関連ファイル
+- `src/screens/ApiKeySetupScreen.tsx` - API設定画面（修正対象）
+
+### 教訓
+- Hermesエンジンでは未定義の変数へのアクセスが `ReferenceError: Property 'X' doesn't exist` として報告される（V8の `ReferenceError: X is not defined` に相当）
+- `useTranslation` のネームスペース指定を複数使い分ける場合（`t` と `tc` など）、必要なネームスペースがすべて取得されているか確認する
+- エラーメッセージに「Property 't'」とある場合、i18nの翻訳関数 `t` の取得漏れを最初に疑うべき
+- コンポーネントで使用するすべてのネームスペースに対して `useTranslation` を呼び出す必要がある
