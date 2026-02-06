@@ -5784,3 +5784,63 @@ const handlePostPress = useCallback((postUri: string) => {
 - 新しい画面を作成する前に、既存の画面で要件を満たせないか確認する
 - コールバックパターンを使用してナビゲーションロジックを親に委譲することで、子コンポーネントの再利用性を維持できる
 - 外部ブラウザへの遷移をアプリ内ナビゲーションに変更するだけで、ユーザー体験が大幅に向上する
+
+---
+
+## 30. Expo起動時に「NativeJSLogger.default.addListener is not a function」と「main has not been registered」エラーが発生する問題
+
+### 発生日
+2026年2月6日
+
+### 症状
+- Expoアプリを起動すると、以下の2つのエラーが表示される：
+  1. `[TypeError: NativeJSLogger.default.addListener is not a function (it is undefined)]`
+  2. `[Invariant Violation: "main" has not been registered]`
+- アプリが起動せず、完全にクラッシュする
+- Metroバンドラーのログでは「iOS Bundled 33803ms (4683 modules)」と表示され、バンドル自体は成功している
+
+### 調査過程
+
+1. **App.tsxの確認** - エントリーポイントの`App.tsx`を確認したが、コードに問題はなかった。`SplashScreen.preventAutoHideAsync()`も正しくtry-catchで囲まれていた
+
+2. **最近のコミットの確認** - 最新コミットは`useWordRegistration`カスタムフックの抽出リファクタリングで、コード自体に問題はなかった
+
+3. **NativeJSLoggerの調査** - `expo-modules-core`パッケージ内の`setUpJsLogger.fx.ts`がソース。`requireOptionalNativeModule('ExpoModulesCoreJSLogger')`でネイティブモジュールを読み込み、`addListener`を呼び出す処理だが、ネイティブモジュールの不整合で`addListener`が未定義だった
+
+4. **パッケージバージョンの確認** - `npx expo install --check`で確認したところ、以下のパッケージが期待バージョンと不一致だった：
+   - `expo@54.0.31` → 期待: `~54.0.33`
+   - `babel-preset-expo@54.0.9` → 期待: `~54.0.10`
+   - `jest-expo@54.0.16` → 期待: `~54.0.17`
+
+### 原因
+Expoパッケージのマイナーバージョン不整合により、`expo-modules-core`のネイティブモジュール（`ExpoModulesCoreJSLogger`）のJS側とネイティブ側でインターフェースが一致しなかった。`addListener`メソッドが存在しないオブジェクトが返され、TypeErrorが発生。このエラーがモジュール読み込みチェーンを中断させ、`AppRegistry.registerComponent`が呼ばれず、`"main" has not been registered`エラーに繋がった。
+
+### 解決策
+
+**1. Expoパッケージの更新：**
+
+```bash
+npx expo install --fix
+```
+
+これにより以下のパッケージが更新された：
+- `expo`: 54.0.31 → 54.0.33
+- `babel-preset-expo`: 54.0.9 → 54.0.10
+- `jest-expo`: 54.0.16 → 54.0.17
+
+**2. Metroキャッシュのクリア：**
+
+```bash
+npx expo start --clear
+```
+
+### 関連ファイル
+- `package.json` - パッケージバージョン定義
+- `node_modules/expo-modules-core/src/sweet/setUpJsLogger.fx.ts` - エラー発生箇所
+- `node_modules/expo-modules-core/src/sweet/NativeJSLogger.ts` - ネイティブモジュール読み込み
+
+### 教訓
+- `NativeJSLogger`や`"main" has not been registered`のようなエラーは、ユーザーコードの問題ではなく、Expoパッケージのバージョン不整合が原因の場合がある
+- `npx expo install --check`で定期的にバージョン互換性を確認する
+- エラーが発生した場合、まず`npx expo install --fix`でパッケージを更新し、`npx expo start --clear`でキャッシュをクリアすることで解決する場合が多い
+- 最初のエラー（NativeJSLogger）が根本原因で、2番目のエラー（main not registered）はその結果であるという連鎖関係を理解することが重要
