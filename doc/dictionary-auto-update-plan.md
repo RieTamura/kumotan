@@ -17,23 +17,48 @@ GitHub Actionsを活用し、承認済みフィードバックを差分ファイ
 
 **課題**: 辞書修正が手動のため、対応に時間がかかる
 
-## 新しいフロー（差分ファイル方式）
+## 新しいフロー（ハイブリッド方式）
 
-```
+### フロー A：差分ファイル方式（単純な意味修正）
+
+```text
 ユーザー → フィードバック送信 → GAS → GitHub Issue作成
-                                         ↓
+           （品詞・投稿リンク付き）        ↓
                                     開発者がレビュー
                                          ↓
                                 「approved」ラベル付与
                                          ↓
                               GitHub Actions トリガー
                                          ↓
-                              overrides.json に自動追記
+                              overrides.jsonに自動追記
                                          ↓
-                              GitHub Pages で配信
+                              GitHub Pagesで配信
                                          ↓
                               アプリが差分を適用
 ```
+
+### フロー B：PR方式（検索ロジック改善）
+
+```text
+ユーザー → フィードバック送信 → GAS → GitHub Issue作成
+           （品詞・投稿リンク付き）        ↓
+                                    開発者がトリアージ
+                                         ↓
+                              「search-improvement」ラベル付与
+                                         ↓
+                              GitHub ActionsでIssueからPR自動作成
+                                         ↓
+                              開発者がレビュー・マージ
+                                         ↓
+                              辞書データ再ビルド or 検索ロジック更新
+```
+
+### フロー使い分け基準
+
+| ラベル | 方式 | 対象 |
+| ------ | ---- | ---- |
+| `approved` | フローA（差分ファイル） | 意味の修正・単語追加など単純な変更 |
+| `search-improvement` | フローB（PR） | 検索ロジックの改善・複雑な変更 |
 
 ## 技術設計
 
@@ -71,9 +96,11 @@ GitHub Actionsを活用し、承認済みフィードバックを差分ファイ
 - `addition`: 新しい単語を追加
 - `deletion`: 単語を非表示（将来対応）
 
-### 2. GitHub Actions ワークフロー
+### 2. GitHub Actionsワークフロー
 
-**トリガー**: Issueに「approved」ラベルが付与されたとき
+**トリガー**: Issueに「approved」または「search-improvement」ラベルが付与されたとき
+
+#### 2.1 フローA：差分ファイル自動更新（approvedラベル）
 
 ```yaml
 # .github/workflows/dictionary-update.yml (kumotan-dictionaryリポジトリ)
@@ -103,6 +130,8 @@ jobs:
             const body = issue.body;
             const wordMatch = body.match(/\*\*対象\/件名\*\*: (.+)/);
             const correctionMatch = body.match(/\*\*詳細\/期待内容\*\*: (.+)/);
+            const posMatch = body.match(/\*\*品詞\*\*: (.+)/);
+            const postUrlMatch = body.match(/\*\*投稿リンク\*\*: (.+)/);
 
             if (!wordMatch || !correctionMatch) {
               console.log('Required fields not found in issue body');
@@ -111,8 +140,10 @@ jobs:
 
             const word = wordMatch[1].trim();
             const correctedMeaning = correctionMatch[1].trim();
+            const partOfSpeech = posMatch ? posMatch[1].trim() : null;
+            const postUrl = postUrlMatch ? postUrlMatch[1].trim() : null;
 
-            // overrides.json を読み込み
+            // overrides.jsonを読み込み
             let overrides = { version: "1.0.0", updated_at: "", entries: [] };
             const filePath = 'overrides.json';
             if (fs.existsSync(filePath)) {
@@ -125,6 +156,8 @@ jobs:
               type: "correction",
               word: word,
               corrected_meaning: correctedMeaning,
+              part_of_speech: partOfSpeech,
+              post_url: postUrl,
               source_issue: issue.number,
               approved_at: new Date().toISOString()
             };
@@ -142,6 +175,50 @@ jobs:
           git add overrides.json
           git commit -m "chore: add dictionary override from issue #${{ github.event.issue.number }}" || exit 0
           git push
+```
+
+#### 2.2 フローB：PR自動作成（search-improvementラベル）
+
+```yaml
+  create-search-improvement-pr:
+    if: github.event.label.name == 'search-improvement' && contains(github.event.issue.labels.*.name, 'word_search')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create branch and PR from Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const branchName = `search-improvement/issue-${issue.number}`;
+
+            // ブランチ作成
+            const mainRef = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'heads/main'
+            });
+
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/heads/${branchName}`,
+              sha: mainRef.data.object.sha
+            });
+
+            // PR作成
+            await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `検索改善: ${issue.title}`,
+              body: `Closes #${issue.number}\n\n${issue.body}`,
+              head: branchName,
+              base: 'main'
+            });
 ```
 
 ### 3. アプリ側の実装
@@ -230,12 +307,25 @@ https://rietamura.github.io/kumotan-dictionary/overrides.json
 
 ## 承認フロー
 
-1. **フィードバック受信**: ユーザーがアプリから送信
-2. **Issue作成**: GAS経由でGitHub Issueが自動作成（ラベル: `word_search`）
-3. **開発者レビュー**: 内容を確認し、正しければ「approved」ラベルを付与
-4. **自動更新**: GitHub Actionsが `overrides.json` を更新
-5. **配信**: GitHub Pagesで即座に配信開始
+1. **フィードバック受信**: ユーザーがアプリから送信（品詞・投稿リンク付き）
+2. **Issue作成**: GAS経由でGitHub Issueが自動作成（ラベル: `word_search`、本文に品詞・投稿リンクを含む）
+3. **開発者トリアージ**: 内容と投稿リンクを確認し、対応方針を決定
+4. **ラベル付与**:
+   - 単純な修正 →「approved」ラベル → フローA（overrides.json自動更新）
+   - 検索改善が必要 →「search-improvement」ラベル → フローB（PR自動作成）
+5. **配信/マージ**: フローAはGitHub Pagesで即配信、フローBはレビュー後マージ
 6. **アプリ反映**: ユーザーのアプリが次回起動時に差分を取得
+
+### Issue本文の例（品詞・投稿リンク追加後）
+
+```text
+### 報告内容 (word_search)
+- **対象/件名**: example
+- **詳細/期待内容**: 例、実例
+- **品詞**: noun
+- **投稿リンク**: https://bsky.app/profile/did:plc:abc123/post/xyz789
+- **コメント**: なし
+```
 
 ## 実装ステップ
 
