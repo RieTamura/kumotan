@@ -41,6 +41,24 @@ function getDid(agent: BskyAgent): string | null {
 }
 
 /**
+ * Word型からPDSレコードオブジェクトを構築する
+ */
+function buildPdsRecord(word: Word): Record<string, unknown> {
+  const record: Record<string, unknown> = {
+    $type: COLLECTION,
+    english: word.english,
+    createdAt: new Date(word.createdAt).toISOString(),
+    isRead: word.isRead,
+  };
+  if (word.japanese) record.japanese = word.japanese;
+  if (word.definition) record.definition = word.definition;
+  if (word.postUrl) record.postUrl = word.postUrl;
+  if (word.postText) record.postText = word.postText;
+  if (word.readAt) record.readAt = new Date(word.readAt).toISOString();
+  return record;
+}
+
+/**
  * 単語をPDSに保存し、rkeyをローカルDBに記録する
  *
  * @param agent - 認証済みのBskyAgent
@@ -52,27 +70,22 @@ export async function syncWordToPds(
   word: Word
 ): Promise<string | null> {
   const did = getDid(agent);
+  console.log('[syncWordToPds] did:', did, 'word:', word.english);
   if (!did) {
+    console.warn('[syncWordToPds] No DID found, skipping PDS sync');
     return null;
   }
 
   try {
-    const record: Record<string, unknown> = {
-      $type: COLLECTION,
-      english: word.english,
-      createdAt: new Date(word.createdAt).toISOString(),
-    };
+    const record = buildPdsRecord(word);
 
-    if (word.japanese) record.japanese = word.japanese;
-    if (word.definition) record.definition = word.definition;
-    if (word.postUrl) record.postUrl = word.postUrl;
-    if (word.postText) record.postText = word.postText;
-
+    console.log('[syncWordToPds] Calling createRecord...');
     const response = await agent.api.com.atproto.repo.createRecord({
       repo: did,
       collection: COLLECTION,
       record,
     });
+    console.log('[syncWordToPds] Response:', response.data.uri);
 
     const rkey = extractRkey(response.data.uri);
     if (rkey) {
@@ -115,6 +128,40 @@ export async function deleteWordFromPds(
     return true;
   } catch (error) {
     console.error('[deleteWordFromPds] Failed to delete word from PDS:', error);
+    return false;
+  }
+}
+
+/**
+ * PDS上の単語レコードを更新する（既読状態の同期等）
+ *
+ * @param agent - 認証済みのBskyAgent
+ * @param word - 更新後の単語データ
+ * @param rkey - 更新対象のレコードキー
+ * @returns 成功/失敗
+ */
+export async function updateWordInPds(
+  agent: BskyAgent,
+  word: Word,
+  rkey: string
+): Promise<boolean> {
+  const did = getDid(agent);
+  if (!did) {
+    return false;
+  }
+
+  try {
+    const record = buildPdsRecord(word);
+
+    await agent.api.com.atproto.repo.putRecord({
+      repo: did,
+      collection: COLLECTION,
+      rkey,
+      record,
+    });
+    return true;
+  } catch (error) {
+    console.error('[updateWordInPds] Failed to update word in PDS:', error);
     return false;
   }
 }
@@ -181,6 +228,16 @@ export async function restoreWordsFromPds(
               await database.runAsync(
                 'UPDATE words SET pds_rkey = ? WHERE id = ?',
                 [rkey, insertResult.data.id]
+              );
+            }
+            // isRead/readAtの復元（daily_statsは更新しない）
+            const isRead = (value.isRead as boolean) ?? false;
+            const readAt = (value.readAt as string) ?? null;
+            if (isRead || readAt) {
+              const database = await getDatabase();
+              await database.runAsync(
+                'UPDATE words SET is_read = ?, read_at = ? WHERE id = ?',
+                [isRead ? 1 : 0, readAt, insertResult.data.id]
               );
             }
             result.restored++;

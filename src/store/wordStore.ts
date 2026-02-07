@@ -8,6 +8,9 @@ import { Word, WordFilter, CreateWordInput } from '../types/word';
 import { Result } from '../types/result';
 import { AppError } from '../utils/errors';
 import * as WordService from '../services/database/words';
+import { syncWordToPds, updateWordInPds, getPdsRkey } from '../services/pds/vocabularySync';
+import { getAgent } from '../services/bluesky/auth';
+import { useAuthStore } from './authStore';
 
 /**
  * Word store state interface
@@ -83,6 +86,16 @@ export const useWordStore = create<WordState>((set, get) => ({
     if (result.success) {
       // Reload words to reflect the new addition
       await get().loadWords();
+
+      // PDS同期（非同期・バックグラウンド、失敗許容）
+      const isAuthenticated = useAuthStore.getState().isAuthenticated;
+      if (isAuthenticated) {
+        const agent = getAgent();
+        syncWordToPds(agent, result.data).catch((err) => {
+          console.error('[wordStore] PDS sync failed:', err);
+        });
+      }
+
       return { success: true, data: result.data };
     } else {
       set({ error: result.error });
@@ -97,6 +110,19 @@ export const useWordStore = create<WordState>((set, get) => ({
     const result = await WordService.toggleReadStatus(id);
 
     if (result.success) {
+      // PDS同期（非同期・失敗許容）
+      const isAuthenticated = useAuthStore.getState().isAuthenticated;
+      if (isAuthenticated) {
+        getPdsRkey(id).then((rkey) => {
+          if (rkey) {
+            const agent = getAgent();
+            updateWordInPds(agent, result.data, rkey).catch((err) => {
+              console.error('[wordStore] PDS read status sync failed:', err);
+            });
+          }
+        });
+      }
+
       // Reload words to reflect the change
       await get().loadWords();
       return { success: true, data: undefined };

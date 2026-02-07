@@ -39,6 +39,15 @@
             "type": "string",
             "format": "datetime",
             "description": "Timestamp when the word was registered"
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Whether the word has been marked as read/learned"
+          },
+          "readAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp when the word was marked as read"
           }
         }
       }

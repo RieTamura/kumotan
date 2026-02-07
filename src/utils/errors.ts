@@ -54,6 +54,7 @@ export class AppError extends Error {
     // Skip logging for expected/handled cases that don't need console output
     const silentErrors: ErrorCode[] = [
       ErrorCode.WORD_NOT_FOUND, // Normal case: word not in dictionary
+      ErrorCode.DUPLICATE_WORD, // Expected during PDS restore (skipped duplicates)
       ErrorCode.RATE_LIMIT, // Expected when API limits are hit
       ErrorCode.RATE_LIMIT_EXCEEDED, // Expected when API limits are hit
     ];

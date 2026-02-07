@@ -395,36 +395,16 @@ export async function getTodayReadCount(): Promise<Result<number, AppError>> {
 
 /**
  * Delete all words
- * pds_rkeyが存在するレコードはPDSからもバッチ削除する（非同期・失敗許容）
+ * ローカルデータのみ削除し、PDSデータはバックアップとして残す
  */
 export async function deleteAllWords(): Promise<Result<void, AppError>> {
   try {
     const database = getDatabase();
 
-    // 削除前に全件のpds_rkeyを取得
-    const rows = await database.getAllAsync<{ pds_rkey: string }>(
-      'SELECT pds_rkey FROM words WHERE pds_rkey IS NOT NULL'
-    );
-    const rkeys = rows.map(row => row.pds_rkey);
-
     await database.withTransactionAsync(async () => {
       await database.runAsync('DELETE FROM words');
       await database.runAsync('DELETE FROM daily_stats');
     });
-
-    // PDS側もバッチ削除（非同期・失敗許容）
-    if (rkeys.length > 0) {
-      import('../pds/vocabularySync').then(({ deleteWordFromPds }) => {
-        import('../bluesky/auth').then(({ getAgent }) => {
-          const agent = getAgent();
-          for (const rkey of rkeys) {
-            deleteWordFromPds(agent, rkey).catch((err) => {
-              console.error('[deleteAllWords] PDS delete failed for rkey:', rkey, err);
-            });
-          }
-        });
-      });
-    }
 
     return { success: true, data: undefined };
   } catch (error) {

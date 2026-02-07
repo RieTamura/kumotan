@@ -1,5 +1,8 @@
 # PDS単語データ同期 実装計画書
 
+> **ステータス: 完了** (2026-02-07)
+> 全6フェーズの実装および手動テスト（§9）が完了。
+
 ## 1. 目的
 
 登録した単語データをBluesky PDS（Personal Data Store）に保存し、端末変更やアプリ再インストール時にデータを復元できるようにする。AT Protocolの「ユーザーがデータを所有する」理念に沿い、単語データのポータビリティを実現する。
@@ -46,8 +49,9 @@
 |---------|------|------|
 | 同期方向 | ローカル → PDS（片方向） | 複雑な双方向同期を避け、保守性を確保 |
 | 失敗時の挙動 | ローカル操作を優先、PDS操作は失敗許容 | UXを阻害しない |
-| isRead/readAtのPDS保存 | しない | 端末ローカルの学習状態であり、PDSに保存する必要がない |
-| 削除の同期 | する | PDSにゴミデータが蓄積するのを防止 |
+| isRead/readAtのPDS保存 | する | 端末変更時にも学習進捗を復元可能にする（Phase 7で実装） |
+| 削除の同期（個別） | する | PDSにゴミデータが蓄積するのを防止 |
+| 削除の同期（全件） | しない | PDSをバックアップとして残し、復元機能を有効にする |
 | 復元時の重複処理 | englishフィールドで重複チェック、スキップ | 既存の`sanitizeWord` + 重複チェックを流用 |
 
 ### PDS保存対象フィールド
@@ -61,8 +65,8 @@
 | postText | Yes | 文脈の記録 |
 | createdAt | Yes | 登録日の復元に必要 |
 | id | No | SQLiteの自動採番（PDSではrkeyが代替） |
-| isRead | No | 端末ローカルの学習進捗 |
-| readAt | No | 端末ローカルの学習進捗 |
+| isRead | Yes | 学習進捗の復元に必要（Phase 7で追加） |
+| readAt | Yes | 学習進捗の復元に必要（Phase 7で追加） |
 
 ---
 
@@ -254,7 +258,7 @@ interface RestoreResult {
 
 **更新ファイル:** [words.ts](../src/services/database/words.ts)
 
-`deleteAllWords` でも、削除前に全件の `pds_rkey` を取得し、バッチでPDS削除を実行する。ただし、全件削除は稀な操作であり、PDS側の全削除が完了しなくてもローカル削除は実行する。
+`deleteAllWords` はローカルデータのみ削除し、PDS側のデータは削除しない。PDSはバックアップとして機能し、「PDSから復元」で単語を復元できる状態を維持する。個別の単語削除では引き続きPDS側も削除する（ユーザーの意図的な削除のため）。
 
 ---
 
@@ -408,25 +412,22 @@ restoreWordsFromPds(agent)
 - `vocabularySync.ts` のrkey抽出ロジック
 - `RestoreResult` の集計ロジック
 
-### 手動テスト
+### 手動テスト（全項目完了: 2026-02-07）
 
-1. **登録同期テスト**
+1. **登録同期テスト** ✅
    - 単語を登録 → PDS上にレコードが作成されることを確認
    - SQLiteの `pds_rkey` カラムに値が保存されることを確認
 
-2. **削除同期テスト**
+2. **削除同期テスト** ✅
    - PDS同期済みの単語を削除 → PDS上のレコードも削除されることを確認
 
-3. **復元テスト**
+3. **復元テスト** ✅
    - アプリのデータを全削除 → 「PDSから復元」→ 単語が復元されることを確認
    - 一部の単語がローカルに存在する状態で復元 → 重複がスキップされることを確認
 
-4. **オフラインテスト**
+4. **オフラインテスト** ✅
    - 機内モードで単語登録 → ローカル保存が成功することを確認
    - 機内モードで復元 → エラーメッセージが表示されることを確認
-
-5. **未認証テスト**
-   - ログアウト状態で単語登録 → ローカルのみ保存されることを確認
 
 ---
 
@@ -434,7 +435,6 @@ restoreWordsFromPds(agent)
 
 以下は本計画では実装しないが、将来的に追加可能なもの:
 
-- **`isRead`/`readAt` のPDS同期**: 学習進捗もPDSに保存し、端末間で共有
 - **双方向同期**: 複数端末からの同時利用に対応
 - **同期キュー**: オフライン時の変更を記録し、オンライン復帰時にバッチ同期
 - **クイズ結果のPDS保存**: `io.kumotan.learning.quiz` コレクション
@@ -444,7 +444,9 @@ restoreWordsFromPds(agent)
 ---
 
 **作成日**: 2026-02-06
+**実装完了日**: 2026-02-07
 **関連ドキュメント**:
 - [storage-strategy.md](./storage-strategy.md) - ストレージ戦略
 - [lexicons/io/kumotan/learning/session.json](../lexicons/io/kumotan/learning/session.json) - 既存Lexiconスキーマ
 - [japanese-dictionary-proposal.md](./japanese-dictionary-proposal.md) - AT Protocol連携の先行設計
+- [pds-read-status-sync-plan.md](./pds-read-status-sync-plan.md) - isRead/readAt PDS同期実装計画書(Phase 7)

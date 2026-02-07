@@ -28,6 +28,7 @@ import { hasClientId } from '../services/dictionary/yahooJapan';
 import { exportWords, deleteAllWords } from '../services/database/words';
 import { restoreWordsFromPds } from '../services/pds/vocabularySync';
 import { getAgent } from '../services/bluesky/auth';
+import { useWordStore } from '../store/wordStore';
 import {
   getDictionaryStatus,
   deleteDictionary,
@@ -364,8 +365,11 @@ export function SettingsScreen(): React.JSX.Element {
               const agent = getAgent();
               const result = await restoreWordsFromPds(agent);
 
+              // ストアを再読み込みして単語帳ページに反映
+              await useWordStore.getState().loadWords();
+
               if (result.total === 0) {
-                showError(t('pds.restoreEmpty'));
+                showSuccess(t('pds.restoreEmpty'));
               } else {
                 showSuccess(
                   t('pds.restoreSuccess', {
