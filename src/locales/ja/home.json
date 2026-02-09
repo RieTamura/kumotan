@@ -48,5 +48,18 @@
   "hashtags": "ハッシュタグ",
   "postSuccess": "投稿しました",
   "postError": "投稿に失敗しました",
-  "posting": "投稿中..."
+  "posting": "投稿中...",
+  "replySettings": "投稿への反応の設定",
+  "replySettingsReplyTo": "返信できるユーザー",
+  "replySettingsEveryone": "誰でも",
+  "replySettingsNoReply": "返信不可",
+  "replySettingsFollowers": "フォロワー",
+  "replySettingsFollowing": "フォロー中の人",
+  "replySettingsMentioned": "メンションした人",
+  "replySettingsAllowQuote": "引用を許可",
+  "replySettingsDefault": "これらはデフォルトの設定です",
+  "replySettingsSave": "保存",
+  "replySettingsLabel": "誰でも反応可能",
+  "replySettingsLabelNoReply": "返信不可",
+  "replySettingsLabelCustom": "一部のユーザーが返信可能"
 }

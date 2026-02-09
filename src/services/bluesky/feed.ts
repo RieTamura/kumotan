@@ -10,6 +10,32 @@ import { PAGINATION } from '../../constants/config';
 import { getAgent, refreshSession, hasActiveSession } from './auth';
 
 /**
+ * Reply permission rule types for threadgate
+ */
+export type ThreadgateAllowRule =
+  | 'mention'    // Users mentioned in the post
+  | 'follower'   // Users who follow you
+  | 'following'; // Users you follow
+
+/**
+ * Post reply and quote settings
+ */
+export interface PostReplySettings {
+  /** true = anyone can reply (default), false = apply allowRules */
+  allowAll: boolean;
+  /** Rules applied when allowAll is false (empty array = no replies) */
+  allowRules: ThreadgateAllowRule[];
+  /** Whether quoting is allowed (default: true) */
+  allowQuote: boolean;
+}
+
+export const DEFAULT_REPLY_SETTINGS: PostReplySettings = {
+  allowAll: true,
+  allowRules: [],
+  allowQuote: true,
+};
+
+/**
  * Rate limiter for Bluesky API
  */
 class RateLimiter {
@@ -264,10 +290,103 @@ function detectHashtagFacets(text: string): Facet[] {
 }
 
 /**
+ * Extract rkey from an AT-URI (e.g., "at://did:plc:xxx/app.bsky.feed.post/rkey" -> "rkey")
+ */
+function extractRkey(uri: string): string {
+  return uri.split('/').pop() ?? '';
+}
+
+/**
+ * Extract DID from an AT-URI (e.g., "at://did:plc:xxx/app.bsky.feed.post/rkey" -> "did:plc:xxx")
+ */
+function extractDid(uri: string): string {
+  return uri.replace('at://', '').split('/')[0];
+}
+
+/**
+ * Map ThreadgateAllowRule to AT Protocol threadgate rule objects
+ */
+function mapAllowRules(rules: ThreadgateAllowRule[]): Array<{ $type: string }> {
+  return rules.map((rule) => {
+    switch (rule) {
+      case 'mention':
+        return { $type: 'app.bsky.feed.threadgate#mentionRule' };
+      case 'follower':
+        return { $type: 'app.bsky.feed.threadgate#followerRule' };
+      case 'following':
+        return { $type: 'app.bsky.feed.threadgate#followingRule' };
+    }
+  });
+}
+
+/**
+ * Create threadgate record for a post (controls who can reply)
+ */
+async function createThreadgate(
+  postUri: string,
+  allowRules: ThreadgateAllowRule[]
+): Promise<void> {
+  try {
+    const agent = getAgent();
+    const rkey = extractRkey(postUri);
+    const repo = extractDid(postUri);
+    const allow = mapAllowRules(allowRules);
+
+    await agent.app.bsky.feed.threadgate.create(
+      { repo, rkey },
+      {
+        post: postUri,
+        allow,
+        createdAt: new Date().toISOString(),
+      }
+    );
+
+    if (__DEV__) {
+      console.log('Threadgate created successfully for:', postUri);
+    }
+  } catch (error: unknown) {
+    // Threadgate creation failure should not block the post
+    if (__DEV__) {
+      console.warn('Failed to create threadgate:', error);
+    }
+  }
+}
+
+/**
+ * Create postgate record for a post (controls quoting)
+ */
+async function createPostgate(postUri: string): Promise<void> {
+  try {
+    const agent = getAgent();
+    const rkey = extractRkey(postUri);
+    const repo = extractDid(postUri);
+
+    await agent.app.bsky.feed.postgate.create(
+      { repo, rkey },
+      {
+        post: postUri,
+        createdAt: new Date().toISOString(),
+        embeddingRules: [{ $type: 'app.bsky.feed.postgate#disableRule' }],
+      }
+    );
+
+    if (__DEV__) {
+      console.log('Postgate created successfully for:', postUri);
+    }
+  } catch (error: unknown) {
+    // Postgate creation failure should not block the post
+    if (__DEV__) {
+      console.warn('Failed to create postgate:', error);
+    }
+  }
+}
+
+/**
  * Create a post on Bluesky
  */
 export async function createPost(
-  text: string
+  text: string,
+  replySettings?: PostReplySettings
 ): Promise<Result<{ uri: string; cid: string }, AppError>> {
   try {
     const agent = getAgent();
@@ -303,6 +422,16 @@ export async function createPost(
       if (facets.length > 0) {
         console.log(`Added ${facets.length} hashtag facets`);
       }
+    }
+
+    // Create threadgate if reply restrictions are set
+    if (replySettings && !replySettings.allowAll) {
+      await createThreadgate(response.uri, replySettings.allowRules);
+    }
+
+    // Create postgate if quoting is disabled
+    if (replySettings && !replySettings.allowQuote) {
+      await createPostgate(response.uri);
     }
 
     return {

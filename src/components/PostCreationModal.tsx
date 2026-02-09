@@ -3,7 +3,7 @@
  * Full-screen modal for creating Bluesky posts, inspired by Bluesky's own UI.
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,11 +18,12 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { X, Globe } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { usePostCreation } from '../hooks/usePostCreation';
 import { Button } from './common/Button';
+import { ReplySettingsModal } from './ReplySettingsModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_CHARACTERS = 300;
@@ -77,7 +78,7 @@ export function PostCreationModal({
 }): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('home');
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const {
     text,
@@ -88,13 +89,26 @@ export function PostCreationModal({
     characterCount,
     isValid,
     remainingCharacters,
+    replySettings,
     setText,
     addHashtag,
     removeHashtag,
+    setReplySettings,
     submitPost,
     reset,
     clearError,
   } = usePostCreation();
+
+  const [showReplySettings, setShowReplySettings] = useState(false);
+
+  /**
+   * Get display label for current reply settings
+   */
+  const replySettingsLabel = useMemo(() => {
+    if (replySettings.allowAll) return t('replySettingsLabel');
+    if (replySettings.allowRules.length === 0) return t('replySettingsLabelNoReply');
+    return t('replySettingsLabelCustom');
+  }, [replySettings, t]);
 
   /**
    * Reset state when modal closes
@@ -225,7 +239,18 @@ export function PostCreationModal({
           {/* Bottom Toolbar (Sticky above keyboard) */}
           <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12), borderTopColor: colors.border, backgroundColor: colors.background }]}>
             <View style={styles.toolbar}>
-              {/* Optional tools could go here (e.g. image upload icons) */}
+              {/* Reply Settings Button */}
+              <Pressable
+                style={styles.replySettingsButton}
+                onPress={() => setShowReplySettings(true)}
+                disabled={isPosting}
+              >
+                <Globe size={16} color={colors.primary} />
+                <Text style={[styles.replySettingsText, { color: colors.primary }]}>
+                  {replySettingsLabel}
+                </Text>
+              </Pressable>
+
               <View style={styles.spacer} />
 
               {/* Character Counter */}
@@ -237,6 +262,14 @@ export function PostCreationModal({
             </View>
           </View>
         </KeyboardAvoidingView>
+
+        {/* Reply Settings Modal */}
+        <ReplySettingsModal
+          visible={showReplySettings}
+          settings={replySettings}
+          onSave={setReplySettings}
+          onClose={() => setShowReplySettings(false)}
+        />
       </View>
     </Modal>
   );
@@ -358,6 +391,17 @@ const styles = StyleSheet.create({
   characterCountError: {
     color: '#E0245E', // Colors.error
     fontWeight: '700',
+  },
+  replySettingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  replySettingsText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
 

@@ -48,5 +48,18 @@
   "hashtags": "Hashtags",
   "postSuccess": "Posted successfully",
   "postError": "Failed to post",
-  "posting": "Posting..."
+  "posting": "Posting...",
+  "replySettings": "Reply settings",
+  "replySettingsReplyTo": "Who can reply",
+  "replySettingsEveryone": "Everyone",
+  "replySettingsNoReply": "No replies",
+  "replySettingsFollowers": "Followers",
+  "replySettingsFollowing": "People you follow",
+  "replySettingsMentioned": "Mentioned users",
+  "replySettingsAllowQuote": "Allow quotes",
+  "replySettingsDefault": "These are the default settings",
+  "replySettingsSave": "Save",
+  "replySettingsLabel": "Everyone can reply",
+  "replySettingsLabelNoReply": "Replies disabled",
+  "replySettingsLabelCustom": "Some people can reply"
 }

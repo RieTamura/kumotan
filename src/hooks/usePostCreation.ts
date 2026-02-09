@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createPost } from '../services/bluesky/feed';
+import { createPost, PostReplySettings, DEFAULT_REPLY_SETTINGS } from '../services/bluesky/feed';
 import { AppError } from '../utils/errors';
 
 /**
@@ -41,6 +41,7 @@ interface PostCreationState {
   hashtags: string[];
   isPosting: boolean;
   error: AppError | null;
+  replySettings: PostReplySettings;
 }
 
 /**
@@ -56,11 +57,13 @@ interface UsePostCreationReturn {
   characterCount: number;
   isValid: boolean;
   remainingCharacters: number;
+  replySettings: PostReplySettings;
 
   // Actions
   setText: (text: string) => void;
   addHashtag: (tag: string) => void;
   removeHashtag: (tag: string) => void;
+  setReplySettings: (settings: PostReplySettings) => void;
   submitPost: () => Promise<boolean>;
   reset: () => void;
   clearError: () => void;
@@ -74,6 +77,7 @@ const initialState: PostCreationState = {
   hashtags: [],
   isPosting: false,
   error: null,
+  replySettings: DEFAULT_REPLY_SETTINGS,
 };
 
 /**
@@ -194,6 +198,13 @@ export function usePostCreation(): UsePostCreationReturn {
   }, []);
 
   /**
+   * Set reply and quote settings
+   */
+  const setReplySettings = useCallback((settings: PostReplySettings) => {
+    setState((prev) => ({ ...prev, replySettings: settings }));
+  }, []);
+
+  /**
    * Extract hashtags from text using regex
    * Supports Unicode characters (Japanese, English, etc.)
    */
@@ -212,7 +223,9 @@ export function usePostCreation(): UsePostCreationReturn {
     setState((prev) => ({ ...prev, isPosting: true, error: null }));
 
     const postText = buildPostText();
-    const result = await createPost(postText);
+    const settings = state.replySettings;
+    const isDefaultSettings = settings.allowAll && settings.allowQuote;
+    const result = await createPost(postText, isDefaultSettings ? undefined : settings);
 
     if (result.success) {
       // Extract hashtags from post text and combine with selected hashtags
@@ -232,7 +245,7 @@ export function usePostCreation(): UsePostCreationReturn {
       }));
       return false;
     }
-  }, [isValid, state.isPosting, state.hashtags, buildPostText, extractHashtagsFromText, saveHashtagsToHistory]);
+  }, [isValid, state.isPosting, state.hashtags, state.replySettings, buildPostText, extractHashtagsFromText, saveHashtagsToHistory]);
 
   /**
    * Reset the state to initial values
@@ -258,11 +271,13 @@ export function usePostCreation(): UsePostCreationReturn {
     characterCount,
     isValid,
     remainingCharacters,
+    replySettings: state.replySettings,
 
     // Actions
     setText,
     addHashtag,
     removeHashtag,
+    setReplySettings,
     submitPost,
     reset,
     clearError,
