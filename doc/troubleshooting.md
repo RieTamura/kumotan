@@ -5899,3 +5899,64 @@ export function ApiKeySetupScreen({ navigation, route }: Props): React.JSX.Eleme
 - `useTranslation` のネームスペース指定を複数使い分ける場合（`t` と `tc` など）、必要なネームスペースがすべて取得されているか確認する
 - エラーメッセージに「Property 't'」とある場合、i18nの翻訳関数 `t` の取得漏れを最初に疑うべき
 - コンポーネントで使用するすべてのネームスペースに対して `useTranslation` を呼び出す必要がある
+
+---
+
+## 32. 投稿機能の文字カウンターがダークモードで見えない問題
+
+### 発生日
+2026年2月9日
+
+### 症状
+- 投稿作成モーダルの文字カウンター（例：`0/300`）がダークモード時に見えない
+- ライトモードでは問題なく表示される
+- 警告状態（残り20文字未満）やエラー状態（超過）の色は表示されるが、通常状態の文字色がダークモードに対応していない
+
+### 原因
+`src/components/PostCreationModal.tsx`の`getCharacterCounterStyle`関数で、通常状態のスタイルとして`styles.characterCount`を返していたが、このスタイルには`color`プロパティが未指定だった：
+
+```typescript
+// 問題のスタイル定義
+characterCount: {
+  fontSize: 12,
+  // ← color が未指定（デフォルトの黒テキストのまま）
+},
+```
+
+同じコンポーネント内の他の要素（テキスト入力欄など）は`useTheme()`から取得した`colors.text`を正しく使用していたが、文字カウンターだけがテーマカラーを使用していなかった。
+
+### 解決策
+
+`src/components/PostCreationModal.tsx`の`getCharacterCounterStyle`関数で、通常状態のときにテーマカラー`colors.textSecondary`を返すように修正：
+
+```typescript
+// 変更前 - ハードコードされたスタイル（colorなし）
+const getCharacterCounterStyle = useCallback(() => {
+  if (remainingCharacters < 0) {
+    return styles.characterCountError;
+  }
+  if (remainingCharacters < 20) {
+    return styles.characterCountWarning;
+  }
+  return styles.characterCount;
+}, [remainingCharacters]);
+
+// 変更後 - テーマカラーを使用
+const getCharacterCounterStyle = useCallback(() => {
+  if (remainingCharacters < 0) {
+    return styles.characterCountError;
+  }
+  if (remainingCharacters < 20) {
+    return styles.characterCountWarning;
+  }
+  return { color: colors.textSecondary };
+}, [remainingCharacters, colors.textSecondary]);
+```
+
+### 関連ファイル
+- `src/components/PostCreationModal.tsx` - 投稿作成モーダルコンポーネント
+
+### 教訓
+- `StyleSheet.create`で定義した静的スタイルには`color`プロパティを省略するとデフォルト（黒）になり、ダークモードに対応できない
+- テーマ対応が必要なコンポーネントでは、すべてのテキスト要素に`colors.text`や`colors.textSecondary`を適用しているか確認する
+- 警告・エラー状態のスタイルだけでなく、通常状態のスタイルもテーマ対応を忘れずに行う

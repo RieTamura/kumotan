@@ -347,8 +347,8 @@ https://rietamura.github.io/kumotan-dictionary/overrides.json
    - [x] フローB: search-improvementラベルによるPR自動作成
 3. [x] Issue作成ワークフロー（`create-issue-from-feedback.yml`）に品詞・投稿リンク・レビューチェックリスト追加
    - ファイル準備済み： `doc/kumotan-dictionary-files/.github/workflows/create-issue-from-feedback.yml`
-4. [ ] 「approved」「search-improvement」ラベルを作成（手動でGitHubから設定）
-5. [ ] 上記ファイルをkumotan-dictionaryリポジトリにコピー・配置
+4. [x] 「approved」「search-improvement」ラベルを作成（手動でGitHubから設定）
+5. [x] 上記ファイルをkumotan-dictionaryリポジトリにコピー・配置
 
 ### Phase 2: アプリ側実装（3-4時間） ✅ 完了
 

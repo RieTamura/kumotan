@@ -138,8 +138,8 @@ export function PostCreationModal({
     if (remainingCharacters < 20) {
       return styles.characterCountWarning;
     }
-    return styles.characterCount;
-  }, [remainingCharacters]);
+    return { color: colors.textSecondary };
+  }, [remainingCharacters, colors.textSecondary]);
 
   return (
     <Modal
