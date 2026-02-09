@@ -24,10 +24,12 @@ interface FeedbackModalProps {
   visible: boolean;
   type?: FeedbackType;
   word?: string; // or title/subject
+  partOfSpeech?: string;
+  postUrl?: string;
   onClose: () => void;
 }
 
-export function FeedbackModal({ visible, type = 'word_search', word: initialWord = '', onClose }: FeedbackModalProps) {
+export function FeedbackModal({ visible, type = 'word_search', word: initialWord = '', partOfSpeech, postUrl, onClose }: FeedbackModalProps) {
   const { t } = useTranslation('wordPopup');
   const { colors } = useTheme();
   const [subject, setSubject] = useState(initialWord);
@@ -100,6 +102,8 @@ export function FeedbackModal({ visible, type = 'word_search', word: initialWord
           expectation: description, // For backward compatibility
           description: description, // Preferred for bug/feature
           comment,
+          part_of_speech: partOfSpeech || '',
+          post_url: postUrl || '',
         }),
       });
 

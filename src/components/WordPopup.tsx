@@ -988,6 +988,13 @@ export function WordPopup({
       <FeedbackModal
         visible={isFeedbackVisible}
         word={word}
+        partOfSpeech={
+          translation?.partOfSpeech?.join(', ') ||
+          definition?.partOfSpeech ||
+          englishTranslation?.partOfSpeech?.join(', ') ||
+          undefined
+        }
+        postUrl={postUri}
         onClose={() => setIsFeedbackVisible(false)}
       />
     </Modal>

@@ -325,6 +325,14 @@ https://rietamura.github.io/kumotan-dictionary/overrides.json
 - **品詞**: noun
 - **投稿リンク**: https://bsky.app/profile/did:plc:abc123/post/xyz789
 - **コメント**: なし
+
+### レビューチェックリスト
+- [ ] 他の辞書で意味を確認したか
+  - https://kotobanomado.jp/
+  - https://dictionary.cambridge.org/ja/
+- [ ] 品詞・用途は正しいか
+- [ ] 既存のoverridesに同じ単語の修正がないか
+  - [overrides.json](https://rietamura.github.io/kumotan-dictionary/overrides.json) をブラウザで開き、対象の単語をページ内検索（Ctrl+F）で確認
 ```
 
 ## 実装ステップ
@@ -335,14 +343,22 @@ https://rietamura.github.io/kumotan-dictionary/overrides.json
    - ファイル準備済み： `doc/kumotan-dictionary-files/overrides.json`
 2. [x] GitHub Actions ワークフロー作成（`dictionary-update.yml`）
    - ファイル準備済み： `doc/kumotan-dictionary-files/.github/workflows/dictionary-update.yml`
-3. [ ] 「approved」ラベルを作成（手動でGitHubから設定）
-4. [ ] 上記ファイルをkumotan-dictionaryリポジトリにコピー・配置
+   - [x] フローA: approvedラベルによるoverrides.json自動更新（品詞・投稿リンク対応済み）
+   - [x] フローB: search-improvementラベルによるPR自動作成
+3. [x] Issue作成ワークフロー（`create-issue-from-feedback.yml`）に品詞・投稿リンク・レビューチェックリスト追加
+   - ファイル準備済み： `doc/kumotan-dictionary-files/.github/workflows/create-issue-from-feedback.yml`
+4. [ ] 「approved」「search-improvement」ラベルを作成（手動でGitHubから設定）
+5. [ ] 上記ファイルをkumotan-dictionaryリポジトリにコピー・配置
 
 ### Phase 2: アプリ側実装（3-4時間） ✅ 完了
 
 1. [x] `ExternalDictionaryService.ts` に差分取得機能を追加
+   - [x] `DictionaryOverride`に`part_of_speech`と`post_url`フィールド追加
 2. [x] `jmdict.ts` に差分適用ロジックを追加
+   - [x] オーバーライドの品詞情報を翻訳結果に反映
 3. [x] 差分キャッシュ機能を実装
+4. [x] `FeedbackModal.tsx` でフィードバック送信時に品詞・投稿リンクを含める
+5. [x] `feedback-integration.yml` のIssue本文に品詞・投稿リンク・レビューチェックリストを追加
 
 ### Phase 3: テスト・検証（1-2時間）
 
@@ -379,4 +395,5 @@ https://rietamura.github.io/kumotan-dictionary/overrides.json
 ---
 
 **作成日**: 2026-02-04
-**ステータス**: 計画段階
+**最終更新**: 2026-02-09
+**ステータス**: Phase1-2完了、Phase3（テスト・検証）待ち

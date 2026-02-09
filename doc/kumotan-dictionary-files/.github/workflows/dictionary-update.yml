@@ -33,6 +33,8 @@ jobs:
             // 例: **詳細/期待内容**: 正しい意味
             const wordMatch = body.match(/\*\*対象\/件名\*\*:\s*(.+)/);
             const correctionMatch = body.match(/\*\*詳細\/期待内容\*\*:\s*(.+)/);
+            const posMatch = body.match(/\*\*品詞\*\*:\s*(.+)/);
+            const postUrlMatch = body.match(/\*\*投稿リンク\*\*:\s*(.+)/);
 
             // 英語フォーマットにも対応
             const wordMatchEn = body.match(/\*\*Word\*\*:\s*(.+)/);
@@ -40,6 +42,8 @@ jobs:
 
             const word = (wordMatch?.[1] || wordMatchEn?.[1] || '').trim();
             const correctedMeaning = (correctionMatch?.[1] || correctionMatchEn?.[1] || '').trim();
+            const partOfSpeech = posMatch ? posMatch[1].trim() : null;
+            const postUrl = postUrlMatch ? postUrlMatch[1].trim() : null;
 
             if (!word || !correctedMeaning) {
               console.log('Required fields not found in issue body');
@@ -70,6 +74,8 @@ jobs:
               type: "correction",
               word: word,
               corrected_meaning: correctedMeaning,
+              part_of_speech: partOfSpeech,
+              post_url: postUrl,
               source_issue: issue.number,
               approved_at: new Date().toISOString()
             };
@@ -97,3 +103,49 @@ jobs:
           git add overrides.json
           git diff --staged --quiet || git commit -m "chore: add dictionary override from issue #${{ github.event.issue.number }}"
           git push
+
+  # フローB: search-improvementラベルが付与されたときにPRを自動作成
+  create-search-improvement-pr:
+    if: github.event.label.name == 'search-improvement' && contains(github.event.issue.labels.*.name, 'word_search')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create branch and PR from Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const branchName = `search-improvement/issue-${issue.number}`;
+
+            // mainブランチの最新SHAを取得
+            const mainRef = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'heads/main'
+            });
+
+            // ブランチ作成
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/heads/${branchName}`,
+              sha: mainRef.data.object.sha
+            });
+
+            console.log(`Created branch: ${branchName}`);
+
+            // PR作成
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `検索改善: ${issue.title}`,
+              body: `Closes #${issue.number}\n\n${issue.body}\n\n---\n_このPRはIssue #${issue.number} から自動作成されました。_`,
+              head: branchName,
+              base: 'main'
+            });
+
+            console.log(`Created PR #${pr.data.number}: ${pr.data.html_url}`);

@@ -30,7 +30,6 @@ import {
   findOverrideForWord,
   isWordDeleted,
   type DictionaryOverride,
-  type OverridesFile,
 } from './ExternalDictionaryService';
 
 /**
@@ -424,7 +423,7 @@ function createResultFromOverride(
   return {
     text: meaning,
     readings: override.reading ? [override.reading] : [],
-    partOfSpeech: [],
+    partOfSpeech: override.part_of_speech ? [override.part_of_speech] : [],
     isCommon: true,
     source: 'override',
   };

@@ -17,8 +17,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { type, word, expectation, comment, row_index } = context.payload.client_payload;
-            
+            const { type, word, expectation, comment, part_of_speech, post_url, row_index } = context.payload.client_payload;
+
             // タイプに応じたタイトル接頭辞
             const prefixes = {
               'bug': '【バグ報告】',
@@ -26,18 +26,42 @@ jobs:
               'word_search': '【検索不具合】'
             };
             const prefix = prefixes[type] || '【フィードバック】';
-            
-            const title = `${prefix}${word}`;
-            const body = `
-            ### 報告内容 (${type})
-            - **対象/件名**: ${word}
-            - **詳細/期待内容**: ${expectation || '未入力'}
-            - **コメント**: ${comment || 'なし'}
 
-            ---
-            **ID (自動管理用)**: row_${row_index}
-            <!-- row_index: ${row_index} -->
-            `;
+            const title = `${prefix}${word}`;
+
+            // Issue本文を構築
+            const bodyLines = [
+              `### 報告内容 (${type})`,
+              `- **対象/件名**: ${word}`,
+              `- **詳細/期待内容**: ${expectation || '未入力'}`,
+            ];
+
+            // word_searchタイプの場合は品詞・投稿リンクを追加
+            if (type === 'word_search') {
+              bodyLines.push(`- **品詞**: ${part_of_speech || '不明'}`);
+              bodyLines.push(`- **投稿リンク**: ${post_url || 'なし'}`);
+            }
+
+            bodyLines.push(`- **コメント**: ${comment || 'なし'}`);
+
+            // word_searchタイプの場合はレビューチェックリストを追加
+            if (type === 'word_search') {
+              bodyLines.push('');
+              bodyLines.push('### レビューチェックリスト');
+              bodyLines.push('- [ ] 他の辞書で意味を確認したか');
+              bodyLines.push('  - https://kotobanomado.jp/');
+              bodyLines.push('  - https://dictionary.cambridge.org/ja/');
+              bodyLines.push('- [ ] 品詞・用途は正しいか');
+              bodyLines.push('- [ ] 既存のoverridesに同じ単語の修正がないか');
+              bodyLines.push('  - [overrides.json](https://rietamura.github.io/kumotan-dictionary/overrides.json) をブラウザで開き、対象の単語をページ内検索（Ctrl+F）で確認');
+            }
+
+            bodyLines.push('');
+            bodyLines.push('---');
+            bodyLines.push(`**ID (自動管理用)**: row_${row_index}`);
+            bodyLines.push(`<!-- row_index: ${row_index} -->`);
+
+            const body = bodyLines.join('\n');
             
             await github.rest.issues.create({
               owner: context.repo.owner,

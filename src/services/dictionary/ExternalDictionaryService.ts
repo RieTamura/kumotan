@@ -35,6 +35,8 @@ export interface DictionaryOverride {
   corrected_meaning?: string;
   meaning?: string;
   reading?: string;
+  part_of_speech?: string;
+  post_url?: string;
   source_issue: number;
   approved_at: string;
 }

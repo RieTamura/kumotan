@@ -23,6 +23,8 @@ jobs:
             const word = payload.word || '';
             const expectation = payload.expectation || '';
             const comment = payload.comment || '';
+            const partOfSpeech = payload.part_of_speech || '';
+            const postUrl = payload.post_url || '';
             const rowIndex = payload.row_index || '';
 
             if (!word) {
@@ -31,17 +33,25 @@ jobs:
             }
 
             const issueBody = [
-              '## フィードバック内容',
+              '### 報告内容 (word_search)',
+              '- **対象/件名**: ' + word,
+              '- **詳細/期待内容**: ' + expectation,
+              '- **品詞**: ' + (partOfSpeech || '不明'),
+              '- **投稿リンク**: ' + (postUrl || 'なし'),
+              '- **コメント**: ' + (comment || 'なし'),
               '',
-              '**対象/件名**: ' + word,
-              '',
-              '**詳細/期待内容**: ' + expectation,
-              '',
-              '**コメント**: ' + comment,
+              '### レビューチェックリスト',
+              '- [ ] 他の辞書で意味を確認したか',
+              '  - https://kotobanomado.jp/',
+              '  - https://dictionary.cambridge.org/ja/',
+              '- [ ] 品詞・用途は正しいか',
+              '- [ ] 既存のoverridesに同じ単語の修正がないか',
+              '  - [overrides.json](https://rietamura.github.io/kumotan-dictionary/overrides.json) をブラウザで開き、対象の単語をページ内検索（Ctrl+F）で確認',
               '',
               '---',
               '_スプレッドシート行: ' + rowIndex + '_',
-              '_このIssueは自動作成されました。内容を確認し、問題なければ「approved」ラベルを付与してください。_'
+              '_このIssueは自動作成されました。内容を確認し、問題なければ「approved」ラベルを付与してください。_',
+              '_検索ロジックの改善が必要な場合は「search-improvement」ラベルを付与してください。_'
             ].join('\n');
 
             const issue = await github.rest.issues.create({
