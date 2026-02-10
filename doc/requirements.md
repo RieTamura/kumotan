@@ -873,11 +873,32 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年2月6日
-**バージョン**: 1.26
+**最終更新日**: 2026年2月10日
+**バージョン**: 1.27
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.27 (2026-02-10)
+
+- **投稿への反応設定（Threadgate / Postgate）機能の実装**
+  - 投稿作成時に「返信できるユーザー」と「引用の許可/不許可」を設定可能に
+  - Bluesky公式アプリと同等のUX（BottomSheetモーダル）を提供
+  - 対応する返信制御: 誰でも / フォロワー / フォロー中の人 / メンションした人 / 返信不可
+  - 引用制御: 引用を許可 / 引用を禁止
+  - タイムライン上の返信アイコンをthreadgate設定に応じて切り替え
+    - 制限なし: `MessageCircle`（通常）
+    - 一部制限: `MessageCircleDashed`（破線）
+    - 返信不可: `MessageCircleOff`（禁止）
+  - 変更ファイル:
+    - `src/services/bluesky/feed.ts`: 型定義追加、threadgate/postgate レコード作成ロジック、`getReplyRestriction()`ヘルパー
+    - `src/hooks/usePostCreation.ts`: `replySettings` 状態管理追加
+    - `src/components/ReplySettingsModal.tsx`: 新規作成（反応設定モーダルUI）
+    - `src/components/PostCreationModal.tsx`: フッターに反応設定ボタン追加
+    - `src/components/PostCard.tsx`: 返信アイコンの動的切り替え
+    - `src/types/bluesky.ts`: `ReplyRestriction` 型、`TimelinePost.replyRestriction` 追加
+    - `src/locales/ja/home.json`, `src/locales/en/home.json`: 翻訳キー追加
+  - 詳細: `doc/threadgate-postgate-plan.md` 参照
 
 ### v1.26 (2026-02-06)
 
