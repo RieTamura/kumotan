@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
-import { MessageCircle, Repeat2, Heart, BookSearch, X, ExternalLink } from 'lucide-react-native';
+import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
@@ -970,7 +970,13 @@ function PostCardComponent({
           {/* Engagement metrics */}
           <View style={styles.metricsRow}>
             <View style={styles.metric}>
-              <MessageCircle size={16} color={colors.textSecondary} />
+              {post.replyRestriction === 'disabled' ? (
+                <MessageCircleOff size={16} color={colors.textSecondary} />
+              ) : post.replyRestriction === 'restricted' ? (
+                <MessageCircleDashed size={16} color={colors.textSecondary} />
+              ) : (
+                <MessageCircle size={16} color={colors.textSecondary} />
+              )}
               <Text style={[styles.metricText, { color: colors.textSecondary }]}>{post.replyCount ?? 0}</Text>
             </View>
             <View style={styles.metric}>

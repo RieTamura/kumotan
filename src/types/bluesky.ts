@@ -86,6 +86,14 @@ export interface PostViewer {
 }
 
 /**
+ * Reply restriction status derived from threadgate/postgate
+ */
+export type ReplyRestriction =
+  | 'none'        // No restrictions (anyone can reply and quote)
+  | 'restricted'  // Some reply restrictions applied
+  | 'disabled';   // No replies allowed AND quoting disabled
+
+/**
  * Simplified post for display in the app
  */
 export interface TimelinePost {
@@ -103,6 +111,7 @@ export interface TimelinePost {
   replyCount?: number;
   embed?: PostEmbed;
   viewer?: PostViewer;
+  replyRestriction?: ReplyRestriction;
 }
 
 /**

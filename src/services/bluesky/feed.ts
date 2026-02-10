@@ -4,7 +4,7 @@
  */
 
 import { Result } from '../../types/result';
-import { TimelinePost, PostEmbed, PostImage } from '../../types/bluesky';
+import { TimelinePost, PostEmbed, PostImage, ReplyRestriction } from '../../types/bluesky';
 import { AppError, ErrorCode, mapToAppError } from '../../utils/errors';
 import { PAGINATION } from '../../constants/config';
 import { getAgent, refreshSession, hasActiveSession } from './auth';
@@ -96,6 +96,24 @@ class RateLimiter {
 const rateLimiter = new RateLimiter();
 
 /**
+ * Determine reply restriction level from threadgate data.
+ * Note: PostView does not include postgate, so we determine the level from threadgate alone.
+ *   - 'disabled': threadgate exists with empty allow array (no one can reply)
+ *   - 'restricted': threadgate exists with some allow rules (limited replies)
+ *   - 'none': no threadgate
+ */
+function getReplyRestriction(
+  threadgate?: { uri?: string; record?: Record<string, unknown> },
+): ReplyRestriction {
+  if (!threadgate?.uri) return 'none';
+
+  const record = threadgate.record as { allow?: unknown[] } | undefined;
+  const hasNoReplyRules = !record?.allow || record.allow.length === 0;
+
+  return hasNoReplyRules ? 'disabled' : 'restricted';
+}
+
+/**
  * Fetch timeline posts from Bluesky
  */
 export async function getTimeline(
@@ -169,6 +187,10 @@ export async function getTimeline(
       // Extract viewer state
       const viewer = item.post.viewer as { like?: string; repost?: string } | undefined;
 
+      // Extract threadgate info for reply restriction icon
+      const threadgate = item.post.threadgate as { uri?: string; record?: Record<string, unknown> } | undefined;
+      const replyRestriction = getReplyRestriction(threadgate);
+
       return {
         uri: item.post.uri,
         cid: item.post.cid,
@@ -184,6 +206,7 @@ export async function getTimeline(
         replyCount: item.post.replyCount,
         embed,
         viewer: viewer ? { like: viewer.like, repost: viewer.repost } : undefined,
+        replyRestriction: replyRestriction !== 'none' ? replyRestriction : undefined,
       };
     });
 
@@ -653,6 +676,10 @@ export async function getAuthorFeed(
       // Extract viewer state
       const viewer = item.post.viewer as { like?: string; repost?: string } | undefined;
 
+      // Extract threadgate info for reply restriction icon
+      const threadgate = item.post.threadgate as { uri?: string; record?: Record<string, unknown> } | undefined;
+      const replyRestriction = getReplyRestriction(threadgate);
+
       return {
         uri: item.post.uri,
         cid: item.post.cid,
@@ -668,6 +695,7 @@ export async function getAuthorFeed(
         replyCount: item.post.replyCount,
         embed,
         viewer: viewer ? { like: viewer.like, repost: viewer.repost } : undefined,
+        replyRestriction: replyRestriction !== 'none' ? replyRestriction : undefined,
       };
     });
 
