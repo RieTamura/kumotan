@@ -63,13 +63,33 @@ export function HomeScreen(): React.JSX.Element {
   const TAB_INDEX_MAP: Record<TabType, number> = { following: 0, profile: 1 };
   const INDEX_TAB_MAP: TabType[] = ['following', 'profile'];
 
+  // Scroll to top button state (declared early for use in tab change handlers)
+  const flatListRef = useRef<FlatList<TimelinePost>>(null);
+  const profileFlatListRef = useRef<FlatList<TimelinePost>>(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const scrollToTopOpacity = useRef(new Animated.Value(0)).current;
+  const followingScrollOffset = useRef(0);
+  const profileScrollOffset = useRef(0);
+  const SCROLL_THRESHOLD = 500;
+
   /**
    * Handle tab change from IndexTabs
    */
   const handleTabChange = useCallback((tab: TabType) => {
     setActiveTab(tab);
     pagerRef.current?.setPage(TAB_INDEX_MAP[tab]);
-  }, []);
+    // Sync scroll-to-top button state for the new tab
+    const offset = tab === 'following'
+      ? followingScrollOffset.current
+      : profileScrollOffset.current;
+    const shouldShow = offset > SCROLL_THRESHOLD;
+    setShowScrollToTop(shouldShow);
+    Animated.timing(scrollToTopOpacity, {
+      toValue: shouldShow ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [scrollToTopOpacity, SCROLL_THRESHOLD]);
 
   /**
    * Handle page change from swipe
@@ -79,8 +99,19 @@ export function HomeScreen(): React.JSX.Element {
     const tab = INDEX_TAB_MAP[pageIndex];
     if (tab && tab !== activeTab) {
       setActiveTab(tab);
+      // Sync scroll-to-top button state for the new tab
+      const offset = tab === 'following'
+        ? followingScrollOffset.current
+        : profileScrollOffset.current;
+      const shouldShow = offset > SCROLL_THRESHOLD;
+      setShowScrollToTop(shouldShow);
+      Animated.timing(scrollToTopOpacity, {
+        toValue: shouldShow ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
     }
-  }, [activeTab]);
+  }, [activeTab, scrollToTopOpacity, SCROLL_THRESHOLD]);
 
   const tipsRef = useRef<View>(null);
   const [tutorialPositions, setTutorialPositions] = useState<{
@@ -180,14 +211,6 @@ export function HomeScreen(): React.JSX.Element {
   // Post creation modal state
   const [isPostModalVisible, setIsPostModalVisible] = useState(false);
 
-  // Scroll to top button state
-  const flatListRef = useRef<FlatList<TimelinePost>>(null);
-  const [showScrollToTop, setShowScrollToTop] = useState(false);
-  const scrollToTopOpacity = useRef(new Animated.Value(0)).current;
-
-  // Threshold for showing scroll to top button (in pixels)
-  const SCROLL_THRESHOLD = 500;
-
   /**
    * Handle end reached for infinite scroll
    */
@@ -198,13 +221,10 @@ export function HomeScreen(): React.JSX.Element {
   }, [isLoadingMore, hasMore, isConnected, loadMore]);
 
   /**
-   * Handle scroll event to show/hide scroll to top button
+   * Update scroll-to-top button visibility with animation
    */
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
-      const shouldShow = offsetY > SCROLL_THRESHOLD;
-
+  const updateScrollToTopVisibility = useCallback(
+    (shouldShow: boolean) => {
       if (shouldShow !== showScrollToTop) {
         setShowScrollToTop(shouldShow);
         Animated.timing(scrollToTopOpacity, {
@@ -214,15 +234,43 @@ export function HomeScreen(): React.JSX.Element {
         }).start();
       }
     },
-    [showScrollToTop, scrollToTopOpacity, SCROLL_THRESHOLD]
+    [showScrollToTop, scrollToTopOpacity]
   );
 
   /**
-   * Scroll to top of the list
+   * Handle scroll event for Following tab
+   */
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      followingScrollOffset.current = offsetY;
+      updateScrollToTopVisibility(offsetY > SCROLL_THRESHOLD);
+    },
+    [updateScrollToTopVisibility, SCROLL_THRESHOLD]
+  );
+
+  /**
+   * Handle scroll event for Profile tab
+   */
+  const handleProfileScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      profileScrollOffset.current = offsetY;
+      updateScrollToTopVisibility(offsetY > SCROLL_THRESHOLD);
+    },
+    [updateScrollToTopVisibility, SCROLL_THRESHOLD]
+  );
+
+  /**
+   * Scroll to top of the active tab's list
    */
   const scrollToTop = useCallback(() => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-  }, []);
+    if (activeTab === 'following') {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    } else {
+      profileFlatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }
+  }, [activeTab]);
 
   /**
    * Handle post press - navigate to thread
@@ -530,34 +578,33 @@ export function HomeScreen(): React.JSX.Element {
 
         {/* Profile tab - page 1 */}
         <View key="profile" style={styles.pageContainer}>
-          <ProfileView />
+          <ProfileView
+            flatListRef={profileFlatListRef}
+            onScroll={handleProfileScroll}
+          />
         </View>
       </PagerView>
 
-      {/* Floating Action Buttons - only show on Following tab */}
-      {activeTab === 'following' && (
-        <>
-          {showScrollToTop && (
-            <Pressable
-              style={[styles.scrollToTopButton, styles.scrollToTopPressable, { backgroundColor: colors.primary }]}
-              onPress={scrollToTop}
-              accessibilityLabel={t('scrollToTop')}
-              accessibilityRole="button"
-            >
-              <ArrowUp size={24} color="#FFF" />
-            </Pressable>
-          )}
-
-          <Pressable
-            style={[styles.fab, { backgroundColor: colors.primary, ...Shadows.lg }]}
-            onPress={() => setIsPostModalVisible(true)}
-            accessibilityLabel={t('createPost')}
-            accessibilityRole="button"
-          >
-            <Plus size={28} color="#FFF" />
-          </Pressable>
-        </>
+      {/* Floating Action Buttons */}
+      {showScrollToTop && (
+        <Pressable
+          style={[styles.scrollToTopButton, styles.scrollToTopPressable, { backgroundColor: colors.primary }]}
+          onPress={scrollToTop}
+          accessibilityLabel={t('scrollToTop')}
+          accessibilityRole="button"
+        >
+          <ArrowUp size={24} color="#FFF" />
+        </Pressable>
       )}
+
+      <Pressable
+        style={[styles.fab, { backgroundColor: colors.primary, ...Shadows.lg }]}
+        onPress={() => setIsPostModalVisible(true)}
+        accessibilityLabel={t('createPost')}
+        accessibilityRole="button"
+      >
+        <Plus size={28} color="#FFF" />
+      </Pressable>
 
       <PostCreationModal
         visible={isPostModalVisible}

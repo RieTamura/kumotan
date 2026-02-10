@@ -11,6 +11,8 @@ import {
   Image,
   FlatList,
   RefreshControl,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,10 +29,15 @@ import { TimelinePost } from '../types/bluesky';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { likePost, unlikePost } from '../services/bluesky/feed';
 
+interface ProfileViewProps {
+  flatListRef?: React.RefObject<FlatList<TimelinePost> | null>;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+}
+
 /**
  * ProfileView - Displays user profile information with their posts
  */
-export const ProfileView = memo(function ProfileView(): React.JSX.Element {
+export const ProfileView = memo(function ProfileView({ flatListRef, onScroll }: ProfileViewProps): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation('home');
   const { colors } = useTheme();
@@ -298,6 +305,7 @@ export const ProfileView = memo(function ProfileView(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
+        ref={flatListRef}
         style={styles.container}
         data={posts}
         renderItem={renderPost}
@@ -315,6 +323,8 @@ export const ProfileView = memo(function ProfileView(): React.JSX.Element {
         }
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
