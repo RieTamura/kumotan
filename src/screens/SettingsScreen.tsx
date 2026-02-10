@@ -530,6 +530,15 @@ export function SettingsScreen(): React.JSX.Element {
           />
         </SettingsSection>
 
+        {/* Moderation Section */}
+        <SettingsSection title={t('sections.moderation')}>
+          <SettingsItem
+            title={t('moderation.title')}
+            subtitle={t('moderation.subtitle')}
+            onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_MODERATION)}
+          />
+        </SettingsSection>
+
         {/* API Settings Section */}
         <SettingsSection title={t('sections.apiSettings')}>
           <SettingsItem

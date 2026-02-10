@@ -108,6 +108,7 @@ export const EXTERNAL_LINKS = {
   GITHUB_REPO: 'https://github.com/RieTamura/kumotan',
   GITHUB_SPONSORS: 'https://github.com/sponsors/RieTamura',
   BLUESKY_ACCOUNT: 'https://bsky.app/profile/kumotanapp.bsky.social',
+  BLUESKY_MODERATION: 'https://bsky.app/profile/did:plc:ar7c4by46qjdydhdevvrndac',
 } as const;
 
 /**

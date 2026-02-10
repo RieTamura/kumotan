@@ -9,7 +9,8 @@
     "feedback": "Feedback",
     "other": "Other",
     "language": "Language",
-    "appearance": "Appearance"
+    "appearance": "Appearance",
+    "moderation": "Moderation"
   },
   "account": {
     "loading": "Loading...",
@@ -100,6 +101,10 @@
     "dark": "Dark",
     "system": "Follow System Settings",
     "selectTheme": "Select Theme"
+  },
+  "moderation": {
+    "title": "Moderation Settings",
+    "subtitle": "Configure in the Bluesky app"
   },
   "pds": {
     "restore": "Restore from PDS",
