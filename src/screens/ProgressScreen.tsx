@@ -3,7 +3,7 @@
  * Displays learning statistics and calendar view
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,12 +13,7 @@ import {
   Alert,
   TouchableOpacity,
   RefreshControl,
-  Modal,
-  Image,
 } from 'react-native';
-import ViewShot, { captureRef } from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
-import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame, HelpCircle, AlertTriangle, Lightbulb } from 'lucide-react-native';
@@ -30,14 +25,11 @@ import { getCurrentLanguage } from '../locales';
 import { useTheme } from '../hooks/useTheme';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
+import { PostCreationModal } from '../components/PostCreationModal';
 import { getStats, getCalendarData } from '../services/database/stats';
 import { getQuizStats } from '../services/database/quiz';
 import { Stats } from '../types/stats';
 import { QuizStats } from '../types/quiz';
-import { ImageAspectRatio } from '../types/word';
-import { useAuthStore } from '../store/authStore';
-import { shareToBlueskyWithImage, shareTodaysSession } from '../services/learning/session';
-import { getAgent } from '../services/bluesky/auth';
 
 /**
  * Stats Card Component
@@ -109,14 +101,13 @@ export function ProgressScreen(): React.JSX.Element {
   const { t: th } = useTranslation('home');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isConnected = useNetworkStatus();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [stats, setStats] = useState<Stats | null>(null);
   const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
   const [activityDays, setActivityDays] = useState<number[]>([]);
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   /**
    * Load all data (stats and calendar)
@@ -191,54 +182,11 @@ export function ProgressScreen(): React.JSX.Element {
     }
   }, [currentMonth]);
 
-  // Ref for capturing the share card as an image
-  const shareCardRef = useRef<ViewShot>(null);
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
-  const [isCapturing, setIsCapturing] = useState(false);
+  const [shareInitialText, setShareInitialText] = useState('');
 
   /**
-   * Capture and share the progress card as an image with text
-   */
-  const captureAndShare = useCallback(async () => {
-    if (!shareCardRef.current || !stats) return;
-
-    setIsCapturing(true);
-    try {
-      // Check if sharing is available
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        Alert.alert(tc('status.error'), t('errors.shareNotAvailable'));
-        return;
-      }
-
-      const uri = await captureRef(shareCardRef, {
-        format: 'png',
-        quality: 1,
-      });
-
-      // Create share message and copy to clipboard
-      const shareMessage = t('share.text', { count: stats.todayCount });
-      await Clipboard.setStringAsync(shareMessage);
-
-      // Share the image (message is copied to clipboard)
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        dialogTitle: t('share.dialogTitle'),
-      });
-
-      // Notify user that message was copied
-      Alert.alert(t('share.messageCopied'), t('share.messageCopiedHint'));
-    } catch (error: unknown) {
-      console.error('Failed to capture and share:', error);
-      Alert.alert(tc('status.error'), t('errors.imageCapture'));
-    } finally {
-      setIsCapturing(false);
-      setIsShareModalVisible(false);
-    }
-  }, [stats]);
-
-  /**
-   * Handle share button press
+   * Handle share button press - open PostCreationModal with pre-filled text
    */
   const handleShare = useCallback(() => {
     if (!stats) {
@@ -246,99 +194,15 @@ export function ProgressScreen(): React.JSX.Element {
       return;
     }
 
-    // Show share modal with preview
+    // Build default share text with streak info if applicable
+    let text = t('share.text', { count: stats.todayCount });
+    if (stats.streak > 1) {
+      text = t('share.textWithStreak', { streak: stats.streak }) + '\n' + text;
+    }
+
+    setShareInitialText(text);
     setIsShareModalVisible(true);
   }, [stats, t, tc]);
-
-  /**
-   * Share to Bluesky timeline with image and AT Protocol learning session record
-   */
-  const handleShareToBluesky = useCallback(async () => {
-    if (!shareCardRef.current || !stats) {
-      Alert.alert(tc('status.error'), t('errors.noStats'));
-      return;
-    }
-
-    if (!isAuthenticated) {
-      Alert.alert(tc('status.error'), t('errors.notLoggedIn'));
-      return;
-    }
-
-    if (!isConnected) {
-      Alert.alert(tc('status.error'), t('errors.noNetwork'));
-      return;
-    }
-
-    setIsCapturing(true);
-    try {
-      const agent = getAgent();
-
-      // Capture the share card as URI first to get dimensions
-      const imageUri = await captureRef(shareCardRef, {
-        format: 'jpg',
-        quality: 0.9,
-      });
-
-      // Get image dimensions
-      const { width, height } = await new Promise<ImageAspectRatio>((resolve, reject) => {
-        Image.getSize(
-          imageUri,
-          (width, height) => resolve({ width, height }),
-          (error) => reject(error)
-        );
-      });
-
-      // Validate image dimensions
-      if (!width || !height || width <= 0 || height <= 0 || !isFinite(width) || !isFinite(height)) {
-        throw new Error(`画像の寸法が無効です: width=${width}, height=${height}`);
-      }
-
-      // Capture the share card as base64 image (JPG to avoid transparency issues)
-      const imageBase64 = await captureRef(shareCardRef, {
-        format: 'jpg',
-        quality: 0.9,
-        result: 'base64',
-      });
-
-      // Debug: Log image info in development mode
-      if (__DEV__) {
-        console.log('[Share] Image captured:', {
-          length: imageBase64.length,
-          prefix: imageBase64.substring(0, 50),
-          isDataUrl: imageBase64.startsWith('data:'),
-          width,
-          height,
-          aspectRatio: width / height,
-        });
-      }
-
-      // Create learning session record in PDS
-      const streakMessage = stats.streak > 1 ? t('share.textWithStreak', { streak: stats.streak }) : undefined;
-      await shareTodaysSession(
-        agent,
-        stats.todayCount,
-        0, // timeSpent - we don't track this yet
-        streakMessage
-      );
-
-      // Share to Bluesky timeline with image and aspect ratio
-      await shareToBlueskyWithImage(
-        agent,
-        stats.todayCount,
-        imageBase64,
-        { width, height },
-        streakMessage
-      );
-
-      Alert.alert(tc('status.success'), t('share.blueskySuccess'));
-      setIsShareModalVisible(false);
-    } catch (error) {
-      console.error('Failed to share to Bluesky:', error);
-      Alert.alert(tc('status.error'), t('share.blueskyError'));
-    } finally {
-      setIsCapturing(false);
-    }
-  }, [stats, isAuthenticated, isConnected, t, tc]);
 
   /**
    * Navigate to previous month
@@ -623,125 +487,12 @@ export function ProgressScreen(): React.JSX.Element {
         </View>
       </ScrollView>
 
-      {/* Share Modal */}
-      <Modal
+      {/* Share via PostCreationModal */}
+      <PostCreationModal
         visible={isShareModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsShareModalVisible(false)}
-      >
-        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('share.title')}</Text>
-
-            {/* Share Text Area */}
-            <TouchableOpacity
-              style={[styles.shareTextContainer, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={async () => {
-                const text = t('share.text', { count: stats.todayCount });
-                await Clipboard.setStringAsync(text);
-                Alert.alert(t('share.copied'), t('share.copiedMessage'));
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.shareText, { color: colors.text }]}>
-                {t('share.text', { count: stats.todayCount })}
-              </Text>
-              <Text style={[styles.shareTextHint, { color: colors.textTertiary }]}>{t('share.tapToCopy')}</Text>
-            </TouchableOpacity>
-
-            {/* Share Card Preview */}
-            <View style={styles.shareCardPreviewWrapper}>
-              <ViewShot
-                ref={shareCardRef}
-                options={{ format: 'jpg', quality: 0.9 }}
-                style={[styles.shareCard, { backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF', borderColor: colors.border }]}
-              >
-                {/* App Logo/Title */}
-                <Text style={[styles.shareCardAppName, { color: colors.primary }]}>{t('shareCard.appName')}</Text>
-
-                {/* Date */}
-                <Text style={[styles.shareCardDate, { color: isDark ? '#AAAAAA' : '#666666' }]}>
-                  {new Date().toLocaleDateString(getCurrentLanguage() === 'ja' ? 'ja-JP' : 'en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </Text>
-
-                {/* Main Progress */}
-                <View style={styles.shareCardProgress}>
-                  <Text style={[styles.shareCardProgressValue, { color: isDark ? '#FFFFFF' : '#000000' }]}>
-                    {stats.todayCount}
-                  </Text>
-                  <Text style={[styles.shareCardProgressLabel, { color: isDark ? '#BBBBBB' : '#333333' }]}>
-                    {t('shareCard.wordsLearned')}
-                  </Text>
-                </View>
-
-                {/* Stats Row */}
-                <View style={[styles.shareCardStatsRow, { borderTopColor: isDark ? '#333333' : '#EEEEEE' }]}>
-                  <View style={styles.shareCardStatItem}>
-                    <Text style={[styles.shareCardStatValue, { color: isDark ? '#FFFFFF' : '#000000' }]}>
-                      {t('statistics.days', { count: stats.streak })}
-                    </Text>
-                    <Text style={[styles.shareCardStatLabel, { color: isDark ? '#AAAAAA' : '#666666' }]}>{t('shareCard.consecutiveDays')}</Text>
-                  </View>
-                  <View style={[styles.shareCardStatDivider, { backgroundColor: isDark ? '#333333' : '#EEEEEE' }]} />
-                  <View style={styles.shareCardStatItem}>
-                    <Text style={[styles.shareCardStatValue, { color: isDark ? '#FFFFFF' : '#000000' }]}>
-                      {stats.totalWords}
-                    </Text>
-                    <Text style={[styles.shareCardStatLabel, { color: isDark ? '#AAAAAA' : '#666666' }]}>{t('shareCard.totalWords')}</Text>
-                  </View>
-                  <View style={[styles.shareCardStatDivider, { backgroundColor: isDark ? '#333333' : '#EEEEEE' }]} />
-                  <View style={styles.shareCardStatItem}>
-                    <Text style={[styles.shareCardStatValue, { color: isDark ? '#FFFFFF' : '#000000' }]}>
-                      {stats.readPercentage}%
-                    </Text>
-                    <Text style={[styles.shareCardStatLabel, { color: isDark ? '#AAAAAA' : '#666666' }]}>{t('shareCard.readRate')}</Text>
-                  </View>
-                </View>
-              </ViewShot>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButtonCancel, { backgroundColor: colors.backgroundTertiary }]}
-                onPress={() => setIsShareModalVisible(false)}
-                disabled={isCapturing}
-                accessible={true}
-                accessibilityLabel={t('share.cancel')}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.modalButtonCancelText, { color: colors.textSecondary }]}>{t('share.cancel')}</Text>
-              </TouchableOpacity>
-
-              {/* Unified Share Button */}
-              <TouchableOpacity
-                style={[
-                  styles.modalButtonShare,
-                  { backgroundColor: colors.primary },
-                  (isCapturing || (isAuthenticated && !isConnected)) && styles.modalButtonDisabled,
-                ]}
-                onPress={isAuthenticated ? handleShareToBluesky : captureAndShare}
-                disabled={isCapturing || (isAuthenticated && !isConnected)}
-                accessible={true}
-                accessibilityLabel={isCapturing ? t('share.creating') : t('share.button')}
-                accessibilityHint={isAuthenticated ? t('share.blueskyHint') : t('share.imageHint')}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: isCapturing || (isAuthenticated && !isConnected), busy: isCapturing }}
-              >
-                <ShareIcon size={18} color="#FFFFFF" />
-                <Text style={[styles.modalButtonShareText, { color: '#FFFFFF' }]}>
-                  {isCapturing ? t('share.creating') : t('share.button')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setIsShareModalVisible(false)}
+        initialText={shareInitialText}
+      />
     </SafeAreaView>
   );
 }
@@ -922,132 +673,6 @@ const styles = StyleSheet.create({
   todayProgressValue: {
     fontSize: 24, // FontSizes.xxl
     fontWeight: '700',
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16, // Spacing.lg
-  },
-  modalContent: {
-    borderRadius: 16, // BorderRadius.xl
-    padding: 16, // Spacing.lg
-    width: '100%',
-    maxWidth: 360,
-  },
-  modalTitle: {
-    fontSize: 18, // FontSizes.xl
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 12, // Spacing.md
-  },
-  // Share Text styles
-  shareTextContainer: {
-    borderRadius: 8, // BorderRadius.md
-    padding: 12, // Spacing.md
-    marginBottom: 12, // Spacing.md
-    borderWidth: 1,
-    borderStyle: 'dashed',
-  },
-  shareText: {
-    fontSize: 12, // FontSizes.sm
-    lineHeight: 20,
-  },
-  shareTextHint: {
-    fontSize: 10, // FontSizes.xs
-    textAlign: 'right',
-    marginTop: 4, // Spacing.xs
-  },
-  // Share Card styles
-  shareCardPreviewWrapper: {
-    marginBottom: 16, // Spacing.lg
-    borderRadius: 12, // BorderRadius.lg
-    overflow: 'hidden',
-  },
-  shareCard: {
-    padding: 24, // Spacing.xl
-    alignItems: 'center',
-  },
-  shareCardAppName: {
-    fontSize: 16, // FontSizes.lg
-    fontWeight: '700',
-    marginBottom: 8, // Spacing.sm
-  },
-  shareCardDate: {
-    fontSize: 12, // FontSizes.sm
-    marginBottom: 16, // Spacing.lg
-  },
-  shareCardProgress: {
-    alignItems: 'center',
-    marginBottom: 24, // Spacing.xl
-  },
-  shareCardProgressValue: {
-    fontSize: 64,
-    fontWeight: '700',
-    lineHeight: 72,
-  },
-  shareCardProgressLabel: {
-    fontSize: 16, // FontSizes.lg
-    fontWeight: '600',
-  },
-  shareCardStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16, // Spacing.lg
-    borderRadius: 8, // BorderRadius.md
-    paddingVertical: 12, // Spacing.md
-    paddingHorizontal: 16, // Spacing.lg
-    width: '100%',
-  },
-  shareCardStatItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  shareCardStatDivider: {
-    width: 1,
-    height: 30,
-  },
-  shareCardStatValue: {
-    fontSize: 16, // FontSizes.lg
-    fontWeight: '700',
-  },
-  shareCardStatLabel: {
-    fontSize: 10, // FontSizes.xs
-    marginTop: 2,
-  },
-  // Modal buttons
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12, // Spacing.md
-  },
-  modalButtonCancel: {
-    flex: 1,
-    paddingVertical: 12, // Spacing.md
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8, // BorderRadius.md
-  },
-  modalButtonCancelText: {
-    fontSize: 14, // FontSizes.md
-    fontWeight: '600',
-  },
-  modalButtonShare: {
-    flex: 1,
-    flexDirection: 'row',
-    paddingVertical: 12, // Spacing.md
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8, // BorderRadius.md
-    gap: 8, // Spacing.sm
-  },
-  modalButtonDisabled: {
-    opacity: 0.6,
-  },
-  modalButtonShareText: {
-    fontSize: 14, // FontSizes.md
-    fontWeight: '600',
   },
   // Quiz Stats styles
   weakWordsContainer: {

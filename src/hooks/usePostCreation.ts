@@ -82,10 +82,21 @@ const initialState: PostCreationState = {
 
 /**
  * Hook for managing post creation state and logic
+ *
+ * @param initialText - Optional initial text to pre-fill the post
  */
-export function usePostCreation(): UsePostCreationReturn {
+export function usePostCreation(initialText?: string): UsePostCreationReturn {
   const [state, setState] = useState<PostCreationState>(initialState);
   const [hashtagHistory, setHashtagHistory] = useState<string[]>(DEFAULT_HASHTAGS);
+
+  /**
+   * Set initial text when provided (e.g., from share flow)
+   */
+  useEffect(() => {
+    if (initialText !== undefined) {
+      setState((prev) => ({ ...prev, text: initialText }));
+    }
+  }, [initialText]);
 
   /**
    * Load hashtag history from storage on mount

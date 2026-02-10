@@ -247,6 +247,7 @@ export async function uploadImageToBluesky(
  * @param imageBase64 - シェアカード画像のbase64データ
  * @param aspectRatio - 画像のアスペクト比
  * @param achievement - 達成内容（オプション）
+ * @param customText - ユーザーが編集した投稿テキスト（指定時はこちらを優先）
  * @returns 投稿のURI
  */
 export async function shareToBlueskyWithImage(
@@ -254,7 +255,8 @@ export async function shareToBlueskyWithImage(
   wordsLearned: number,
   imageBase64: string,
   aspectRatio: ImageAspectRatio,
-  achievement?: string
+  achievement?: string,
+  customText?: string
 ): Promise<string> {
   // Check for session DID (standard auth) or sessionManager DID (OAuth)
   const did = agent.session?.did || (agent as any).sessionManager?.did;
@@ -262,7 +264,7 @@ export async function shareToBlueskyWithImage(
     throw new Error('認証が必要です。ログインしてください。');
   }
 
-  const text = generateSessionPostText(wordsLearned, achievement);
+  const text = customText || generateSessionPostText(wordsLearned, achievement);
   const facets = generateFacets(text);
 
   try {

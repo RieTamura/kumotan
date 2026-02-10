@@ -71,10 +71,12 @@ export function PostCreationModal({
   visible,
   onClose,
   onPostSuccess,
+  initialText,
 }: {
   visible: boolean;
   onClose: () => void;
   onPostSuccess?: () => void;
+  initialText?: string;
 }): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('home');
@@ -97,7 +99,7 @@ export function PostCreationModal({
     submitPost,
     reset,
     clearError,
-  } = usePostCreation();
+  } = usePostCreation(initialText);
 
   const [showReplySettings, setShowReplySettings] = useState(false);
 
