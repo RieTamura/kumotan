@@ -899,6 +899,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - `src/types/bluesky.ts`: `ReplyRestriction` 型、`TimelinePost.replyRestriction` 追加
     - `src/locales/ja/home.json`, `src/locales/en/home.json`: 翻訳キー追加
   - 詳細: `doc/threadgate-postgate-plan.md` 参照
+- **設定画面に「モデレーション」セクションを追加**
+  - Bluesky公式ラベラーアカウントへの外部リンクを設置
+  - アプリ内でのモデレーション機能は実装せず、Bluesky公式アプリでの設定を誘導
+  - 変更ファイル:
+    - `src/constants/config.ts`: `EXTERNAL_LINKS.BLUESKY_MODERATION` 追加
+    - `src/screens/SettingsScreen.tsx`: モデレーションセクション追加
+    - `src/locales/ja/settings.json`, `src/locales/en/settings.json`: 翻訳キー追加
 
 ### v1.26 (2026-02-06)
 
