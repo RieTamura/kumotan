@@ -274,15 +274,32 @@ Aではなく C を選択する理由：変更ファイル数は同じだが、`
 
 #### 実施状況
 
-**ステータス: 未着手**
+**ステータス: 完了（2026-02-11）**
+
+すべての手順を実施済み。実機テストでラベル付き投稿のぼかし表示・タップで画像表示を確認。
 
 | 手順 | ステータス | 備考 |
 |---|---|---|
-| TimelinePost 型にラベル追加 | 未着手 | |
-| getTimeline / getAuthorFeed でラベル抽出 | 未着手 | |
-| PostCard にぼかしUI追加 | 未着手 | |
-| TypeScript 型チェック | 未着手 | |
-| 実機テスト（ラベル付き投稿の表示確認） | 未着手 | |
+| TimelinePost 型にラベル追加 | 完了 | `labels?: Array<{ val: string }>` を追加 |
+| getTimeline / getAuthorFeed でラベル抽出 | 完了 | `item.post.labels` からセルフラベル・サービスラベル両方を抽出 |
+| PostCard にぼかしUI追加 | 完了 | 不透明オーバーレイ + AlertTriangleアイコン + タップで表示 |
+| ThreadScreen の toTimelinePost にラベル追加 | 完了 | スレッド表示でもラベル対応 |
+| i18n翻訳キー追加 | 完了 | `contentWarning`, `contentWarningTap`（ja/en） |
+| TypeScript 型チェック | 完了 | エラーなし |
+| 実機テスト（ラベル付き投稿の表示確認） | 完了 | プロフィールタブ・Followingフィードで動作確認済み |
+
+#### デバッグ記録
+
+実装中に発見・修正したバグ：
+
+| 問題 | 原因 | 修正 |
+|---|---|---|
+| NSFWオーバーレイが表示されない（単一画像） | `nsfwOverlay` が `absoluteFillObject` で絶対位置指定だが、親コンテナ `singleImageContainer` に高さがなく0pxに潰れていた | 2枚以上のケースと同様に `nsfwContainer`（`height: 200`）を親に追加 |
+| `[Feed Debug]` ログが出ない | デバッグログを `getTimeline` にのみ追加し、`getAuthorFeed` に未追加だった。またラベル有無を条件にしていたため該当投稿が検出されなかった | テキスト内容ベースの条件に変更し、両方の関数に追加 |
+
+#### 残存デバッグコード（要削除）
+
+`feed.ts` の `getTimeline` / `getAuthorFeed` 内に `[Feed Debug Timeline]` / `[Feed Debug AuthorFeed]` のデバッグログが残っている。本番リリース前に削除すること。
 
 ---
 

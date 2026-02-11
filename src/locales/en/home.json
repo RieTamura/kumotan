@@ -76,5 +76,7 @@
   "contentLabelSexual": "Suggestive",
   "contentLabelNudity": "Nudity",
   "contentLabelPorn": "Adult Content (Pornography)",
-  "contentLabelGraphicMedia": "Graphic Media"
+  "contentLabelGraphicMedia": "Graphic Media",
+  "contentWarning": "Content Warning",
+  "contentWarningTap": "Tap to show"
 }

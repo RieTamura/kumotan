@@ -76,5 +76,7 @@
   "contentLabelSexual": "きわどい",
   "contentLabelNudity": "ヌード",
   "contentLabelPorn": "成人向け（ポルノ等）",
-  "contentLabelGraphicMedia": "生々しいメディア（グロ・事故・戦争・災害等）"
+  "contentLabelGraphicMedia": "生々しいメディア（グロ・事故・戦争・災害等）",
+  "contentWarning": "コンテンツの警告",
+  "contentWarningTap": "タップして表示"
 }

@@ -118,8 +118,13 @@ function toTimelinePost(post: {
   replyCount?: number;
   embed?: unknown;
   viewer?: { like?: string; repost?: string };
+  labels?: Array<{ val: string }>;
 }): TimelinePost {
   const record = post.record as { text?: string; createdAt?: string } | undefined;
+  const rawLabels = post.labels;
+  const labels = rawLabels && rawLabels.length > 0
+    ? rawLabels.map((l) => ({ val: l.val }))
+    : undefined;
   return {
     uri: post.uri,
     cid: post.cid,
@@ -135,6 +140,7 @@ function toTimelinePost(post: {
     replyCount: post.replyCount,
     embed: extractEmbed(post.embed),
     viewer: post.viewer ? { like: post.viewer.like, repost: post.viewer.repost } : undefined,
+    labels,
   };
 }
 

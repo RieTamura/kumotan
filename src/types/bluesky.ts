@@ -112,6 +112,7 @@ export interface TimelinePost {
   embed?: PostEmbed;
   viewer?: PostViewer;
   replyRestriction?: ReplyRestriction;
+  labels?: Array<{ val: string }>;
 }
 
 /**

@@ -213,6 +213,26 @@ export async function getTimeline(
       const threadgate = item.post.threadgate as { uri?: string; record?: Record<string, unknown> } | undefined;
       const replyRestriction = getReplyRestriction(threadgate);
 
+      // Extract content labels (self-labels and service labels)
+      const rawLabels = item.post.labels as Array<{ val: string }> | undefined;
+      const labels = rawLabels && rawLabels.length > 0
+        ? rawLabels.map((l) => ({ val: l.val }))
+        : undefined;
+
+      // Debug: log raw data for posts containing label-related text
+      if (__DEV__) {
+        const postText = (item.post.record as { text?: string })?.text ?? '';
+        if (postText.includes('ラベル')) {
+          console.log('[Feed Debug Timeline]', {
+            text: postText.substring(0, 50),
+            rawLabels: JSON.stringify(item.post.labels),
+            hasEmbed: !!item.post.embed,
+            embedType: rawEmbed?.$type,
+            rawEmbed: JSON.stringify(item.post.embed)?.substring(0, 500),
+          });
+        }
+      }
+
       return {
         uri: item.post.uri,
         cid: item.post.cid,
@@ -229,6 +249,7 @@ export async function getTimeline(
         embed,
         viewer: viewer ? { like: viewer.like, repost: viewer.repost } : undefined,
         replyRestriction: replyRestriction !== 'none' ? replyRestriction : undefined,
+        labels,
       };
     });
 
@@ -806,6 +827,26 @@ export async function getAuthorFeed(
       const threadgate = item.post.threadgate as { uri?: string; record?: Record<string, unknown> } | undefined;
       const replyRestriction = getReplyRestriction(threadgate);
 
+      // Extract content labels (self-labels and service labels)
+      const rawLabels = item.post.labels as Array<{ val: string }> | undefined;
+      const labels = rawLabels && rawLabels.length > 0
+        ? rawLabels.map((l) => ({ val: l.val }))
+        : undefined;
+
+      // Debug: log raw data for posts containing label-related text
+      if (__DEV__) {
+        const postText = (item.post.record as { text?: string })?.text ?? '';
+        if (postText.includes('ラベル')) {
+          console.log('[Feed Debug AuthorFeed]', {
+            text: postText.substring(0, 50),
+            rawLabels: JSON.stringify(item.post.labels),
+            hasEmbed: !!item.post.embed,
+            embedType: rawEmbed?.$type,
+            rawEmbed: JSON.stringify(item.post.embed)?.substring(0, 500),
+          });
+        }
+      }
+
       return {
         uri: item.post.uri,
         cid: item.post.cid,
@@ -822,6 +863,7 @@ export async function getAuthorFeed(
         embed,
         viewer: viewer ? { like: viewer.like, repost: viewer.repost } : undefined,
         replyRestriction: replyRestriction !== 'none' ? replyRestriction : undefined,
+        labels,
       };
     });
 

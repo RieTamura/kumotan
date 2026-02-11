@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
-import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink } from 'lucide-react-native';
+import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink, AlertTriangle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { TimelinePost } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
@@ -43,6 +43,19 @@ interface PostCardProps {
  * Default avatar placeholder
  */
 const DEFAULT_AVATAR = 'https://cdn.bsky.app/img/avatar/plain/did:plc:default/avatar@jpeg';
+
+/**
+ * Content labels that should trigger image blur
+ */
+const NSFW_LABELS = ['sexual', 'nudity', 'porn', 'graphic-media'];
+
+/**
+ * Check if a post has NSFW content labels
+ */
+function hasNsfwLabel(labels?: Array<{ val: string }>): boolean {
+  if (!labels || labels.length === 0) return false;
+  return labels.some((label) => NSFW_LABELS.includes(label.val));
+}
 
 /**
  * Token type for text parsing
@@ -383,6 +396,10 @@ function PostCardComponent({
   // Image viewer state
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
+
+  // NSFW content visibility state
+  const [showNsfwContent, setShowNsfwContent] = useState(false);
+  const isNsfw = hasNsfwLabel(post.labels);
 
   // Sync like state with post prop changes
   useEffect(() => {
@@ -785,6 +802,28 @@ function PostCardComponent({
   }, [post.embed?.images]);
 
   /**
+   * Render NSFW content warning overlay
+   */
+  const renderNsfwOverlay = () => (
+    <Pressable
+      style={styles.nsfwOverlay}
+      onPress={() => setShowNsfwContent(true)}
+      accessible={true}
+      accessibilityLabel={t('home:contentWarning', 'コンテンツの警告')}
+      accessibilityHint={t('home:contentWarningTap', 'タップして表示')}
+      accessibilityRole="button"
+    >
+      <AlertTriangle size={24} color="#fff" />
+      <Text style={styles.nsfwOverlayTitle}>
+        {t('home:contentWarning', 'コンテンツの警告')}
+      </Text>
+      <Text style={styles.nsfwOverlayHint}>
+        {t('home:contentWarningTap', 'タップして表示')}
+      </Text>
+    </Pressable>
+  );
+
+  /**
    * Render embedded images
    */
   const renderImages = () => {
@@ -796,6 +835,13 @@ function PostCardComponent({
     // Single image
     if (imageCount === 1) {
       const image = images[0];
+      if (isNsfw && !showNsfwContent) {
+        return (
+          <View style={[styles.singleImageContainer, styles.nsfwContainer]}>
+            {renderNsfwOverlay()}
+          </View>
+        );
+      }
       return (
         <Pressable
           style={styles.singleImageContainer}
@@ -820,6 +866,13 @@ function PostCardComponent({
 
     // Two images - side by side
     if (imageCount === 2) {
+      if (isNsfw && !showNsfwContent) {
+        return (
+          <View style={[styles.twoImageContainer, styles.nsfwContainer]}>
+            {renderNsfwOverlay()}
+          </View>
+        );
+      }
       return (
         <View style={styles.twoImageContainer}>
           {images.map((image, index) => (
@@ -848,6 +901,13 @@ function PostCardComponent({
     }
 
     // Three or four images - grid
+    if (isNsfw && !showNsfwContent) {
+      return (
+        <View style={[styles.gridContainer, styles.nsfwContainer]}>
+          {renderNsfwOverlay()}
+        </View>
+      );
+    }
     return (
       <View style={styles.gridContainer}>
         {images.slice(0, 4).map((image, index) => (
@@ -1213,6 +1273,30 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
     fontSize: FontSizes.xs,
     fontWeight: '600',
+  },
+  // NSFW overlay styles
+  nsfwContainer: {
+    height: 200,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+  },
+  nsfwOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: BorderRadius.md,
+    minHeight: 200,
+    gap: Spacing.sm,
+  },
+  nsfwOverlayTitle: {
+    color: '#fff',
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+  },
+  nsfwOverlayHint: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: FontSizes.sm,
   },
   // Image viewer header styles
   imageViewerHeader: {
