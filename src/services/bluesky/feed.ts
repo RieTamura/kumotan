@@ -3,7 +3,7 @@
  * Handles timeline fetching and post operations
  */
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Result } from '../../types/result';
 import { TimelinePost, PostEmbed, PostImage, ReplyRestriction } from '../../types/bluesky';
 import { AppError, ErrorCode, mapToAppError } from '../../utils/errors';

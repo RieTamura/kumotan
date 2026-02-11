@@ -194,6 +194,98 @@ PostCreationModal に汎用的な画像添付機能を追加する。ホーム�
 | i18n 翻訳キー追加 | 完了 | 画像関連7キー + ラベル関連8キー（ja/en） |
 | TypeScript 型チェック | 完了 | エラーなし |
 
+---
+
+### フェーズC: フィードのコンテンツラベル対応（モデレーション表示）
+
+フェーズBで投稿時のラベル付与（作成側）を実装した。フェーズCでは閲覧側のラベル対応を行い、ラベル付き投稿の画像を適切にぼかし表示する。
+
+#### 背景
+
+Bluesky公式アプリではコンテンツラベル付き投稿の画像が非表示（ぼかし＋警告表示）になるが、kumotanアプリでは画像がそのまま表示されてしまう。原因は以下の3点が未実装であること：
+1. `TimelinePost` 型にラベルフィールドがない
+2. フィード取得時にAPIレスポンスからラベルを抽出していない
+3. PostCard でラベルに基づく表示制御がない
+
+#### アプローチ
+
+**実用的な中間案（アプローチC）** を採用する。
+
+| 比較軸 | A: 最小実装 | **C: 中間案（採用）** | B: 公式モデレーションAPI |
+|---|---|---|---|
+| 工数 | 1-2時間 | **3-5時間** | 2-4日 |
+| 変更ファイル | 3 | **3** | 8+ |
+| 追加行数 | ~50-60 | **~80-100** | 300+ |
+| セルフラベル | 対応 | **対応** | 対応 |
+| サービスラベル | 非対応 | **対応** | 対応 |
+| ユーザー設定 | なし | **なし（一律ぼかし）** | あり |
+| 将来のBへの移行 | 容易 | **容易** | — |
+
+Aではなく C を選択する理由：変更ファイル数は同じだが、`post.labels` を丸ごと抽出することでセルフラベル・サービスラベル両方に対応でき、実用性が大幅に向上する。ユーザー設定（表示/警告/非表示の切り替え）は将来フェーズBへの段階的移行時に追加する。
+
+#### 変更ファイル
+
+| ファイル | 変更内容 |
+|---|---|
+| `src/types/bluesky.ts` | `TimelinePost` に `labels` フィールドを追加 |
+| `src/services/bluesky/feed.ts` | `getTimeline()` と `getAuthorFeed()` でAPIレスポンスからラベルを抽出 |
+| `src/components/PostCard.tsx` | ラベル付き画像にぼかしオーバーレイ＋「タップで表示」UI を追加 |
+
+#### 詳細手順
+
+1. **TimelinePost 型にラベルフィールド追加**
+   - `src/types/bluesky.ts` の `TimelinePost` に `labels?: Array<{ val: string }>` を追加
+   - Bluesky APIの `PostView.labels` は `Array<{ val: string; src?: string; uri?: string; ... }>` だが、表示判定には `val` のみ必要
+
+2. **フィード取得時のラベル抽出**
+   - `src/services/bluesky/feed.ts` の `getTimeline()` マッピング処理（L166-L233）で `item.post.labels` を抽出
+   - `getAuthorFeed()` のマッピング処理（L759-L826）でも同様に抽出
+   - 抽出ロジック：
+     ```typescript
+     const rawLabels = item.post.labels as Array<{ val: string }> | undefined;
+     const labels = rawLabels && rawLabels.length > 0
+       ? rawLabels.map((l) => ({ val: l.val }))
+       : undefined;
+     ```
+   - return オブジェクトに `labels` を追加
+
+3. **PostCard にぼかし表示UI追加**
+   - 対象ラベル定数を定義：`NSFW_LABELS = ['sexual', 'nudity', 'porn', 'graphic-media']`
+   - ヘルパー関数：`hasNsfwLabel(labels)` — 投稿のラベルにNSFWラベルが含まれるか判定
+   - `renderImages()` 内で、NSFWラベルがある場合にぼかしオーバーレイを表示：
+     - 画像の上に半透明オーバーレイ（`backgroundColor: 'rgba(0,0,0,0.85)'`）
+     - 警告アイコン（`AlertTriangle` from lucide-react-native）
+     - 警告テキスト（「コンテンツの警告」）
+     - 「タップして表示」テキスト
+   - `useState` で `showNsfwContent` を管理（デフォルト: `false`）
+   - タップでオーバーレイを解除して画像を表示
+   - 再度隠す機能は不要（Bluesky公式アプリと同じ挙動）
+
+#### 設計判断
+
+| 判断 | 選択 | 理由 |
+|---|---|---|
+| ラベルデータの保持 | `val` のみ抽出 | 表示判定には `val` で十分。`src`（ラベル発行元）等は将来必要になった時点で追加 |
+| 対象ラベル | `sexual`, `nudity`, `porn`, `graphic-media` | Bluesky公式のコンテンツ警告ラベル4種。フェーズBで投稿時に付与可能なものと一致 |
+| ぼかし方式 | 不透明オーバーレイ | React Native標準のViewで実装可能。`blurRadius`はプラットフォーム差異があるため不採用 |
+| ユーザー設定 | なし（一律ぼかし） | MVP段階では安全側に倒す。将来設定画面から制御可能にする拡張ポイントは意識 |
+| タップ状態の管理 | PostCard内の`useState` | 投稿単位で独立管理。フィードスクロールで再マウント時にリセットされる（安全側） |
+| 外部リンクのサムネイル | 対象外 | 画像embed のみ対応。外部リンクのサムネイルはラベル対象外（Bluesky公式と同じ） |
+
+#### 実施状況
+
+**ステータス: 未着手**
+
+| 手順 | ステータス | 備考 |
+|---|---|---|
+| TimelinePost 型にラベル追加 | 未着手 | |
+| getTimeline / getAuthorFeed でラベル抽出 | 未着手 | |
+| PostCard にぼかしUI追加 | 未着手 | |
+| TypeScript 型チェック | 未着手 | |
+| 実機テスト（ラベル付き投稿の表示確認） | 未着手 | |
+
+---
+
 ## リスク
 
 | リスク | 対策 |

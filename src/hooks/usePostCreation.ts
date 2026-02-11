@@ -335,7 +335,7 @@ export function usePostCreation(initialText?: string): UsePostCreationReturn {
       }));
       return false;
     }
-  }, [isValid, state.isPosting, state.hashtags, state.replySettings, buildPostText, extractHashtagsFromText, saveHashtagsToHistory]);
+  }, [isValid, state.isPosting, state.hashtags, state.replySettings, state.images, state.selfLabels, buildPostText, extractHashtagsFromText, saveHashtagsToHistory]);
 
   /**
    * Reset the state to initial values
