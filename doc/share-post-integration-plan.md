@@ -79,6 +79,7 @@ PostCreationModal を ProgressScreen から呼び出せるようにし、シェ�
 ### フェーズB: 画像添付機能
 
 PostCreationModal に汎用的な画像添付機能を追加する。ホーム画面の通常投稿からも使えるようにする。
+画像添付時にはコンテンツ警告ラベル（selfLabel）も付与できるようにする。
 
 #### 変更ファイル
 
@@ -86,11 +87,12 @@ PostCreationModal に汎用的な画像添付機能を追加する。ホーム�
 |---|---|
 | `package.json` | `expo-image-picker` を追加 |
 | `app.json` | expo-image-picker プラグイン設定、カメラ権限文字列を追加 |
-| `src/services/bluesky/feed.ts` | `PostImageAttachment` 型、`buildImageEmbed` 関数を追加。`createPost` に `embed` パラメータを追加 |
-| `src/hooks/usePostCreation.ts` | `images` state、`addImage`/`removeImage` アクション、`submitPost` に画像アップロード統合 |
-| `src/components/PostCreationModal.tsx` | 画像ピッカーボタン（ツールバー）、画像プレビュー、削除UI |
-| `src/locales/ja/home.json` | 画像関連の翻訳キー追加 |
-| `src/locales/en/home.json` | 画像関連の翻訳キー追加 |
+| `src/services/bluesky/feed.ts` | `PostImageAttachment` 型、`buildImageEmbed` 関数を追加。`createPost` に `embed`・`selfLabels` パラメータを追加 |
+| `src/hooks/usePostCreation.ts` | `images`・`selfLabels` state、`addImage`/`removeImage`/`setSelfLabels` アクション、`submitPost` に画像アップロード・ラベル統合 |
+| `src/components/PostCreationModal.tsx` | 画像ピッカーボタン（ツールバー）、画像プレビュー、削除UI、ラベルボタン（画像添付時のみ表示） |
+| `src/components/ContentLabelModal.tsx` | コンテンツ警告ラベル選択モーダル（新規作成、`ReplySettingsModal` と同様のパターン） |
+| `src/locales/ja/home.json` | 画像・ラベル関連の翻訳キー追加 |
+| `src/locales/en/home.json` | 画像・ラベル関連の翻訳キー追加 |
 
 #### 詳細手順
 
@@ -106,19 +108,23 @@ PostCreationModal に汎用的な画像添付機能を追加する。ホーム�
      - 1MB 超過チェック、最大4枚チェック
      - `app.bsky.embed.images`embedオブジェクトを返す
      - `getAgent()` / `rateLimiter` / `Result` パターンを既存 `createPost` と統一
-   - `createPost` に第3引数 `embed?: Record<string, unknown>` を追加
-     - `postRecord` 構築時に `embed` があれば含める。既存呼び出し元は影響なし
+   - `createPost` に第3引数 `embed?: Record<string, unknown>`、第4引数 `selfLabels?: string[]` を追加
+     - `postRecord` 構築時に `embed` があれば含める
+     - `selfLabels` が指定された場合、`com.atproto.label.defs#selfLabels` を `postRecord.labels` に設定
+     - 既存呼び出し元は影響なし
 
 3. **usePostCreation.ts — Hook の拡張**
-   - `PostCreationState` に `images: PostImageAttachment[]` を追加
+   - `PostCreationState` に `images: PostImageAttachment[]`、`selfLabels: string[]` を追加
    - `addImage(image)` — MAX_IMAGES(4) チェック付き
    - `removeImage(index)` — インデックス指定で削除
    - `canAddImage` — `images.length < 4`のcomputed値
-   - `submitPost`変更：`images.length > 0`なら`buildImageEmbed()` → `createPost(text, settings, embed)`
-   - `UsePostCreationReturn` に `images`, `canAddImage`, `addImage`, `removeImage` を追加
+   - `setSelfLabels(labels: string[])` — ラベル配列の設定
+   - `submitPost`変更：`images.length > 0`なら`buildImageEmbed()` → `createPost(text, settings, embed, selfLabels)`
+   - 画像がすべて削除された場合、`selfLabels`も自動リセット
+   - `UsePostCreationReturn` に `images`, `canAddImage`, `addImage`, `removeImage`, `selfLabels`, `setSelfLabels` を追加
 
 4. **PostCreationModal.tsx — UI**
-   - import追加：`Image`, `ActionSheetIOS`(react-native), `expo-image-picker`, `ImagePlus`(lucide)
+   - import追加：`Image`, `ActionSheetIOS`(react-native), `expo-image-picker`, `ImagePlus`, `Tag`(lucide)
    - ツールバーにリプライ設定ボタンの右に `ImagePlus` アイコンボタン追加
    - タップ時：ActionSheetIOS（iOS）/ Alert（Android）で「ギャラリー/カメラ」選択
    - `ImagePicker.launchImageLibraryAsync` / `launchCameraAsync` を呼ぶ
@@ -126,14 +132,37 @@ PostCreationModal に汎用的な画像添付機能を追加する。ホーム�
    - テキスト入力の下に水平ScrollViewで80×80サムネイルプレビュー表示
    - 各サムネイルにXボタン（削除）オーバーレイ
    - 画像カウント表示（例：`2/4`）
+   - 画像が1枚以上添付されている場合のみ、ツールバーに `Tag` アイコンの「ラベル」ボタンを表示
+   - タップで `ContentLabelModal` を開く
 
-5. **i18n 翻訳キー追加**
-   - `imageSelectSource`：画像の追加 / Add Image
-   - `imageFromGallery`：フォトライブラリから選択 / Choose from Library
-   - `imageFromCamera`：カメラで撮影 / Take Photo
-   - `imageCancel`：キャンセル / Cancel
-   - `imagePermissionTitle`：アクセス許可が必要です / Permission Required
-   - `imageGalleryPermissionMessage` / `imageCameraPermissionMessage`
+5. **ContentLabelModal.tsx — コンテンツ警告ラベル選択モーダル（新規）**
+   - `ReplySettingsModal`と同じパターン（ボトムシートモーダル）で実装
+   - props：`visible`, `labels: string[]`, `onSave: (labels: string[]) => void`, `onClose`
+   - チェックボックス4つ：
+     - `sexual`：きわどい / Suggestive
+     - `nudity`：ヌード / Nudity
+     - `porn`：成人向け（ポルノ等）/ Adult Content（Pornography）
+     - `graphic-media`：生々しいメディア（グロ・事故・戦争・災害等）/ Graphic Media
+   - 「成人向けコンテンツ」「その他」のセクション分け（Bluesky公式UIに準拠）
+   - 「完了」ボタンで保存して閉じる
+
+6. **i18n 翻訳キー追加**
+   - 画像関連：
+     - `imageSelectSource`：画像の追加 / Add Image
+     - `imageFromGallery`：フォトライブラリから選択 / Choose from Library
+     - `imageFromCamera`：カメラで撮影 / Take Photo
+     - `imageCancel`：キャンセル / Cancel
+     - `imagePermissionTitle`：アクセス許可が必要です / Permission Required
+     - `imageGalleryPermissionMessage` / `imageCameraPermissionMessage`
+   - ラベル関連：
+     - `contentLabel`：コンテンツの警告を追加 / Add content warning
+     - `contentLabelDone`：完了 / Done
+     - `contentLabelAdult`：成人向けコンテンツ / Adult Content
+     - `contentLabelOther`：その他 / Other
+     - `contentLabelSexual`：きわどい / Suggestive
+     - `contentLabelNudity`：ヌード / Nudity
+     - `contentLabelPorn`：成人向け（ポルノ等）/ Adult Content（Pornography）
+     - `contentLabelGraphicMedia`：生々しいメディア（グロ・事故・戦争・災害等）/ Graphic Media
 
 #### 設計判断
 
@@ -145,6 +174,9 @@ PostCreationModal に汎用的な画像添付機能を追加する。ホーム�
 | テキスト必須維持 | はい | 既存動作と一貫性 |
 | 圧縮戦略 | ImagePicker の `quality: 0.8` | 1MB 以下に収まる場合が多い。超過時はエラー表示 |
 | アクションシート | iOS: ActionSheetIOS / Android: Alert | ネイティブ体験、追加依存なし |
+| ラベルボタンの表示条件 | 画像が1枚以上添付されている場合のみ | テキストのみ投稿では不要。UXへの影響を最小限に |
+| ラベルモーダルの構造 | `ReplySettingsModal`と同じボトムシートパターン | 既存パターンの再利用で実装コスト・保守コストを低減 |
+| ラベルの自動リセット | 画像をすべて削除した場合にリセット | 画像なしでラベルだけ残る不整合を防止 |
 
 #### 実施状況
 
@@ -153,10 +185,11 @@ PostCreationModal に汎用的な画像添付機能を追加する。ホーム�
 | 手順 | ステータス | 備考 |
 |---|---|---|
 | expo-image-picker インストール | 未着手 | |
-| feed.ts サービス層拡張 | 未着手 | |
-| usePostCreation Hook 拡張 | 未着手 | |
-| PostCreationModal UI | 未着手 | |
-| i18n 翻訳キー追加 | 未着手 | |
+| feed.ts サービス層拡張 | 未着手 | embed + selfLabels対応 |
+| usePostCreation Hook 拡張 | 未着手 | images + selfLabels state |
+| PostCreationModal UI | 未着手 | 画像ピッカー + ラベルボタン |
+| ContentLabelModal 新規作成 | 未着手 | ReplySettingsModalパターン準拠 |
+| i18n 翻訳キー追加 | 未着手 | 画像 + ラベル関連 |
 | TypeScript 型チェック | 未着手 | |
 
 ## リスク
