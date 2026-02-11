@@ -180,17 +180,19 @@ PostCreationModal に汎用的な画像添付機能を追加する。ホーム�
 
 #### 実施状況
 
-**ステータス: 未着手**
+**ステータス: 完了（2026-02-11）**
+
+すべての手順を実施済み。TypeScript 型チェックもエラーなし。
 
 | 手順 | ステータス | 備考 |
 |---|---|---|
-| expo-image-picker インストール | 未着手 | |
-| feed.ts サービス層拡張 | 未着手 | embed + selfLabels対応 |
-| usePostCreation Hook 拡張 | 未着手 | images + selfLabels state |
-| PostCreationModal UI | 未着手 | 画像ピッカー + ラベルボタン |
-| ContentLabelModal 新規作成 | 未着手 | ReplySettingsModalパターン準拠 |
-| i18n 翻訳キー追加 | 未着手 | 画像 + ラベル関連 |
-| TypeScript 型チェック | 未着手 | |
+| expo-image-picker インストール | 完了 | app.json にプラグイン設定・カメラ権限も追加 |
+| feed.ts サービス層拡張 | 完了 | `PostImageAttachment`型、`buildImageEmbed`関数、`createPost`にembed+selfLabels追加 |
+| usePostCreation Hook 拡張 | 完了 | images/selfLabels state、addImage/removeImage/setSelfLabels アクション |
+| PostCreationModal UI | 完了 | ImagePlus/Tagツールバーボタン、画像プレビュー、ActionSheet |
+| ContentLabelModal 新規作成 | 完了 | ReplySettingsModalパターン準拠、4種類のラベル対応 |
+| i18n 翻訳キー追加 | 完了 | 画像関連7キー + ラベル関連8キー（ja/en） |
+| TypeScript 型チェック | 完了 | エラーなし |
 
 ## リスク
 

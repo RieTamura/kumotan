@@ -3,6 +3,7 @@
  * Handles timeline fetching and post operations
  */
 
+import * as FileSystem from 'expo-file-system';
 import { Result } from '../../types/result';
 import { TimelinePost, PostEmbed, PostImage, ReplyRestriction } from '../../types/bluesky';
 import { AppError, ErrorCode, mapToAppError } from '../../utils/errors';
@@ -34,6 +35,27 @@ export const DEFAULT_REPLY_SETTINGS: PostReplySettings = {
   allowRules: [],
   allowQuote: true,
 };
+
+/**
+ * Image attachment for a post
+ */
+export interface PostImageAttachment {
+  uri: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  alt: string;
+}
+
+/**
+ * Maximum number of images per post
+ */
+const MAX_IMAGES = 4;
+
+/**
+ * Maximum image size in bytes (1MB)
+ */
+const MAX_IMAGE_SIZE = 1_000_000;
 
 /**
  * Rate limiter for Bluesky API
@@ -405,11 +427,104 @@ async function createPostgate(postUri: string): Promise<void> {
 }
 
 /**
+ * Build an image embed object for a post by uploading images to Bluesky.
+ * Reads each image as base64, converts to Uint8Array, and uploads via agent.uploadBlob().
+ */
+export async function buildImageEmbed(
+  images: PostImageAttachment[]
+): Promise<Result<Record<string, unknown>, AppError>> {
+  try {
+    if (images.length === 0) {
+      return {
+        success: false,
+        error: new AppError(ErrorCode.VALIDATION_ERROR, '画像が選択されていません'),
+      };
+    }
+
+    if (images.length > MAX_IMAGES) {
+      return {
+        success: false,
+        error: new AppError(ErrorCode.VALIDATION_ERROR, `画像は最大${MAX_IMAGES}枚までです`),
+      };
+    }
+
+    const agent = getAgent();
+
+    if (!hasActiveSession()) {
+      const refreshResult = await refreshSession();
+      if (!refreshResult.success) {
+        return { success: false, error: refreshResult.error };
+      }
+    }
+
+    const uploadedImages: Array<{
+      alt: string;
+      image: unknown;
+      aspectRatio?: { width: number; height: number };
+    }> = [];
+
+    for (const img of images) {
+      await rateLimiter.throttle();
+
+      const base64 = await FileSystem.readAsStringAsync(img.uri, {
+        encoding: 'base64',
+      });
+
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      if (bytes.length > MAX_IMAGE_SIZE) {
+        return {
+          success: false,
+          error: new AppError(ErrorCode.VALIDATION_ERROR, '画像サイズが1MBを超えています。より小さい画像を使用してください。'),
+        };
+      }
+
+      const response = await agent.uploadBlob(bytes, {
+        encoding: img.mimeType,
+      });
+
+      uploadedImages.push({
+        alt: img.alt,
+        image: response.data.blob,
+        aspectRatio: img.width > 0 && img.height > 0
+          ? { width: img.width, height: img.height }
+          : undefined,
+      });
+    }
+
+    const embed: Record<string, unknown> = {
+      $type: 'app.bsky.embed.images',
+      images: uploadedImages,
+    };
+
+    if (__DEV__) {
+      console.log(`Built image embed with ${uploadedImages.length} images`);
+    }
+
+    return { success: true, data: embed };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to build image embed:', error);
+    }
+    return {
+      success: false,
+      error: mapToAppError(error, '画像のアップロード'),
+    };
+  }
+}
+
+/**
  * Create a post on Bluesky
  */
 export async function createPost(
   text: string,
-  replySettings?: PostReplySettings
+  replySettings?: PostReplySettings,
+  embed?: Record<string, unknown>,
+  selfLabels?: string[]
 ): Promise<Result<{ uri: string; cid: string }, AppError>> {
   try {
     const agent = getAgent();
@@ -436,6 +551,17 @@ export async function createPost(
 
     if (facets.length > 0) {
       postRecord.facets = facets;
+    }
+
+    if (embed) {
+      postRecord.embed = embed;
+    }
+
+    if (selfLabels && selfLabels.length > 0) {
+      postRecord.labels = {
+        $type: 'com.atproto.label.defs#selfLabels',
+        values: selfLabels.map((val) => ({ val })),
+      };
     }
 
     const response = await agent.post(postRecord);

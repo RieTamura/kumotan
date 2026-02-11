@@ -24,7 +24,8 @@
         },
         "CFBundleDisplayName": "くもたん",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "学習進捗の画像を保存・シェアするために写真ライブラリへのアクセスが必要です。"
+        "NSPhotoLibraryUsageDescription": "学習進捗の画像を保存・シェアするために写真ライブラリへのアクセスが必要です。",
+        "NSCameraUsageDescription": "投稿に添付する写真を撮影するためにカメラへのアクセスが必要です。"
       }
     },
     "android": {
@@ -40,7 +41,14 @@
       "expo-secure-store",
       "expo-sqlite",
       "expo-asset",
-      "expo-system-ui"
+      "expo-system-ui",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "投稿に添付する画像を選択するために写真ライブラリへのアクセスが必要です。",
+          "cameraPermission": "投稿に添付する写真を撮影するためにカメラへのアクセスが必要です。"
+        }
+      ]
     ],
     "scheme": "io.github.rietamura",
     "extra": {

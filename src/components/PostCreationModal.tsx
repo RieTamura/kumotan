@@ -16,14 +16,19 @@ import {
   Alert,
   ScrollView,
   Dimensions,
+  Image,
+  ActionSheetIOS,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X, Globe } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { X, Globe, ImagePlus, Tag } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { usePostCreation } from '../hooks/usePostCreation';
+import { PostImageAttachment } from '../services/bluesky/feed';
 import { Button } from './common/Button';
 import { ReplySettingsModal } from './ReplySettingsModal';
+import { ContentLabelModal } from './ContentLabelModal';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_CHARACTERS = 300;
@@ -92,16 +97,23 @@ export function PostCreationModal({
     isValid,
     remainingCharacters,
     replySettings,
+    images,
+    canAddImage,
+    selfLabels,
     setText,
     addHashtag,
     removeHashtag,
     setReplySettings,
+    addImage,
+    removeImage,
+    setSelfLabels,
     submitPost,
     reset,
     clearError,
   } = usePostCreation(initialText);
 
   const [showReplySettings, setShowReplySettings] = useState(false);
+  const [showContentLabels, setShowContentLabels] = useState(false);
 
   /**
    * Get display label for current reply settings
@@ -156,6 +168,95 @@ export function PostCreationModal({
     }
     return { color: colors.textSecondary };
   }, [remainingCharacters, colors.textSecondary]);
+
+  /**
+   * Launch image picker from gallery
+   */
+  const pickImageFromGallery = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(t('imagePermissionTitle'), t('imageGalleryPermissionMessage'));
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      exif: false,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const attachment: PostImageAttachment = {
+        uri: asset.uri,
+        mimeType: asset.mimeType ?? 'image/jpeg',
+        width: asset.width,
+        height: asset.height,
+        alt: '',
+      };
+      addImage(attachment);
+    }
+  }, [addImage, t]);
+
+  /**
+   * Launch camera to take a photo
+   */
+  const pickImageFromCamera = useCallback(async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(t('imagePermissionTitle'), t('imageCameraPermissionMessage'));
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      exif: false,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const attachment: PostImageAttachment = {
+        uri: asset.uri,
+        mimeType: asset.mimeType ?? 'image/jpeg',
+        width: asset.width,
+        height: asset.height,
+        alt: '',
+      };
+      addImage(attachment);
+    }
+  }, [addImage, t]);
+
+  /**
+   * Show image source selection (gallery or camera)
+   */
+  const handleAddImage = useCallback(() => {
+    if (!canAddImage) return;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [t('imageCancel'), t('imageFromGallery'), t('imageFromCamera')],
+          cancelButtonIndex: 0,
+          title: t('imageSelectSource'),
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) pickImageFromGallery();
+          if (buttonIndex === 2) pickImageFromCamera();
+        },
+      );
+    } else {
+      Alert.alert(
+        t('imageSelectSource'),
+        undefined,
+        [
+          { text: t('imageFromGallery'), onPress: pickImageFromGallery },
+          { text: t('imageFromCamera'), onPress: pickImageFromCamera },
+          { text: t('imageCancel'), style: 'cancel' },
+        ],
+      );
+    }
+  }, [canAddImage, pickImageFromGallery, pickImageFromCamera, t]);
 
   return (
     <Modal
@@ -212,6 +313,29 @@ export function PostCreationModal({
               />
             </View>
 
+            {/* Image Preview */}
+            {images.length > 0 && (
+              <View style={styles.imagePreviewSection}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagePreviewScroll}>
+                  {images.map((img, index) => (
+                    <View key={img.uri} style={styles.imagePreviewContainer}>
+                      <Image source={{ uri: img.uri }} style={styles.imagePreviewThumb} />
+                      <Pressable
+                        style={styles.imageRemoveButton}
+                        onPress={() => removeImage(index)}
+                        disabled={isPosting}
+                      >
+                        <X size={14} color="#FFFFFF" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+                <Text style={[styles.imageCount, { color: colors.textSecondary }]}>
+                  {images.length}/4
+                </Text>
+              </View>
+            )}
+
             {/* Error Message */}
             {error && (
               <View style={[styles.errorContainer, { backgroundColor: colors.errorLight }]}>
@@ -253,6 +377,26 @@ export function PostCreationModal({
                 </Text>
               </Pressable>
 
+              {/* Image Picker Button */}
+              <Pressable
+                style={styles.toolbarButton}
+                onPress={handleAddImage}
+                disabled={isPosting || !canAddImage}
+              >
+                <ImagePlus size={20} color={canAddImage ? colors.primary : colors.disabled} />
+              </Pressable>
+
+              {/* Content Label Button (only when images attached) */}
+              {images.length > 0 && (
+                <Pressable
+                  style={styles.toolbarButton}
+                  onPress={() => setShowContentLabels(true)}
+                  disabled={isPosting}
+                >
+                  <Tag size={20} color={selfLabels.length > 0 ? colors.warning : colors.primary} />
+                </Pressable>
+              )}
+
               <View style={styles.spacer} />
 
               {/* Character Counter */}
@@ -271,6 +415,14 @@ export function PostCreationModal({
           settings={replySettings}
           onSave={setReplySettings}
           onClose={() => setShowReplySettings(false)}
+        />
+
+        {/* Content Label Modal */}
+        <ContentLabelModal
+          visible={showContentLabels}
+          labels={selfLabels}
+          onSave={setSelfLabels}
+          onClose={() => setShowContentLabels(false)}
         />
       </View>
     </Modal>
@@ -404,6 +556,39 @@ const styles = StyleSheet.create({
   replySettingsText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  toolbarButton: {
+    padding: 8,
+  },
+  imagePreviewSection: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  imagePreviewScroll: {
+    gap: 8,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+  },
+  imagePreviewThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  imageRemoveButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageCount: {
+    fontSize: 12,
+    marginTop: 6,
   },
 });
 

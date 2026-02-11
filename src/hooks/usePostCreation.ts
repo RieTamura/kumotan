@@ -5,8 +5,13 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createPost, PostReplySettings, DEFAULT_REPLY_SETTINGS } from '../services/bluesky/feed';
+import { createPost, PostReplySettings, DEFAULT_REPLY_SETTINGS, PostImageAttachment, buildImageEmbed } from '../services/bluesky/feed';
 import { AppError } from '../utils/errors';
+
+/**
+ * Maximum number of images per post
+ */
+const MAX_IMAGES = 4;
 
 /**
  * Maximum character limit for Bluesky posts
@@ -42,6 +47,8 @@ interface PostCreationState {
   isPosting: boolean;
   error: AppError | null;
   replySettings: PostReplySettings;
+  images: PostImageAttachment[];
+  selfLabels: string[];
 }
 
 /**
@@ -58,12 +65,18 @@ interface UsePostCreationReturn {
   isValid: boolean;
   remainingCharacters: number;
   replySettings: PostReplySettings;
+  images: PostImageAttachment[];
+  canAddImage: boolean;
+  selfLabels: string[];
 
   // Actions
   setText: (text: string) => void;
   addHashtag: (tag: string) => void;
   removeHashtag: (tag: string) => void;
   setReplySettings: (settings: PostReplySettings) => void;
+  addImage: (image: PostImageAttachment) => void;
+  removeImage: (index: number) => void;
+  setSelfLabels: (labels: string[]) => void;
   submitPost: () => Promise<boolean>;
   reset: () => void;
   clearError: () => void;
@@ -78,6 +91,8 @@ const initialState: PostCreationState = {
   isPosting: false,
   error: null,
   replySettings: DEFAULT_REPLY_SETTINGS,
+  images: [],
+  selfLabels: [],
 };
 
 /**
@@ -216,6 +231,45 @@ export function usePostCreation(initialText?: string): UsePostCreationReturn {
   }, []);
 
   /**
+   * Add an image attachment (up to MAX_IMAGES)
+   */
+  const addImage = useCallback((image: PostImageAttachment) => {
+    setState((prev) => {
+      if (prev.images.length >= MAX_IMAGES) return prev;
+      return { ...prev, images: [...prev.images, image] };
+    });
+  }, []);
+
+  /**
+   * Remove an image attachment by index.
+   * If all images are removed, selfLabels are automatically reset.
+   */
+  const removeImage = useCallback((index: number) => {
+    setState((prev) => {
+      const newImages = prev.images.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        images: newImages,
+        selfLabels: newImages.length === 0 ? [] : prev.selfLabels,
+      };
+    });
+  }, []);
+
+  /**
+   * Whether additional images can be added
+   */
+  const canAddImage = useMemo(() => {
+    return state.images.length < MAX_IMAGES;
+  }, [state.images.length]);
+
+  /**
+   * Set self-labels for content warnings
+   */
+  const setSelfLabels = useCallback((labels: string[]) => {
+    setState((prev) => ({ ...prev, selfLabels: labels }));
+  }, []);
+
+  /**
    * Extract hashtags from text using regex
    * Supports Unicode characters (Japanese, English, etc.)
    */
@@ -236,7 +290,32 @@ export function usePostCreation(initialText?: string): UsePostCreationReturn {
     const postText = buildPostText();
     const settings = state.replySettings;
     const isDefaultSettings = settings.allowAll && settings.allowQuote;
-    const result = await createPost(postText, isDefaultSettings ? undefined : settings);
+
+    // Build image embed if images are attached
+    let embed: Record<string, unknown> | undefined;
+    if (state.images.length > 0) {
+      const embedResult = await buildImageEmbed(state.images);
+      if (!embedResult.success) {
+        setState((prev) => ({
+          ...prev,
+          isPosting: false,
+          error: embedResult.error,
+        }));
+        return false;
+      }
+      embed = embedResult.data;
+    }
+
+    const labelsToSend = state.images.length > 0 && state.selfLabels.length > 0
+      ? state.selfLabels
+      : undefined;
+
+    const result = await createPost(
+      postText,
+      isDefaultSettings ? undefined : settings,
+      embed,
+      labelsToSend,
+    );
 
     if (result.success) {
       // Extract hashtags from post text and combine with selected hashtags
@@ -283,12 +362,18 @@ export function usePostCreation(initialText?: string): UsePostCreationReturn {
     isValid,
     remainingCharacters,
     replySettings: state.replySettings,
+    images: state.images,
+    canAddImage,
+    selfLabels: state.selfLabels,
 
     // Actions
     setText,
     addHashtag,
     removeHashtag,
     setReplySettings,
+    addImage,
+    removeImage,
+    setSelfLabels,
     submitPost,
     reset,
     clearError,

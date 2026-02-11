@@ -61,5 +61,20 @@
   "replySettingsSave": "保存",
   "replySettingsLabel": "誰でも反応可能",
   "replySettingsLabelNoReply": "返信不可",
-  "replySettingsLabelCustom": "一部のユーザーが返信可能"
+  "replySettingsLabelCustom": "一部のユーザーが返信可能",
+  "imageSelectSource": "画像の追加",
+  "imageFromGallery": "フォトライブラリから選択",
+  "imageFromCamera": "カメラで撮影",
+  "imageCancel": "キャンセル",
+  "imagePermissionTitle": "アクセス許可が必要です",
+  "imageGalleryPermissionMessage": "画像を選択するにはフォトライブラリへのアクセスを許可してください。設定アプリから変更できます。",
+  "imageCameraPermissionMessage": "写真を撮影するにはカメラへのアクセスを許可してください。設定アプリから変更できます。",
+  "contentLabel": "コンテンツの警告を追加",
+  "contentLabelDone": "完了",
+  "contentLabelAdult": "成人向けコンテンツ",
+  "contentLabelOther": "その他",
+  "contentLabelSexual": "きわどい",
+  "contentLabelNudity": "ヌード",
+  "contentLabelPorn": "成人向け（ポルノ等）",
+  "contentLabelGraphicMedia": "生々しいメディア（グロ・事故・戦争・災害等）"
 }

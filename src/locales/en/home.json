@@ -61,5 +61,20 @@
   "replySettingsSave": "Save",
   "replySettingsLabel": "Everyone can reply",
   "replySettingsLabelNoReply": "Replies disabled",
-  "replySettingsLabelCustom": "Some people can reply"
+  "replySettingsLabelCustom": "Some people can reply",
+  "imageSelectSource": "Add Image",
+  "imageFromGallery": "Choose from Library",
+  "imageFromCamera": "Take Photo",
+  "imageCancel": "Cancel",
+  "imagePermissionTitle": "Permission Required",
+  "imageGalleryPermissionMessage": "Please allow access to your photo library to select images. You can change this in Settings.",
+  "imageCameraPermissionMessage": "Please allow camera access to take photos. You can change this in Settings.",
+  "contentLabel": "Add content warning",
+  "contentLabelDone": "Done",
+  "contentLabelAdult": "Adult Content",
+  "contentLabelOther": "Other",
+  "contentLabelSexual": "Suggestive",
+  "contentLabelNudity": "Nudity",
+  "contentLabelPorn": "Adult Content (Pornography)",
+  "contentLabelGraphicMedia": "Graphic Media"
 }
