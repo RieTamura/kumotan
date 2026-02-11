@@ -276,8 +276,8 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - OAuth認証対応
 
 ### Phase 4: AT Protocol連携強化
-- PDS（Personal Data Server）への学習データ保存
-- 複数デバイス同期
+- ~~PDS（Personal Data Server）への学習データ保存~~ ✅ M7で実装完了（単語データ・学習進捗の同期・復元）
+- 複数デバイス同期（双方向同期は未実装、現在はローカル→PDSの一方向）
 - 他のAT Protocolクライアント対応（Bluesky以外）
 - 特定ハッシュタグやユーザーのフィード取得
 - カスタムフィード対応
@@ -770,6 +770,26 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - 単語の長押し選択、BookSearchボタン、Tipsボタン、API設定への誘導
   - AsyncStorageで完了状態を保存
   - i18next対応（日本語/英語）
+- [x] ホーム画面インデックスタブUI（Following | Profile）
+  - プロフィール表示機能（アバター、表示名、フォロー/フォロワー数）
+  - ユーザー投稿フィード表示（無限スクロール、Pull to Refresh）
+  - プロフィールタブでの単語登録機能
+  - プロフィールキャッシュ機能
+  - 設定画面のアカウント情報セクションをプロフィールタブに移行
+- [x] 投稿作成機能の強化
+  - 画像添付機能（最大4枚、expo-image-picker）
+  - コンテンツ警告ラベル付与（sexual, nudity, porn, graphic-media）
+  - 返信制御（Threadgate）設定
+  - 引用制御（Postgate）設定
+  - ProgressScreenへのPostCreationModal統合
+- [x] タイムラインのコンテンツラベル対応
+  - NSFW画像のぼかし表示（タップで表示）
+  - 返信制限アイコンの動的切り替え
+- [x] PDS単語データ同期機能
+  - 単語の自動PDS保存
+  - 学習進捗（既読/未読）の同期
+  - PDSからの単語データ復元
+- [x] 投稿URLのアプリ内表示
 - [ ] App Storeスクリーンショット準備
 - [ ] 本番ビルド作成
 - [ ] App Store申請
@@ -802,6 +822,51 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [x] GitHub Actions 自動 Issue 作成ワークフロー構築 (`feedback-integration.yml`)
 - [x] Issue クローズ時のスプレッドシート自動ステータス更新機能の構築
 
+### M7: PDS同期機能 ✅ **完了** (2026-02-07)
+
+**目的**: AT Protocol PDS（Personal Data Store）への単語データ保存と復元を実装し、デバイス間のデータポータビリティを実現
+
+- [x] PDS同期計画策定（`doc/pds-vocabulary-sync-plan.md`）
+- [x] Lexiconスキーマ定義（`lexicons/io/kumotan/vocabulary/word.json`）
+  - コレクション: `io.kumotan.vocabulary.word`
+- [x] PDS同期サービス実装（`src/services/pds/vocabularySync.ts`）
+  - `syncWordToPds()`: 単語をPDSに保存、rkeyをローカルDBに記録
+  - `restoreFromPds()`: PDSから全単語データを復元（重複スキップ）
+  - `deleteWordFromPds()`: PDS上の単語レコードを削除
+- [x] データベースマイグレーション（`pds_rkey` カラム追加）
+- [x] 学習進捗同期（`doc/pds-read-status-sync-plan.md`）
+  - `isRead` / `readAt` ステータスをPDSに反映
+- [x] 設定画面に「PDSから復元」ボタン追加
+- [x] 多言語対応（日本語/英語翻訳ファイル追加）
+
+**設計方針**:
+- ローカル → PDS の一方向同期（複雑な双方向同期は回避）
+- PDS障害時もローカル操作は継続可能（障害耐性設計）
+- 復元時は `english` フィールドで重複チェック
+
+### M8: 投稿機能強化・コンテンツモデレーション ✅ **完了** (2026-02-11)
+
+**目的**: Bluesky投稿作成機能の強化とコンテンツモデレーション対応
+
+- [x] 画像添付機能（`PostCreationModal.tsx`）
+  - expo-image-picker によるカメラ/ライブラリからの画像選択
+  - 最大4枚の画像添付、プレビュー表示
+  - Bluesky APIへの画像アップロード・embed構築
+- [x] コンテンツ警告ラベル付与（`ContentLabelModal.tsx`）
+  - self-label方式（sexual, nudity, porn, graphic-media）
+  - 投稿作成時にラベル選択UI
+- [x] タイムラインのNSFWコンテンツ対応
+  - NSFW画像のぼかし表示（タップで表示）
+  - AlertTriangleアイコンによる警告表示
+  - `hasNsfwLabel()` ヘルパー関数
+- [x] 投稿への反応設定（Threadgate / Postgate）
+  - 返信制御: 誰でも / フォロワー / フォロー中 / メンションした人 / 返信不可
+  - 引用制御: 許可 / 禁止
+  - `ReplySettingsModal.tsx` 新規作成
+  - タイムライン上の返信アイコン動的切り替え
+- [x] ProgressScreenへのPostCreationModal統合
+- [x] 設定画面にモデレーションセクション追加
+  - Bluesky公式ラベラーアカウントへの外部リンク
 
 ## 注意事項・制約
 
@@ -873,11 +938,34 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年2月10日
-**バージョン**: 1.27
+**最終更新日**: 2026年2月12日
+**バージョン**: 1.28
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.28 (2026-02-11)
+
+- **投稿作成時の画像添付機能**
+  - expo-image-pickerによるカメラ/ライブラリからの画像選択
+  - 最大4枚の画像添付、プレビュー表示・削除
+  - Bluesky APIへの画像アップロード（`buildImageEmbed()`）
+  - 変更ファイル:
+    - `src/components/PostCreationModal.tsx`: 画像ピッカー・プレビューUI追加
+    - `src/hooks/usePostCreation.ts`: 画像状態管理・アップロードロジック追加
+    - `src/services/bluesky/feed.ts`: `PostImageAttachment`型、`buildImageEmbed()`関数追加
+- **コンテンツ警告ラベル機能（投稿作成側）**
+  - 投稿にself-labelを付与可能（sexual, nudity, porn, graphic-media）
+  - `ContentLabelModal.tsx` 新規作成
+  - 変更ファイル:
+    - `src/components/ContentLabelModal.tsx`: コンテンツラベル選択モーダル
+    - `src/components/PostCreationModal.tsx`: ラベル選択ボタン追加
+- **タイムラインのNSFWコンテンツ警告表示**
+  - NSFW画像のぼかし表示（タップで解除）
+  - AlertTriangleアイコンによる警告バッジ
+  - `hasNsfwLabel()` ヘルパー関数
+  - 変更ファイル:
+    - `src/components/PostCard.tsx`: NSFW検出・ぼかし表示ロジック追加
 
 ### v1.27 (2026-02-10)
 
@@ -906,6 +994,15 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - `src/constants/config.ts`: `EXTERNAL_LINKS.BLUESKY_MODERATION` 追加
     - `src/screens/SettingsScreen.tsx`: モデレーションセクション追加
     - `src/locales/ja/settings.json`, `src/locales/en/settings.json`: 翻訳キー追加
+- **ProgressScreenへのPostCreationModal統合**
+  - シェアテキストのプリフィル機能（学習成果テキストを自動入力）
+  - 変更ファイル: `src/screens/ProgressScreen.tsx`
+- **プロフィール画面のスクロール改善**
+  - スクロール時のボタン表示制御を追加
+- **辞書自動更新フローに品詞・投稿リンク対応とフローB（PR自動作成）を追加**
+  - 「approved」ラベル → `overrides.json` 自動追記（Flow A）
+  - 「search-improvement」ラベル → PR自動作成（Flow B）
+  - 変更ファイル: `.github/workflows/feedback-integration.yml`
 
 ### v1.26 (2026-02-06)
 
@@ -924,9 +1021,55 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - `FlatList` を `View` でラップし `WordPopup` を配置
     - プロフィールタブの投稿フィードで単語登録・文章モードが利用可能に
   - 詳細：`doc/word-registration-hook-extraction-plan.md` 参照
+- **PDS単語データ同期機能の実装**
+  - `src/services/pds/vocabularySync.ts` 新規作成
+    - `syncWordToPds()`: 単語保存時にPDSへ自動同期
+    - `restoreFromPds()`: PDSから全単語データを復元（重複スキップ）
+    - `deleteWordFromPds()`: PDS上のレコード削除
+  - Lexiconスキーマ定義（`lexicons/io/kumotan/vocabulary/word.json`）
+  - データベースマイグレーション（`pds_rkey` カラム追加）
+  - 設定画面に「PDSから復元」ボタン追加
+  - 詳細：`doc/pds-vocabulary-sync-plan.md` 参照
+- **PDS学習進捗同期機能の追加**（2026-02-07）
+  - `isRead` / `readAt` ステータスをPDSに反映
+  - 既読/未読切り替え時にPDSレコードを更新
+  - 詳細：`doc/pds-read-status-sync-plan.md` 参照
+- **投稿URLをアプリ内で開く機能**
+  - `WordListItem`の投稿リンクタップ時にスレッド画面へ遷移
+  - 外部ブラウザ遷移からアプリ内ナビゲーションに変更
+  - 変更ファイル: `src/components/WordListItem.tsx`, `src/screens/WordListScreen.tsx`
+- **検索機能の実装計画策定**
+  - 保存済み単語のキーワード検索（Phase 1）
+  - Bluesky投稿検索（Phase 2）
+  - ユーザー検索（Phase 3）
+  - 詳細：`doc/search-feature-implementation-plan.md` 参照
+- **フィードバック機能に品詞と投稿リンクの追加情報を拡張**
+  - `FeedbackModal.tsx`に`partOfSpeech`、`postUrl`フィールド追加
+  - 検索改善の判断材料を強化
+- **Expo関連依存関係の最新パッチバージョン更新**
 
 ### v1.25 (2026-02-05)
 
+- **ホーム画面インデックスタブUIの実装**
+  - ファイルフォルダ風タブ（Following | Profile + アバター）
+  - スワイプでタブ切り替え
+  - 変更ファイル:
+    - `src/screens/HomeScreen.tsx`: インデックスタブUI追加
+    - `src/components/ProfileView.tsx`: 新規作成（プロフィール表示コンポーネント）
+  - 詳細：`doc/home-index-tabs-plan.md` 参照
+- **プロフィールタブにユーザー投稿フィード表示**
+  - `getAuthorFeed()` APIでユーザー自身の投稿を取得
+  - `useAuthorFeed.ts` カスタムフック（ページネーション、Pull to Refresh）
+  - プロフィール情報表示（アバター、表示名、bio、フォロー/フォロワー数）
+  - 変更ファイル:
+    - `src/hooks/useAuthorFeed.ts`: 新規作成
+    - `src/services/bluesky/feed.ts`: `getAuthorFeed()` 追加
+  - 詳細：`doc/profile-author-feed-plan.md` 参照
+- **プロフィールキャッシュ機能**
+  - APIからのプロフィール取得を最適化
+  - 変更ファイル: `src/services/bluesky/feed.ts`
+- **設定画面からアカウント情報セクションを削除**
+  - プロフィールタブへ移行に伴い、設定画面の重複表示を整理
 - **フィードバックからIssue自動作成ワークフローの新規作成**
   - `.github/workflows/feedback-integration.yml`を追加
   - GAS経由でフィードバックを受信し、GitHub Issueを自動作成
