@@ -653,8 +653,8 @@ export function WordPopup({
         const definitionText = definitionParts.length > 0 ? definitionParts.join('\n') : undefined;
 
         const result = await addWordToStore({
-          english: word,
-          japanese: englishText ?? undefined,
+          english: englishText ?? undefined,
+          japanese: word,
           definition: definitionText,
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
