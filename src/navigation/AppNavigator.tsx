@@ -36,6 +36,7 @@ import { QuizSetupScreen } from '../screens/QuizSetupScreen';
 import { QuizScreen } from '../screens/QuizScreen';
 import { QuizResultScreen } from '../screens/QuizResultScreen';
 import { QuizSettings, QuizResult } from '../types/quiz';
+import { LegalDocumentScreen } from '../screens/LegalDocumentScreen';
 
 /**
  * Stack Navigator Types
@@ -46,6 +47,7 @@ export type RootStackParamList = {
   Main: undefined;
   ApiKeySetup: { section?: 'deepl' | 'yahoo' };
   License: undefined;
+  LegalDocument: { type: 'terms' | 'privacy' };
   DebugLogs: undefined;
   Tips: undefined;
   Thread: { postUri: string };
@@ -256,6 +258,24 @@ function RootNavigator(): React.JSX.Element {
                 color: colors.text,
               },
             }}
+          />
+          <Stack.Screen
+            name="LegalDocument"
+            component={LegalDocumentScreen}
+            options={({ route }) => ({
+              headerShown: true,
+              headerTitle: route.params.type === 'terms'
+                ? t('headers.termsOfService')
+                : t('headers.privacyPolicy'),
+              headerBackTitle: t('common:buttons.back'),
+              headerTintColor: colors.primary,
+              headerStyle: {
+                backgroundColor: colors.background,
+              },
+              headerTitleStyle: {
+                color: colors.text,
+              },
+            })}
           />
           <Stack.Screen
             name="DebugLogs"

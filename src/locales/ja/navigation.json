@@ -14,6 +14,8 @@
     "thread": "スレッド",
     "dictionarySetup": "辞書データの準備",
     "quizSetup": "クイズ設定",
-    "quizResult": "クイズ結果"
+    "quizResult": "クイズ結果",
+    "termsOfService": "利用規約",
+    "privacyPolicy": "プライバシーポリシー"
   }
 }

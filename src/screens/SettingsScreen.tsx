@@ -673,6 +673,20 @@ export function SettingsScreen(): React.JSX.Element {
           </Text>
           <Text style={[styles.appTagline, { color: colors.textTertiary }]}>{APP_INFO.DESCRIPTION}</Text>
 
+          <View style={styles.legalLinksContainer}>
+            <Pressable onPress={() => navigation.navigate('LegalDocument', { type: 'terms' })}>
+              <Text style={[styles.legalLink, { color: colors.textTertiary }]}>
+                {t('legal:links.termsOfService')}
+              </Text>
+            </Pressable>
+            <Text style={[styles.legalSeparator, { color: colors.textTertiary }]}>|</Text>
+            <Pressable onPress={() => navigation.navigate('LegalDocument', { type: 'privacy' })}>
+              <Text style={[styles.legalLink, { color: colors.textTertiary }]}>
+                {t('legal:links.privacyPolicy')}
+              </Text>
+            </Pressable>
+          </View>
+
           <View style={styles.socialIconsContainer}>
             <Pressable
               onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_ACCOUNT)}
@@ -810,6 +824,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   appTagline: {
+    fontSize: FontSizes.sm,
+    color: Colors.textTertiary,
+  },
+  legalLinksContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  legalLink: {
+    fontSize: FontSizes.sm,
+    color: Colors.textTertiary,
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
     fontSize: FontSizes.sm,
     color: Colors.textTertiary,
   },

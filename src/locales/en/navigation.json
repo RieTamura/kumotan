@@ -14,6 +14,8 @@
     "thread": "Thread",
     "dictionarySetup": "Dictionary Setup",
     "quizSetup": "Quiz Setup",
-    "quizResult": "Quiz Results"
+    "quizResult": "Quiz Results",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
   }
 }
