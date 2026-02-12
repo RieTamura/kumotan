@@ -77,11 +77,13 @@ export function PostCreationModal({
   onClose,
   onPostSuccess,
   initialText,
+  initialImages,
 }: {
   visible: boolean;
   onClose: () => void;
   onPostSuccess?: () => void;
   initialText?: string;
+  initialImages?: PostImageAttachment[];
 }): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('home');
@@ -110,7 +112,7 @@ export function PostCreationModal({
     submitPost,
     reset,
     clearError,
-  } = usePostCreation(initialText);
+  } = usePostCreation(initialText, initialImages);
 
   const [showReplySettings, setShowReplySettings] = useState(false);
   const [showContentLabels, setShowContentLabels] = useState(false);

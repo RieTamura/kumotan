@@ -99,8 +99,9 @@ const initialState: PostCreationState = {
  * Hook for managing post creation state and logic
  *
  * @param initialText - Optional initial text to pre-fill the post
+ * @param initialImages - Optional initial images to pre-attach (e.g., from share flow)
  */
-export function usePostCreation(initialText?: string): UsePostCreationReturn {
+export function usePostCreation(initialText?: string, initialImages?: PostImageAttachment[]): UsePostCreationReturn {
   const [state, setState] = useState<PostCreationState>(initialState);
   const [hashtagHistory, setHashtagHistory] = useState<string[]>(DEFAULT_HASHTAGS);
 
@@ -112,6 +113,15 @@ export function usePostCreation(initialText?: string): UsePostCreationReturn {
       setState((prev) => ({ ...prev, text: initialText }));
     }
   }, [initialText]);
+
+  /**
+   * Set initial images when provided (e.g., from share flow with captured card)
+   */
+  useEffect(() => {
+    if (initialImages !== undefined && initialImages.length > 0) {
+      setState((prev) => ({ ...prev, images: initialImages }));
+    }
+  }, [initialImages]);
 
   /**
    * Load hashtag history from storage on mount

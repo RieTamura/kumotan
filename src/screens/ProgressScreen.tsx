@@ -3,7 +3,7 @@
  * Displays learning statistics and calendar view
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame, HelpCircle, AlertTriangle, Lightbulb } from 'lucide-react-native';
@@ -26,6 +27,8 @@ import { useTheme } from '../hooks/useTheme';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Loading } from '../components/common/Loading';
 import { PostCreationModal } from '../components/PostCreationModal';
+import { ShareCard, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT } from '../components/ShareCard';
+import { PostImageAttachment } from '../services/bluesky/feed';
 import { getStats, getCalendarData } from '../services/database/stats';
 import { getQuizStats } from '../services/database/quiz';
 import { Stats } from '../types/stats';
@@ -184,11 +187,13 @@ export function ProgressScreen(): React.JSX.Element {
 
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
   const [shareInitialText, setShareInitialText] = useState('');
+  const [shareInitialImages, setShareInitialImages] = useState<PostImageAttachment[]>([]);
+  const shareCardRef = useRef<View>(null);
 
   /**
-   * Handle share button press - open PostCreationModal with pre-filled text
+   * Handle share button press - capture ShareCard and open PostCreationModal
    */
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     if (!stats) {
       Alert.alert(tc('status.error'), t('errors.noStats'));
       return;
@@ -201,6 +206,26 @@ export function ProgressScreen(): React.JSX.Element {
     }
 
     setShareInitialText(text);
+
+    // Capture ShareCard as image
+    try {
+      const uri = await captureRef(shareCardRef, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+      });
+      setShareInitialImages([{
+        uri,
+        mimeType: 'image/png',
+        width: SHARE_CARD_WIDTH,
+        height: SHARE_CARD_HEIGHT,
+        alt: t('share.imageAlt'),
+      }]);
+    } catch {
+      // Graceful degradation: proceed with text only
+      setShareInitialImages([]);
+    }
+
     setIsShareModalVisible(true);
   }, [stats, t, tc]);
 
@@ -487,17 +512,34 @@ export function ProgressScreen(): React.JSX.Element {
         </View>
       </ScrollView>
 
+      {/* Offscreen ShareCard for view-shot capture */}
+      {stats && (
+        <View style={styles.offscreen}>
+          <ShareCard ref={shareCardRef} stats={stats} colors={colors} />
+        </View>
+      )}
+
       {/* Share via PostCreationModal */}
       <PostCreationModal
         visible={isShareModalVisible}
-        onClose={() => setIsShareModalVisible(false)}
+        onClose={() => {
+          setIsShareModalVisible(false);
+          setShareInitialImages([]);
+        }}
         initialText={shareInitialText}
+        initialImages={shareInitialImages}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  offscreen: {
+    position: 'absolute',
+    left: -9999,
+    top: -9999,
+    opacity: 1,
+  },
   safeArea: {
     flex: 1,
   },

@@ -37,14 +37,16 @@
     "imageHint": "Share your progress as an image",
     "creating": "Creating...",
     "dialogTitle": "Today's Learning Progress",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "imageAlt": "Learning progress stats"
   },
   "shareCard": {
     "appName": "☁️ Kumotan",
     "wordsLearned": "words learned",
     "consecutiveDays": "Day streak",
     "totalWords": "Total words",
-    "readRate": "Read rate"
+    "readRate": "Read rate",
+    "thisWeek": "This week"
   },
   "errors": {
     "statsLoad": "Failed to load statistics.",

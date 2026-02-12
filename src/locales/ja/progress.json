@@ -37,14 +37,16 @@
     "imageHint": "進捗を画像として共有します",
     "creating": "作成中...",
     "dialogTitle": "今日の学習進捗",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "imageAlt": "学習進捗の統計"
   },
   "shareCard": {
     "appName": "☁️ くもたん",
     "wordsLearned": "個の単語を学習",
     "consecutiveDays": "連続学習",
     "totalWords": "総単語数",
-    "readRate": "既読率"
+    "readRate": "既読率",
+    "thisWeek": "今週"
   },
   "errors": {
     "statsLoad": "統計の取得に失敗しました。",

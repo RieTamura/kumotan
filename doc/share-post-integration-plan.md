@@ -303,6 +303,169 @@ Aではなく C を選択する理由：変更ファイル数は同じだが、`
 
 ---
 
+### フェーズD: 進捗画像の自動生成・投稿添付
+
+シェアアイコン押下時に学習進捗を表した画像を `react-native-view-shot` で自動生成し、PostCreationModal に自動添付する。
+
+#### 背景
+
+フェーズA でテキスト投稿の統合、フェーズB で汎用的な画像添付機能を実装済み。しかし進捗シェア時の画像は手動でギャラリーから選択する必要がある。シェアアイコンを押すだけで進捗統計カードの画像が自動生成・添付されるようにし、ワンタップでの画像付きシェアを実現する。
+
+`react-native-view-shot` (4.0.3) は既にインストール済み。i18n の `shareCard.*` キーも既に存在。
+
+#### 変更ファイル
+
+| ファイル | 変更内容 |
+|---|---|
+| `src/components/ShareCard.tsx` | **新規作成** — 進捗カードのUI。`React.forwardRef` で ref を受け取り、`captureRef` のターゲットにする |
+| `src/hooks/usePostCreation.ts` | `initialImages?: PostImageAttachment[]` パラメータ追加 + useEffect で images state にセット |
+| `src/components/PostCreationModal.tsx` | `initialImages` prop 追加 → `usePostCreation` に渡す |
+| `src/screens/ProgressScreen.tsx` | ShareCard のオフスクリーン描画、`captureRef` ロジック、`initialImages` の受け渡し |
+| `src/locales/ja/progress.json` | `shareCard.thisWeek`, `share.imageAlt` キー追加 |
+| `src/locales/en/progress.json` | 同上（英語） |
+
+#### 詳細手順
+
+1. **ShareCard コンポーネント作成（`src/components/ShareCard.tsx`）**
+   - `React.forwardRef<View, ShareCardProps>` で ref を公開
+   - Props: `stats: Stats`, `colors: ThemeColors`（オフスクリーン描画のため明示的に渡す）
+   - 固定サイズ: `width: 360, height: 480`（3:4 比率、SNS共有に適切）
+   - `collapsable={false}` を設定（Android で view-shot が正しく動作するために必要）
+   - アイコンは lucide SVG ではなく絵文字を使用（view-shot のクロスプラットフォーム互換性）
+   - カードレイアウト:
+     ```
+     +------------------------------------------+
+     |  ☁️ くもたん             2月12日          |
+     |                                           |
+     |               ✨ 12 ✨                    |
+     |           個の単語を学習                   |
+     |                                           |
+     |  +------------------+  +---------------+  |
+     |  | 🔥 5日           |  | 📚 1,234      |  |
+     |  | 連続学習         |  | 総単語数       |  |
+     |  +------------------+  +---------------+  |
+     |                                           |
+     |  +------------------+  +---------------+  |
+     |  | 📊 67%           |  | 📅 4日        |  |
+     |  | 既読率           |  | 今週          |  |
+     |  +------------------+  +---------------+  |
+     |                                           |
+     |  ━━━━━━━━━━━━━ accent bar ━━━━━━━━━━━━━  |
+     +------------------------------------------+
+     ```
+   - 背景: `colors.backgroundSecondary`、内部カード: `colors.card`、ヒーロー数値: `fontSize: 48, color: colors.primary`
+   - ダーク/ライトモード両対応（テーマカラーを使用）
+
+2. **usePostCreation に initialImages 対応**
+   - `usePostCreation(initialText?: string, initialImages?: PostImageAttachment[])` に第2引数追加
+   - 既存の `initialText` の useEffect と同じパターンで:
+     ```typescript
+     useEffect(() => {
+       if (initialImages !== undefined && initialImages.length > 0) {
+         setState((prev) => ({ ...prev, images: initialImages }));
+       }
+     }, [initialImages]);
+     ```
+
+3. **PostCreationModal に initialImages prop 追加**
+   - props に `initialImages?: PostImageAttachment[]` を追加
+   - `usePostCreation(initialText, initialImages)` に渡す
+   - 既存の画像プレビューUIがそのまま表示する（追加UI変更なし）
+
+4. **ProgressScreen の handleShare 修正**
+   - `shareCardRef` (useRef) と `shareInitialImages` (useState) を追加
+   - `handleShare` を async に変更し、`captureRef` で ShareCard をキャプチャ:
+     ```typescript
+     const uri = await captureRef(shareCardRef, {
+       format: 'png',
+       quality: 1,
+       result: 'tmpfile',
+     });
+     setShareInitialImages([{
+       uri,
+       mimeType: 'image/png',
+       width: 360,
+       height: 480,
+       alt: t('share.imageAlt'),
+     }]);
+     ```
+   - ShareCard をオフスクリーンで描画（`position: 'absolute', left: -9999, top: -9999, opacity: 1`）
+   - `opacity` は必ず 1（0 だと view-shot がキャプチャできない）
+   - PostCreationModal に `initialImages={shareInitialImages}` を渡す
+   - `onClose` 時に `setShareInitialImages([])` でクリーンアップ
+
+5. **i18n 翻訳キー追加**
+   - `ja/progress.json` — `shareCard.thisWeek`: `"今週"`、`share.imageAlt`: `"学習進捗の統計"`
+   - `en/progress.json` — `shareCard.thisWeek`: `"This week"`、`share.imageAlt`: `"Learning progress stats"`
+
+#### 設計判断
+
+| 判断 | 選択 | 理由 |
+|---|---|---|
+| 初期画像の渡し方 | `initialImages` prop（`initialText` パターン踏襲） | 既存パターンと一貫性があり、変更が最小限 |
+| オフスクリーン描画 vs オンデマンド | オフスクリーン（常時マウント） | `captureRef` はマウント済みビューが必要。オンデマンドだとレイアウトコールバック待ちが必要で複雑化 |
+| カードサイズ | 固定 360×480 | 予測可能な出力、動的サイズ不要。SNS共有に適した比率 |
+| アイコン | 絵文字（lucide SVG ではなく） | view-shot キャプチャのクロスプラットフォーム互換性を確保 |
+| 画像サイズ取得 | ハードコード（360×480） | カードサイズは固定なので `Image.getSize` の非同期呼び出し不要 |
+| キャプチャ失敗時 | テキストのみで続行（グレースフルデグレード） | 画像は付加価値。シェアフロー全体をブロックしない |
+
+#### 工数・保守性の評価
+
+**工数見積もり**
+
+| 作業 | 見積もり | 備考 |
+|---|---|---|
+| ShareCard コンポーネント作成 | 中 | 新規ファイル。レイアウト・スタイリングがメイン。ロジックは少ない |
+| usePostCreation / PostCreationModal 拡張 | 小 | 既存の `initialText` パターンを複製するだけ（各ファイル数行の変更） |
+| ProgressScreen の handleShare 修正 | 小〜中 | `captureRef` 呼び出し追加 + オフスクリーン描画JSX追加 |
+| i18n キー追加 | 小 | 2キー × 2言語 |
+| テスト・調整 | 中 | view-shot のキャプチャ結果の実機確認が必要。シミュレータでは挙動が異なる場合あり |
+| **合計** | **3〜5時間** | |
+
+**保守性の評価**
+
+| 観点 | 評価 | 詳細 |
+|---|---|---|
+| 既存パターンとの一貫性 | ◎ | `initialText` → `initialImages` は同一パターン。学習コストゼロ |
+| 影響範囲の局所性 | ◎ | HomeScreen 側の PostCreationModal は `initialImages` 未指定で従来通り動作。既存機能への影響なし |
+| ShareCard の独立性 | ◎ | 純粋な表示コンポーネント。`Stats` 型のみに依存。他のコンポーネントとの結合なし |
+| 依存ライブラリ | ◎ | `react-native-view-shot` は既存依存。新規ライブラリ追加なし |
+| カードデザイン変更の容易さ | ○ | ShareCard.tsx 内のスタイル変更のみで完結。他ファイルへの波及なし |
+| テーマ対応 | ○ | `colors` を明示的に props で受け取るため、テーマ変更に自動追従 |
+| 将来の拡張性 | ○ | ShareCard に表示項目を追加する場合は `Stats` 型の拡張 + ShareCard の JSX 変更で対応可能 |
+| 潜在リスク | △ | `react-native-view-shot` のオフスクリーンキャプチャは OS/RN バージョンアップで挙動が変わる可能性あり。ただしグレースフルデグレード（テキストのみ続行）で影響を最小化 |
+
+**総合判断**: 工数は既存インフラ（view-shot, 画像添付機能, i18n キー）が揃っているため低め。保守性はShareCardが独立コンポーネントで影響範囲が局所的なため良好。唯一の注意点は `react-native-view-shot` のオフスクリーンキャプチャがプラットフォーム依存であること。
+
+#### 実施状況
+
+**ステータス: 完了（2026-02-12）**
+
+すべての手順を実施済み。TypeScript 型チェックもエラーなし。実機テストでシェアカード画像の自動生成・投稿添付を確認。
+
+| 手順 | ステータス | 備考 |
+|---|---|---|
+| ShareCard コンポーネント作成 | 完了 | `React.forwardRef` で ref を公開。プライマリブルー背景、白文字、横一列3スタッツ（連続学習・総単語数・既読率）。360×400 固定サイズ |
+| usePostCreation に initialImages 対応 | 完了 | 第2引数 `initialImages` 追加、`useEffect` で初期画像をセット |
+| PostCreationModal に initialImages prop 追加 | 完了 | `usePostCreation(initialText, initialImages)` に渡す |
+| ProgressScreen の handleShare 修正 | 完了 | `captureRef` で ShareCard をキャプチャ → `initialImages` として渡す。オフスクリーン描画、`onClose` 時クリーンアップ |
+| i18n 翻訳キー追加 | 完了 | `shareCard.thisWeek`, `share.imageAlt`（ja/en） |
+| TypeScript 型チェック | 完了 | エラーなし |
+| 実機テスト | 完了 | シェアカード画像の自動生成・PostCreationModal への添付を確認 |
+
+#### 計画からの変更点
+
+| 項目 | 計画 | 実装 | 理由 |
+|---|---|---|---|
+| カードサイズ | 360×480（3:4） | 360×400 | 以前のデザインに合わせて調整 |
+| カード背景 | `colors.backgroundSecondary`（テーマ依存） | `colors.primary`（ブルー固定） | 以前のデザインに準拠。ブルー背景＋白文字でブランドの一貫性を確保 |
+| スタッツレイアウト | 2×2 グリッド（4セル、絵文字アイコン付き） | 横一列3スタッツ（連続学習・総単語数・既読率）、半透明白背景＋区切り線 | 以前のデザインに準拠 |
+| アクセントバー | あり | なし | 以前のデザインに合わせて削除 |
+| ✨ 装飾 | ヒーロー数値の左右に配置 | なし | 以前のデザインに合わせて削除 |
+| 日付フォーマット | `月/日`（短縮形） | `toLocaleDateString` でロケール依存（ja: `2026年2月12日`, en: `February 12, 2026`） | i18n 対応を考慮 |
+
+---
+
 ## リスク
 
 | リスク | 対策 |
