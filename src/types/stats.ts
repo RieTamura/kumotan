@@ -8,6 +8,7 @@
 export interface DailyStats {
   date: string; // YYYY-MM-DD format
   wordsReadCount: number;
+  quizCompleted: boolean;
 }
 
 /**

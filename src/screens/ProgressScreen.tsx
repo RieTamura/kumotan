@@ -62,10 +62,11 @@ function StatsCard({ title, value, Icon }: StatsCardProps): React.JSX.Element {
 interface CalendarDayProps {
   day: number | null;
   hasActivity: boolean;
+  hasQuiz: boolean;
   isToday: boolean;
 }
 
-function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX.Element {
+function CalendarDay({ day, hasActivity, hasQuiz, isToday }: CalendarDayProps): React.JSX.Element {
   const { colors } = useTheme();
   if (day === null) {
     return <View style={styles.calendarDayEmpty} />;
@@ -77,7 +78,9 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
         style={[
           styles.calendarDayInner,
           isToday && [styles.calendarDayInnerToday, { backgroundColor: colors.primary }],
-          hasActivity && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.success }],
+          hasActivity && !hasQuiz && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.success }],
+          !hasActivity && hasQuiz && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.warning }],
+          hasActivity && hasQuiz && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.success }],
         ]}
       >
         <Text
@@ -85,12 +88,23 @@ function CalendarDay({ day, hasActivity, isToday }: CalendarDayProps): React.JSX
             styles.calendarDayText,
             { color: colors.text },
             isToday && [styles.calendarDayTextToday, { color: '#FFFFFF' }],
-            hasActivity && !isToday && [styles.calendarDayTextActivity, { color: '#FFFFFF' }],
+            (hasActivity || hasQuiz) && !isToday && [styles.calendarDayTextActivity, { color: '#FFFFFF' }],
           ]}
         >
           {day}
         </Text>
       </View>
+      {/* Activity indicator dots below the day circle */}
+      {(hasActivity || hasQuiz) && !isToday && (
+        <View style={styles.calendarDayDots}>
+          {hasActivity && (
+            <View style={[styles.calendarDayDot, { backgroundColor: colors.success }]} />
+          )}
+          {hasQuiz && (
+            <View style={[styles.calendarDayDot, { backgroundColor: colors.warning }]} />
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -110,6 +124,7 @@ export function ProgressScreen(): React.JSX.Element {
   const [stats, setStats] = useState<Stats | null>(null);
   const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
   const [activityDays, setActivityDays] = useState<number[]>([]);
+  const [quizDays, setQuizDays] = useState<number[]>([]);
   const { colors } = useTheme();
 
   /**
@@ -143,13 +158,15 @@ export function ProgressScreen(): React.JSX.Element {
       const calendarResult = await getCalendarData(year, month);
 
       if (calendarResult.success) {
-        const activeDays = calendarResult.data.days
+        const studyDays = calendarResult.data.days
           .filter(day => day.wordsReadCount > 0)
-          .map(day => {
-            const dayNum = parseInt(day.date.split('-')[2], 10);
-            return dayNum;
-          });
-        setActivityDays(activeDays);
+          .map(day => parseInt(day.date.split('-')[2], 10));
+        setActivityDays(studyDays);
+
+        const quizActiveDays = calendarResult.data.days
+          .filter(day => day.quizCompleted)
+          .map(day => parseInt(day.date.split('-')[2], 10));
+        setQuizDays(quizActiveDays);
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -281,17 +298,19 @@ export function ProgressScreen(): React.JSX.Element {
         day === today.getDate();
 
       const hasActivity = day !== null && activityDays.includes(day);
+      const hasQuiz = day !== null && quizDays.includes(day);
 
       return (
         <CalendarDay
           key={index}
           day={day}
           hasActivity={hasActivity}
+          hasQuiz={hasQuiz}
           isToday={isToday}
         />
       );
     });
-  }, [currentMonth, activityDays]);
+  }, [currentMonth, activityDays, quizDays]);
 
   /**
    * Format month and year for display
@@ -410,6 +429,10 @@ export function ProgressScreen(): React.JSX.Element {
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
               <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('calendar.legend')}</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.warning }]} />
+              <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('calendar.legendQuiz')}</Text>
             </View>
           </View>
         </View>
@@ -676,10 +699,23 @@ const styles = StyleSheet.create({
   calendarDayTextActivity: {
     fontWeight: '600',
   },
+  calendarDayDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 2,
+    position: 'absolute',
+    bottom: 2,
+  },
+  calendarDayDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 12, // Spacing.md
+    gap: 16, // Spacing.lg
   },
   legendItem: {
     flexDirection: 'row',

@@ -8,6 +8,7 @@
   "calendar": {
     "title": "カレンダー",
     "legend": "学習した日",
+    "legendQuiz": "クイズした日",
     "weekdays": ["日", "月", "火", "水", "木", "金", "土"]
   },
   "statistics": {

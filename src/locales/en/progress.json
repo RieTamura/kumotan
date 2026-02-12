@@ -8,6 +8,7 @@
   "calendar": {
     "title": "Calendar",
     "legend": "Study day",
+    "legendQuiz": "Quiz day",
     "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   },
   "statistics": {

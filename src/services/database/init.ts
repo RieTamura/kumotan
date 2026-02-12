@@ -40,7 +40,8 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
       post_text TEXT,
       is_read INTEGER DEFAULT 0 CHECK(is_read IN (0, 1)),
       created_at DATETIME DEFAULT (datetime('now', 'localtime')),
-      read_at DATETIME
+      read_at DATETIME,
+      pds_rkey TEXT DEFAULT NULL
     );
   `);
 

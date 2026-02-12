@@ -147,19 +147,38 @@ export async function getCalendarData(
     const lastDay = new Date(year, month, 0).getDate();
     const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
+    // UNION all unique dates from daily_stats and quiz_sessions,
+    // then LEFT JOIN to get actual values (SQLite lacks FULL OUTER JOIN)
     const rows = await database.getAllAsync<{
       date: string;
       words_read_count: number;
+      quiz_completed: number;
     }>(
-      `SELECT date, words_read_count FROM daily_stats
-       WHERE date BETWEEN ? AND ?
-       ORDER BY date`,
-      [startDate, endDate]
+      `SELECT
+         dates.date,
+         COALESCE(ds.words_read_count, 0) as words_read_count,
+         CASE WHEN qs.date IS NOT NULL THEN 1 ELSE 0 END as quiz_completed
+       FROM (
+         SELECT date FROM daily_stats WHERE date BETWEEN ? AND ?
+         UNION
+         SELECT date(completed_at) as date FROM quiz_sessions
+         WHERE completed_at IS NOT NULL AND date(completed_at) BETWEEN ? AND ?
+       ) dates
+       LEFT JOIN daily_stats ds ON dates.date = ds.date
+       LEFT JOIN (
+         SELECT date(completed_at) as date
+         FROM quiz_sessions
+         WHERE completed_at IS NOT NULL
+         GROUP BY date(completed_at)
+       ) qs ON dates.date = qs.date
+       ORDER BY dates.date`,
+      [startDate, endDate, startDate, endDate]
     );
 
     const days: DailyStats[] = rows.map((row) => ({
       date: row.date,
       wordsReadCount: row.words_read_count,
+      quizCompleted: row.quiz_completed === 1,
     }));
 
     return {
@@ -189,7 +208,22 @@ export async function getDailyStats(
     const row = await database.getFirstAsync<{
       date: string;
       words_read_count: number;
-    }>('SELECT date, words_read_count FROM daily_stats WHERE date = ?', [date]);
+      quiz_completed: number;
+    }>(
+      `SELECT
+         ds.date,
+         ds.words_read_count,
+         CASE WHEN qs.date IS NOT NULL THEN 1 ELSE 0 END as quiz_completed
+       FROM daily_stats ds
+       LEFT JOIN (
+         SELECT date(completed_at) as date
+         FROM quiz_sessions
+         WHERE completed_at IS NOT NULL
+         GROUP BY date(completed_at)
+       ) qs ON ds.date = qs.date
+       WHERE ds.date = ?`,
+      [date]
+    );
 
     if (!row) {
       return { success: true, data: null };
@@ -200,6 +234,7 @@ export async function getDailyStats(
       data: {
         date: row.date,
         wordsReadCount: row.words_read_count,
+        quizCompleted: row.quiz_completed === 1,
       },
     };
   } catch (error) {
@@ -221,15 +256,27 @@ export async function getRecentStats(
     const rows = await database.getAllAsync<{
       date: string;
       words_read_count: number;
+      quiz_completed: number;
     }>(
-      `SELECT date, words_read_count FROM daily_stats
-       WHERE date >= date('now', 'localtime', '-${days} days')
-       ORDER BY date DESC`
+      `SELECT
+         ds.date,
+         ds.words_read_count,
+         CASE WHEN qs.date IS NOT NULL THEN 1 ELSE 0 END as quiz_completed
+       FROM daily_stats ds
+       LEFT JOIN (
+         SELECT date(completed_at) as date
+         FROM quiz_sessions
+         WHERE completed_at IS NOT NULL
+         GROUP BY date(completed_at)
+       ) qs ON ds.date = qs.date
+       WHERE ds.date >= date('now', 'localtime', '-${days} days')
+       ORDER BY ds.date DESC`
     );
 
     const stats: DailyStats[] = rows.map((row) => ({
       date: row.date,
       wordsReadCount: row.words_read_count,
+      quizCompleted: row.quiz_completed === 1,
     }));
 
     return { success: true, data: stats };
@@ -272,11 +319,26 @@ export async function exportStats(): Promise<Result<DailyStats[], AppError>> {
     const rows = await database.getAllAsync<{
       date: string;
       words_read_count: number;
-    }>('SELECT date, words_read_count FROM daily_stats ORDER BY date DESC');
+      quiz_completed: number;
+    }>(
+      `SELECT
+         ds.date,
+         ds.words_read_count,
+         CASE WHEN qs.date IS NOT NULL THEN 1 ELSE 0 END as quiz_completed
+       FROM daily_stats ds
+       LEFT JOIN (
+         SELECT date(completed_at) as date
+         FROM quiz_sessions
+         WHERE completed_at IS NOT NULL
+         GROUP BY date(completed_at)
+       ) qs ON ds.date = qs.date
+       ORDER BY ds.date DESC`
+    );
 
     const stats: DailyStats[] = rows.map((row) => ({
       date: row.date,
       wordsReadCount: row.words_read_count,
+      quizCompleted: row.quiz_completed === 1,
     }));
 
     return { success: true, data: stats };
