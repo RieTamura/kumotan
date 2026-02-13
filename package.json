@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Blueskyで英語学習！タイムラインから単語を保存して、あなただけの単語帳を作ろう",
   "author": "RieTamura",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/RieTamura/kumotan.git"
