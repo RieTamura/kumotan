@@ -870,6 +870,14 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - ローカル → PDS の一方向同期（複雑な双方向同期は回避）
 - PDS障害時もローカル操作は継続可能（障害耐性設計）
 - 復元時は `english` フィールドで重複チェック
+- 復元時に `japanese` が未設定の単語はJMdictローカル辞書で翻訳補完（クイズ対象化）
+
+**不具合修正** (2026-02-13):
+
+- [x] PDS復元後にクイズが実行できない問題を修正
+  - 原因: PDS保存時に `japanese` が未設定の場合、フィールド自体が保存されず、復元後も `null` のままになりクイズフィルター（`japanese IS NOT NULL`）で除外されていた
+  - 対応: 復元時にJMdict（ローカル辞書）で翻訳補完を実施。JMdictで翻訳できなかった件数は `untranslated` として復元結果に表示
+  - 詳細: `doc/pds-restore-translation-plan.md` 参照
 
 ### M8: 投稿機能強化・コンテンツモデレーション ✅ **完了** (2026-02-11)
 
@@ -990,6 +998,16 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ## 変更履歴
 
 ### v1.30 (2026-02-13)
+
+- **PDS復元時のJMdict翻訳補完（クイズ不具合修正）**
+  - PDS復元後にクイズが実行できない問題を修正
+  - 復元時に `japanese` が未設定の単語に対し、JMdictローカル辞書で翻訳を自動補完
+  - `RestoreResult` に `untranslated` フィールドを追加し、翻訳できなかった件数を復元結果ダイアログに表示
+  - 変更ファイル:
+    - `src/services/pds/vocabularySync.ts`: JMdict翻訳補完ロジック追加、`RestoreResult.untranslated` 追加
+    - `src/screens/SettingsScreen.tsx`: 未翻訳件数がある場合の専用メッセージ分岐追加
+    - `src/locales/ja/settings.json`, `src/locales/en/settings.json`: `restoreSuccessWithUntranslated` 翻訳キー追加
+  - 詳細: `doc/pds-restore-translation-plan.md`
 
 - **連続学習日数のアイコン・背景色を段階的に変化するよう実装**
   - 連続日数に応じて植物の成長をモチーフにしたアイコンに変化（Sprout → Leaf → Shrub → TreeDeciduous → Trees）

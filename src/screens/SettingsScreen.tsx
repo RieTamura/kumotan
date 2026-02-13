@@ -370,6 +370,14 @@ export function SettingsScreen(): React.JSX.Element {
 
               if (result.total === 0) {
                 showSuccess(t('pds.restoreEmpty'));
+              } else if (result.untranslated > 0) {
+                showSuccess(
+                  t('pds.restoreSuccessWithUntranslated', {
+                    restored: result.restored,
+                    skipped: result.skipped,
+                    untranslated: result.untranslated,
+                  })
+                );
               } else {
                 showSuccess(
                   t('pds.restoreSuccess', {

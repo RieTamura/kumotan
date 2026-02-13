@@ -112,6 +112,7 @@
     "restoreTitle": "Restore from PDS",
     "restoreConfirm": "Restore vocabulary data from PDS? Already registered words will be skipped.",
     "restoreSuccess": "Restored {{restored}} words ({{skipped}} skipped)",
+    "restoreSuccessWithUntranslated": "Restored {{restored}} words ({{skipped}} skipped)\n{{untranslated}} words could not be translated offline and are excluded from quizzes",
     "restoreEmpty": "No vocabulary data found in PDS",
     "restoreError": "Failed to restore data. Please try again."
   }

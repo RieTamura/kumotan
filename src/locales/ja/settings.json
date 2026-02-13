@@ -112,6 +112,7 @@
     "restoreTitle": "PDSからデータを復元",
     "restoreConfirm": "PDSに保存された単語データを復元します。既に登録済みの単語はスキップされます。",
     "restoreSuccess": "{{restored}}件の単語を復元しました（{{skipped}}件スキップ）",
+    "restoreSuccessWithUntranslated": "{{restored}}件の単語を復元しました（{{skipped}}件スキップ）\n※{{untranslated}}件はオフライン辞書で翻訳できなかったため、クイズ対象外です",
     "restoreEmpty": "PDSに単語データが見つかりません",
     "restoreError": "データの復元に失敗しました。もう一度お試しください。"
   }

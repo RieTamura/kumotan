@@ -8,6 +8,11 @@ import { Word } from '../../types/word';
 import { getDatabase } from '../database/init';
 import { insertWord } from '../database/words';
 import { sanitizeWord } from '../../utils/validators';
+import {
+  translateWithJMdict,
+  isJMdictAvailable,
+  initJMdictDatabase,
+} from '../dictionary/jmdict';
 
 const COLLECTION = 'io.kumotan.vocabulary.word';
 
@@ -19,6 +24,7 @@ export interface RestoreResult {
   restored: number;
   skipped: number;
   failed: number;
+  untranslated: number;
 }
 
 /**
@@ -185,9 +191,16 @@ export async function restoreWordsFromPds(
     restored: 0,
     skipped: 0,
     failed: 0,
+    untranslated: 0,
   };
 
   try {
+    // JMdict辞書を初期化（翻訳補完用）
+    const jmdictAvailable = await isJMdictAvailable();
+    if (!jmdictAvailable) {
+      await initJMdictDatabase();
+    }
+
     let cursor: string | undefined;
 
     do {
@@ -229,6 +242,20 @@ export async function restoreWordsFromPds(
                 'UPDATE words SET pds_rkey = ? WHERE id = ?',
                 [rkey, insertResult.data.id]
               );
+            }
+            // japaneseが未設定の場合、JMdictで翻訳補完を試みる
+            const japanese = (value.japanese as string) ?? null;
+            if (!japanese) {
+              const translationResult = await translateWithJMdict(english);
+              if (translationResult.success) {
+                const database = await getDatabase();
+                await database.runAsync(
+                  'UPDATE words SET japanese = ? WHERE id = ?',
+                  [translationResult.data.text, insertResult.data.id]
+                );
+              } else {
+                result.untranslated++;
+              }
             }
             // isRead/readAtの復元（daily_statsは更新しない）
             const isRead = (value.isRead as boolean) ?? false;
