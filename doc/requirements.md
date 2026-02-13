@@ -60,8 +60,8 @@
 ### 3. 進捗ページ
 - 学習カレンダー
   - 月表示、既読した日にドット/色表示（緑色）
-  - クイズを実施した日にドット表示（オレンジ色）
-  - 両方ある日は2色のドットを並列表示
+  - クイズを実施した日に色表示（オレンジ色）
+  - 両方ある日は緑の外丸の内側にオレンジの小丸を入れ子表示
   - 凡例で「学習した日」「クイズした日」を表示
   - 月の切り替え（前月/次月ボタン）
 - 基本統計
@@ -991,13 +991,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 - **カレンダーにクイズ実施日の表示機能を追加**
   - 学習した日（緑色）に加え、クイズを実施した日（オレンジ色）をカレンダー上に表示
-  - 両方の活動がある日は2色のドットを並列表示
+  - 両方の活動がある日は緑の外丸の内側にオレンジの小丸を入れ子表示
   - 凡例に「クイズした日」を追加
   - DBスキーマ変更なし（既存の `quiz_sessions.completed_at` からデータを取得）
   - 変更ファイル:
     - `src/types/stats.ts`: `DailyStats` に `quizCompleted` フィールド追加
     - `src/services/database/stats.ts`: カレンダーデータ取得クエリを `quiz_sessions` とUNION結合に拡張
-    - `src/screens/ProgressScreen.tsx`: `CalendarDay` コンポーネントを2色ドット対応に拡張、凡例追加
+    - `src/screens/ProgressScreen.tsx`: `CalendarDay` コンポーネントを入れ子サークルデザインに変更、凡例追加
     - `src/locales/ja/progress.json`, `src/locales/en/progress.json`: `legendQuiz` 翻訳キー追加
 
 ### v1.28 (2026-02-11)
