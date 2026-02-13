@@ -23,6 +23,8 @@ import { useTheme } from '../hooks/useTheme';
 import { Word } from '../types/word';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { MessageSquareShare } from 'lucide-react-native';
+import { FeedbackModal } from './FeedbackModal';
 
 /**
  * WordListItem props interface
@@ -65,6 +67,7 @@ export function WordListItem({
 }: WordListItemProps): React.JSX.Element {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
+  const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
 
   /**
    * Handle item press - toggle expansion
@@ -185,6 +188,18 @@ export function WordListItem({
               </View>
             )}
 
+            {/* Feedback button */}
+            <Pressable
+              onPress={() => setIsFeedbackVisible(true)}
+              style={[styles.feedbackButton, { borderColor: colors.border }]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onStartShouldSetResponder={() => true}
+              onResponderTerminationRequest={() => false}
+            >
+              <MessageSquareShare size={16} color={colors.primary} />
+              <Text style={[styles.feedbackButtonText, { color: colors.primary }]}>フィードバック</Text>
+            </Pressable>
+
             {/* Created date */}
             <View style={styles.detailSection}>
               <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>登録日時</Text>
@@ -194,6 +209,14 @@ export function WordListItem({
             </View>
           </View>
         )}
+
+        {/* Feedback Modal */}
+        <FeedbackModal
+          visible={isFeedbackVisible}
+          word={word.english}
+          postUrl={word.postUrl || undefined}
+          onClose={() => setIsFeedbackVisible(false)}
+        />
       </View>
 
       {/* Expand/Collapse indicator */}
@@ -346,6 +369,23 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.primary,
     lineHeight: 18,
+  },
+  feedbackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  feedbackButtonText: {
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
+    color: Colors.primary,
   },
   header: {
     flexDirection: 'row',

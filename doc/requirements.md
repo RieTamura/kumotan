@@ -257,8 +257,8 @@ CREATE TABLE IF NOT EXISTS daily_stats (
                    スプレッドシート（ログ保存）
   ```
 
-- **アプリ内フィードバックフォーム**（WordPopup画面）
-  - フィードバックアイコン設置
+- **アプリ内フィードバックフォーム**（WordPopup画面 / 単語帳画面）
+  - フィードバックアイコン設置（WordPopup画面および単語帳ページの単語カード展開ビュー）
   - テンプレートフォーム表示
     - 検索語（自動入力）
     - 表示された訳（自動入力）
@@ -986,6 +986,15 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.30 (2026-02-13)
+
+- **単語帳ページにフィードバック送信ボタンを追加**
+  - 単語カード展開ビューの投稿URL下・登録日時上にフィードバックボタンを配置
+  - WordPopup画面と同じ `FeedbackModal` コンポーネントを再利用（送信先・送信形式・UIすべて同一）
+  - 単語名（english）と投稿URL（postUrl）を自動でモーダルに渡す
+  - 変更ファイル:
+    - `src/components/WordListItem.tsx`: `FeedbackModal`・`MessageSquareShare`アイコンのインポート追加、フィードバックボタンUI・モーダルレンダリング・スタイル追加
 
 ### v1.29 (2026-02-12)
 
