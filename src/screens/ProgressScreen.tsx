@@ -78,33 +78,36 @@ function CalendarDay({ day, hasActivity, hasQuiz, isToday }: CalendarDayProps): 
         style={[
           styles.calendarDayInner,
           isToday && [styles.calendarDayInnerToday, { backgroundColor: colors.primary }],
-          hasActivity && !hasQuiz && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.success }],
+          hasActivity && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.success }],
           !hasActivity && hasQuiz && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.warning }],
-          hasActivity && hasQuiz && !isToday && [styles.calendarDayInnerActivity, { backgroundColor: colors.success }],
         ]}
       >
-        <Text
-          style={[
-            styles.calendarDayText,
-            { color: colors.text },
-            isToday && [styles.calendarDayTextToday, { color: '#FFFFFF' }],
-            (hasActivity || hasQuiz) && !isToday && [styles.calendarDayTextActivity, { color: '#FFFFFF' }],
-          ]}
-        >
-          {day}
-        </Text>
+        {/* Inner quiz indicator circle (nested inside study circle) */}
+        {hasActivity && hasQuiz && !isToday ? (
+          <View style={[styles.calendarDayQuizInner, { backgroundColor: colors.warning }]}>
+            <Text
+              style={[
+                styles.calendarDayText,
+                styles.calendarDayTextActivity,
+                { color: '#FFFFFF' },
+              ]}
+            >
+              {day}
+            </Text>
+          </View>
+        ) : (
+          <Text
+            style={[
+              styles.calendarDayText,
+              { color: colors.text },
+              isToday && [styles.calendarDayTextToday, { color: '#FFFFFF' }],
+              (hasActivity || hasQuiz) && !isToday && [styles.calendarDayTextActivity, { color: '#FFFFFF' }],
+            ]}
+          >
+            {day}
+          </Text>
+        )}
       </View>
-      {/* Activity indicator dots below the day circle */}
-      {(hasActivity || hasQuiz) && !isToday && (
-        <View style={styles.calendarDayDots}>
-          {hasActivity && (
-            <View style={[styles.calendarDayDot, { backgroundColor: colors.success }]} />
-          )}
-          {hasQuiz && (
-            <View style={[styles.calendarDayDot, { backgroundColor: colors.warning }]} />
-          )}
-        </View>
-      )}
     </View>
   );
 }
@@ -699,17 +702,12 @@ const styles = StyleSheet.create({
   calendarDayTextActivity: {
     fontWeight: '600',
   },
-  calendarDayDots: {
-    flexDirection: 'row',
+  calendarDayQuizInner: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
-    gap: 2,
-    position: 'absolute',
-    bottom: 2,
-  },
-  calendarDayDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    alignItems: 'center',
   },
   legend: {
     flexDirection: 'row',
