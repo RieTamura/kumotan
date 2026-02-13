@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { getCurrentLanguage } from '../locales';
 import { ThemeColors } from '../constants/colors';
 import { Stats } from '../types/stats';
+import { getStreakLevel } from '../utils/streakLevel';
 
 export const SHARE_CARD_WIDTH = 360;
 export const SHARE_CARD_HEIGHT = 400;
@@ -58,9 +59,17 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {t('statistics.days', { count: stats.streak })}
-            </Text>
+            {(() => {
+              const { Icon } = getStreakLevel(stats.streak, false);
+              return (
+                <View style={styles.streakValueRow}>
+                  <Icon size={16} color="#FFFFFF" />
+                  <Text style={styles.statValue}>
+                    {t('statistics.days', { count: stats.streak })}
+                  </Text>
+                </View>
+              );
+            })()}
             <Text style={styles.statLabel}>
               {t('shareCard.consecutiveDays')}
             </Text>
@@ -153,6 +162,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: 'rgba(255,255,255,0.75)',
     marginTop: 2,
+  },
+  streakValueRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
   },
   statDivider: {
     width: 1,

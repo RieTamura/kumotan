@@ -17,7 +17,7 @@ import {
 import { captureRef } from 'react-native-view-shot';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, Flame, HelpCircle, AlertTriangle, Lightbulb } from 'lucide-react-native';
+import { Share as ShareIcon, BookOpen, CheckCircle, BarChart3, Calendar, HelpCircle, AlertTriangle, Lightbulb } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -33,6 +33,7 @@ import { getStats, getCalendarData } from '../services/database/stats';
 import { getQuizStats } from '../services/database/quiz';
 import { Stats } from '../types/stats';
 import { QuizStats } from '../types/quiz';
+import { getStreakLevel } from '../utils/streakLevel';
 
 /**
  * Stats Card Component
@@ -41,14 +42,16 @@ interface StatsCardProps {
   title: string;
   value: string | number;
   Icon: React.ComponentType<{ size?: number; color?: string }>;
+  backgroundColor?: string;
+  iconColor?: string;
 }
 
-function StatsCard({ title, value, Icon }: StatsCardProps): React.JSX.Element {
+function StatsCard({ title, value, Icon, backgroundColor, iconColor }: StatsCardProps): React.JSX.Element {
   const { colors } = useTheme();
   return (
-    <View style={[styles.statsCard, { backgroundColor: colors.card }]}>
+    <View style={[styles.statsCard, { backgroundColor: backgroundColor ?? colors.card }]}>
       <View style={styles.statsIconContainer}>
-        <Icon size={24} color={colors.primary} />
+        <Icon size={24} color={iconColor ?? colors.primary} />
       </View>
       <Text style={[styles.statsValue, { color: colors.text }]}>{value}</Text>
       <Text style={[styles.statsTitle, { color: colors.textSecondary }]}>{title}</Text>
@@ -128,7 +131,7 @@ export function ProgressScreen(): React.JSX.Element {
   const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
   const [activityDays, setActivityDays] = useState<number[]>([]);
   const [quizDays, setQuizDays] = useState<number[]>([]);
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   /**
    * Load all data (stats and calendar)
@@ -467,11 +470,18 @@ export function ProgressScreen(): React.JSX.Element {
           </View>
 
           <View style={styles.streakContainer}>
-            <StatsCard
-              title={t('statistics.streak')}
-              value={t('statistics.days', { count: stats.streak })}
-              Icon={Flame}
-            />
+            {(() => {
+              const streakLevel = getStreakLevel(stats.streak, isDark);
+              return (
+                <StatsCard
+                  title={t('statistics.streak')}
+                  value={t('statistics.days', { count: stats.streak })}
+                  Icon={streakLevel.Icon}
+                  iconColor={streakLevel.iconColor}
+                  backgroundColor={streakLevel.backgroundColor}
+                />
+              );
+            })()}
           </View>
         </View>
 

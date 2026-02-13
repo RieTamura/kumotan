@@ -69,7 +69,7 @@
   - 既読単語数
   - 既読率（%）
   - 今週の学習日数
-  - 連続学習日数
+  - 連続学習日数（日数に応じてアイコン・背景色が段階的に変化：Sprout→Leaf→Shrub→TreeDeciduous→Trees）
 - Blueskyシェアボタン
   - 「今日は○個の単語を学習しました！ #英語学習 #くもたん」
   - タップでBlueskyアプリに遷移（投稿画面）
@@ -988,6 +988,16 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ## 変更履歴
 
 ### v1.30 (2026-02-13)
+
+- **連続学習日数のアイコン・背景色を段階的に変化するよう実装**
+  - 連続日数に応じて植物の成長をモチーフにしたアイコンに変化（Sprout → Leaf → Shrub → TreeDeciduous → Trees）
+  - カード背景色もパステルカラーで段階的に変化（主張しすぎない柔らかい色合い）
+  - ダークモード対応（透明度を下げたrgbaで自然に表示）
+  - ShareCard にも段階に応じたアイコンを表示
+  - 変更ファイル:
+    - `src/utils/streakLevel.ts`: 新規作成。連続日数からアイコン・色・背景色を返すヘルパー関数
+    - `src/screens/ProgressScreen.tsx`: StatsCard に `backgroundColor`/`iconColor` prop を追加、streak カードで動的適用
+    - `src/components/ShareCard.tsx`: streak 値横にアイコンを表示
 
 - **単語帳ページにフィードバック送信ボタンを追加**
   - 単語カード展開ビューの投稿URL下・登録日時上にフィードバックボタンを配置
