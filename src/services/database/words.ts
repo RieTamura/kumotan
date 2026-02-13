@@ -146,6 +146,12 @@ export async function getWords(
       params.push(filter.isRead ? 1 : 0);
     }
 
+    if (filter.searchQuery && filter.searchQuery.trim() !== '') {
+      const trimmed = filter.searchQuery.trim();
+      conditions.push('(english LIKE ? OR japanese LIKE ?)');
+      params.push(`${trimmed}%`, `%${trimmed}%`);
+    }
+
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 

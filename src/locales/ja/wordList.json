@@ -24,5 +24,12 @@
   "markUnread": "未読にする",
   "wordCount": "{{count}}語",
   "noDefinition": "定義なし",
-  "noTranslation": "-"
+  "noTranslation": "-",
+  "search": {
+    "placeholder": "単語を検索...",
+    "clear": "検索をクリア",
+    "accessibilityHint": "保存済み単語をキーワードで検索します",
+    "noResults": "一致する単語が見つかりません",
+    "noResultsMessage": "別のキーワードで検索してください"
+  }
 }

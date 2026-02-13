@@ -37,6 +37,7 @@ export interface WordFilter {
   sortOrder: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  searchQuery?: string;
 }
 
 /**

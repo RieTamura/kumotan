@@ -232,10 +232,12 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     - 無料プランまたは低コストで利用可能な場合
     - DeepL使用量が上限に近いユーザーが一定数発生した場合
 - **検索機能**
-  - **Phase 1: 保存済み単語のキーワード検索**
+  - **Phase 1: 保存済み単語のキーワード検索** ✅ 完了 (2026-02-13)
     - 単語帳画面に検索バーを追加
-    - SQLite LIKE検索で `english` / `japanese` / `definition` / `postText` を横断検索
-    - 既存の `WordFilter` に `searchQuery` を追加、デバウンス付きインクリメンタル検索
+    - SQLite LIKE検索: `english`は前方一致、`japanese`は部分一致（`definition`は長文ノイズのため除外）
+    - 既存の `WordFilter` に `searchQuery` を追加、300msデバウンス付きインクリメンタル検索
+    - 検索中はフルスクリーンLoadingを抑制し、既存リストを維持（UXチカチカ防止）
+    - `SearchBar.tsx`新規作成は不要と判断、`TextInput`を直接配置
   - **Phase 2: Bluesky投稿検索**
     - AT Protocol `app.bsky.feed.searchPosts` APIを利用
     - ホーム画面ヘッダーに検索アイコンを配置、スタック遷移で検索画面を表示
@@ -1041,6 +1043,22 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - `hasNsfwLabel()` ヘルパー関数
   - 変更ファイル:
     - `src/components/PostCard.tsx`: NSFW検出・ぼかし表示ロジック追加
+
+### v1.28 (2026-02-13)
+
+- **単語帳キーワード検索機能の実装（検索機能 Phase 1）**
+  - 単語帳画面にインクリメンタル検索バーを追加
+  - 300msデバウンスで入力ごとのクエリ発火を抑制
+  - 検索対象: `english`（前方一致）、`japanese`（部分一致）
+  - `definition`カラムは長文ノイズが多いため検索対象から除外
+  - 検索結果0件時の専用メッセージ表示（検索アイコン + メッセージ）
+  - フィルタ（既読/未読）・ソートとの組み合わせが自動的に機能
+  - 変更ファイル:
+    - `src/types/word.ts`: `WordFilter`に`searchQuery`フィールドを追加
+    - `src/services/database/words.ts`: `getWords`にLIKE検索条件を追加
+    - `src/screens/WordListScreen.tsx`: 検索バーUI統合、デバウンス処理、Loading制御改善
+    - `src/locales/ja/wordList.json`, `src/locales/en/wordList.json`: 検索関連の翻訳キー追加
+  - 詳細: `doc/search-feature-implementation-plan.md` 参照
 
 ### v1.27 (2026-02-10)
 

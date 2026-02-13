@@ -24,5 +24,12 @@
   "markUnread": "Mark as unread",
   "wordCount": "{{count}} words",
   "noDefinition": "No definition",
-  "noTranslation": "-"
+  "noTranslation": "-",
+  "search": {
+    "placeholder": "Search words...",
+    "clear": "Clear search",
+    "accessibilityHint": "Search saved words by keyword",
+    "noResults": "No matching words found",
+    "noResultsMessage": "Try a different keyword"
+  }
 }

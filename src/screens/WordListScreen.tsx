@@ -3,10 +3,11 @@
  * Displays saved vocabulary words with filtering and sorting options
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   FlatList,
   Pressable,
@@ -15,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BookOpen, Trash2, Lightbulb } from 'lucide-react-native';
+import { BookOpen, Trash2, Lightbulb, Search, X } from 'lucide-react-native';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
@@ -62,32 +63,78 @@ export function WordListScreen(): React.JSX.Element {
   const [filter, setFilter] = useState<FilterOption>('all');
   const [sortBy, setSortBy] = useState<SortOption>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchQueryRef = useRef('');
+  const searchInputRef = useRef<TextInput>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Toast notifications
   const { toastState, showSuccess, showError, hideToast } = useToast();
 
   /**
-   * Load words from database using store
+   * Build and apply filter to store.
+   * Uses ref for searchQuery to avoid re-creating this callback on every keystroke,
+   * which would cause useFocusEffect to bypass debounce.
    */
-  const loadWordsWithFilter = useCallback(async () => {
+  const applyFilter = useCallback((query?: string) => {
+    const currentQuery = query !== undefined ? query : searchQueryRef.current;
     const wordFilter: WordFilter = {
       isRead: filter === 'all' ? null : filter === 'read',
       sortBy,
       sortOrder,
       limit: 1000,
       offset: 0,
+      searchQuery: currentQuery || undefined,
     };
 
     setStoreFilter(wordFilter);
   }, [filter, sortBy, sortOrder, setStoreFilter]);
 
   /**
+   * Handle search input change with debounce
+   */
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text);
+    searchQueryRef.current = text;
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      applyFilter(text);
+    }, 300);
+  }, [applyFilter]);
+
+  /**
+   * Clear search query
+   */
+  const handleSearchClear = useCallback(() => {
+    setSearchQuery('');
+    searchQueryRef.current = '';
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    applyFilter('');
+    searchInputRef.current?.blur();
+  }, [applyFilter]);
+
+  /**
+   * Cleanup debounce timer
+   */
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  /**
    * Load words when screen is focused
    */
   useFocusEffect(
     useCallback(() => {
-      loadWordsWithFilter();
-    }, [loadWordsWithFilter])
+      applyFilter();
+    }, [applyFilter])
   );
 
   /**
@@ -95,9 +142,9 @@ export function WordListScreen(): React.JSX.Element {
    */
   useEffect(() => {
     if (!isLoading) {
-      loadWordsWithFilter();
+      applyFilter();
     }
-  }, [filter, sortBy, sortOrder, loadWordsWithFilter]);
+  }, [filter, sortBy, sortOrder]);
 
   /**
    * Handle filter change
@@ -224,6 +271,20 @@ export function WordListScreen(): React.JSX.Element {
   const renderEmpty = useCallback(() => {
     if (isLoading) return null;
 
+    if (searchQuery.trim()) {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconContainer}>
+            <Search size={64} color={colors.textSecondary} />
+          </View>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('search.noResults')}</Text>
+          <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>
+            {t('search.noResultsMessage')}
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyIconContainer}>
@@ -235,7 +296,7 @@ export function WordListScreen(): React.JSX.Element {
         </Text>
       </View>
     );
-  }, [isLoading, t, colors]);
+  }, [isLoading, searchQuery, t, colors]);
 
   /**
    * Get sort label for display
@@ -247,7 +308,8 @@ export function WordListScreen(): React.JSX.Element {
     return sortOrder === 'asc' ? t('sort.alphabetAsc') : t('sort.alphabetDesc');
   };
 
-  if (isLoading) {
+  // Show full-screen loading only on initial load (no words yet, no search active)
+  if (isLoading && words.length === 0 && !searchQuery) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
         <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
@@ -276,6 +338,46 @@ export function WordListScreen(): React.JSX.Element {
         >
           <Lightbulb size={24} color={colors.primary} />
         </Pressable>
+      </View>
+
+      {/* Search bar */}
+      <View style={[styles.searchContainer, { backgroundColor: colors.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.searchInputContainer,
+            { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder },
+          ]}
+        >
+          <View style={styles.searchIconContainer}>
+            <Search size={18} color={colors.textSecondary} />
+          </View>
+          <TextInput
+            ref={searchInputRef}
+            style={[styles.searchInput, { color: colors.text }]}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            placeholder={t('search.placeholder')}
+            placeholderTextColor={colors.placeholder}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+            accessible={true}
+            accessibilityLabel={t('search.placeholder')}
+            accessibilityHint={t('search.accessibilityHint')}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable
+              onPress={handleSearchClear}
+              style={styles.searchClearButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessible={true}
+              accessibilityLabel={t('search.clear')}
+              accessibilityRole="button"
+            >
+              <X size={18} color={colors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
       </View>
 
       {/* Sort indicator */}
@@ -409,6 +511,37 @@ const styles = StyleSheet.create({
   headerIconButton: {
     padding: Spacing.sm,
     borderRadius: BorderRadius.full,
+  },
+  searchContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: BorderRadius.md,
+    minHeight: 40,
+  },
+  searchIconContainer: {
+    paddingLeft: Spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: FontSizes.md,
+    color: Colors.text,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  searchClearButton: {
+    paddingHorizontal: Spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sortButton: {
     paddingVertical: Spacing.sm,
