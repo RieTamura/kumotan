@@ -154,9 +154,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const storedAuth = await AuthService.getStoredAuth();
 
       if (storedAuth) {
+        // トークンは存在するが、セッション復帰(resumeSession)が完了するまで
+        // isAuthenticated は false のままにする。
+        // ユーザー情報のみ先行して設定し、キャッシュ表示等に活用する。
         set({
-          isAuthenticated: true,
-          isLoading: false,
+          isAuthenticated: false,
+          isLoading: true,
           user: {
             handle: storedAuth.handle,
             did: storedAuth.did,

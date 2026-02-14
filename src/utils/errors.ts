@@ -57,6 +57,7 @@ export class AppError extends Error {
       ErrorCode.DUPLICATE_WORD, // Expected during PDS restore (skipped duplicates)
       ErrorCode.RATE_LIMIT, // Expected when API limits are hit
       ErrorCode.RATE_LIMIT_EXCEEDED, // Expected when API limits are hit
+      ErrorCode.DATABASE_ERROR, // Expected when dictionary is not yet installed
     ];
     if (__DEV__ && !silentErrors.includes(code)) {
       console.error(`[${this.timestamp}] ${code}: ${message}`, originalError);
