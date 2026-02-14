@@ -152,12 +152,6 @@ export function LoginScreen(): React.JSX.Element {
               />
             </View>
 
-            {/* Security Note */}
-            <View style={[styles.securityNote, { backgroundColor: colors.backgroundSecondary }]}>
-              <Text style={[styles.securityNoteText, { color: colors.textSecondary }]}>
-                {t('security.note')}
-              </Text>
-            </View>
           </View>
 
           {/* Footer */}
@@ -229,17 +223,6 @@ const styles = StyleSheet.create({
   errorBannerText: {
     color: Colors.error,
     fontSize: FontSizes.md,
-  },
-  securityNote: {
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: BorderRadius.md,
-  },
-  securityNoteText: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
   },
   footer: {
     alignItems: 'center',

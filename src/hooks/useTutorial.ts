@@ -29,6 +29,7 @@ interface UseTutorialReturn {
   currentStepData: TutorialStep | null;
   totalSteps: number;
   nextStep: () => void;
+  prevStep: () => void;
   skipTutorial: () => void;
   startTutorial: () => void;
   resetTutorial: () => Promise<void>;
@@ -93,6 +94,13 @@ export function useTutorial(
     }
   }, [currentStep, steps.length, completeTutorial]);
 
+  // Go to previous step
+  const prevStep = useCallback(() => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1);
+    }
+  }, [currentStep]);
+
   // Skip tutorial entirely
   const skipTutorial = useCallback(() => {
     setIsActive(false);
@@ -129,6 +137,7 @@ export function useTutorial(
     currentStepData,
     totalSteps: steps.length,
     nextStep,
+    prevStep,
     skipTutorial,
     startTutorial,
     resetTutorial,

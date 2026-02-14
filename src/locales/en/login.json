@@ -22,9 +22,6 @@
     "advancedOptions": "Advanced Options",
     "useAppPassword": "Log in with App Password"
   },
-  "security": {
-    "note": "🔒 App Password is used for authentication only and is not stored."
-  },
   "form": {
     "hide": "Hide form"
   },

@@ -381,7 +381,8 @@ function PostCardComponent({
   const { t, i18n } = useTranslation(['home', 'common']);
   const { colors, isDark } = useTheme();
   const bookIconRef = React.useRef<View>(null);
-  const firstWordRef = React.useRef<Text>(null);
+  const postTextContainerRef = React.useRef<View>(null);
+  const firstWordTextRef = React.useRef<string>('');
   const contentColumnRef = React.useRef<View>(null);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
@@ -440,10 +441,14 @@ function PostCardComponent({
         });
 
         const measureFirstWord = new Promise<void>((resolve) => {
-          if (firstWordRef.current) {
-            firstWordRef.current.measureInWindow((x, y, width, height) => {
+          if (postTextContainerRef.current) {
+            postTextContainerRef.current.measureInWindow((x, y, width, height) => {
               if (width > 0 && height > 0) {
-                elements.firstWord = { x, y, width, height };
+                // Estimate first word bounds from the text container position
+                const wordText = firstWordTextRef.current;
+                const estimatedWordWidth = Math.max(wordText.length * FontSizes.lg * 0.65, 40);
+                const lineHeight = FontSizes.lg * 1.5;
+                elements.firstWord = { x, y, width: estimatedWordWidth, height: lineHeight };
               }
               resolve();
             });
@@ -725,8 +730,11 @@ function PostCardComponent({
             );
           }
 
-          // Identify the first meaningful word for tutorial focus
+          // Track the first meaningful word text for tutorial measurement
           const isFirstMeaningfulWord = token.isEnglishWord && !tokens.slice(0, tokens.indexOf(token)).some(t => t.isEnglishWord || t.isJapaneseWord);
+          if (isFirstMeaningfulWord) {
+            firstWordTextRef.current = token.text;
+          }
 
           if (token.isEnglishWord) {
             const isWordSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
@@ -743,7 +751,6 @@ function PostCardComponent({
                       ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
                       : [styles.selectableWord, { color: colors.text }]
                 ]}
-                ref={isFirstMeaningfulWord ? firstWordRef : undefined}
                 onLongPress={() => handleWordLongPress(token.text)}
                 onPress={() => handleWordPress(token.text)}
                 suppressHighlighting={false}
@@ -1017,7 +1024,7 @@ function PostCardComponent({
           </View>
 
           {/* Post content */}
-          <View style={styles.content}>
+          <View style={styles.content} ref={postTextContainerRef}>
             {renderText()}
           </View>
 

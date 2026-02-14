@@ -1,5 +1,6 @@
 {
   "skip": "Skip",
+  "back": "Back",
   "next": "Next",
   "done": "Done",
   "steps": {
@@ -17,7 +18,7 @@
     },
     "apiSetup": {
       "title": "Enable Translation",
-      "description": "Register a DeepL API Key in Settings to enable Japanese translation. It's free to start!"
+      "description": "Register a DeepL API Key in Settings to enable Japanese translation, and download dictionary data for offline lookup."
     }
   }
 }

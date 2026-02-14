@@ -39,10 +39,12 @@ interface TutorialTooltipProps {
   highlightArea?: HighlightArea;
   arrowDirection: 'up' | 'down' | 'left' | 'right';
   onNext: () => void;
+  onBack: () => void;
   onSkip: () => void;
   currentStep: number;
   totalSteps: number;
   nextLabel: string;
+  backLabel: string;
   skipLabel: string;
 }
 
@@ -54,10 +56,12 @@ export function TutorialTooltip({
   highlightArea,
   arrowDirection: _unused_direction, // We'll calculate this dynamically
   onNext,
+  onBack,
   onSkip,
   currentStep,
   totalSteps,
   nextLabel,
+  backLabel,
   skipLabel,
 }: TutorialTooltipProps): React.JSX.Element | null {
   const insets = useSafeAreaInsets();
@@ -92,6 +96,17 @@ export function TutorialTooltip({
       : { top: highlightArea.y + highlightArea.height + ARROW_GAP }
     : { top: SCREEN_HEIGHT / 3 }; // Fallback to a clear area if measurement fails
 
+  // Calculate cutout dimensions with padding
+  const HIGHLIGHT_PADDING = 4;
+  const cutout = hasValidHighlight ? {
+    top: highlightArea.y - HIGHLIGHT_PADDING,
+    left: highlightArea.x - HIGHLIGHT_PADDING,
+    width: highlightArea.width + HIGHLIGHT_PADDING * 2,
+    height: highlightArea.height + HIGHLIGHT_PADDING * 2,
+    bottom: highlightArea.y + highlightArea.height + HIGHLIGHT_PADDING,
+    right: highlightArea.x + highlightArea.width + HIGHLIGHT_PADDING,
+  } : null;
+
   return (
     <Modal
       visible={visible}
@@ -99,20 +114,33 @@ export function TutorialTooltip({
       animationType="fade"
       statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        {/* Highlight cutout */}
-        {hasValidHighlight && (
-          <View
-            style={[
-              styles.highlight,
-              {
-                top: highlightArea.y - 4,
-                left: highlightArea.x - 4,
-                width: highlightArea.width + 8,
-                height: highlightArea.height + 8,
-              },
-            ]}
-          />
+      <View style={styles.container}>
+        {/* Dark overlay with cutout hole */}
+        {cutout ? (
+          <>
+            {/* Top */}
+            <View style={[styles.overlayPart, { top: 0, left: 0, right: 0, height: cutout.top }]} />
+            {/* Bottom */}
+            <View style={[styles.overlayPart, { top: cutout.bottom, left: 0, right: 0, bottom: 0 }]} />
+            {/* Left */}
+            <View style={[styles.overlayPart, { top: cutout.top, left: 0, width: cutout.left, height: cutout.height }]} />
+            {/* Right */}
+            <View style={[styles.overlayPart, { top: cutout.top, left: cutout.right, right: 0, height: cutout.height }]} />
+            {/* Highlight border */}
+            <View
+              style={[
+                styles.highlight,
+                {
+                  top: cutout.top,
+                  left: cutout.left,
+                  width: cutout.width,
+                  height: cutout.height,
+                },
+              ]}
+            />
+          </>
+        ) : (
+          <View style={styles.overlayFull} />
         )}
 
         {/* Tooltip */}
@@ -160,9 +188,15 @@ export function TutorialTooltip({
 
             {/* Buttons */}
             <View style={styles.buttonContainer}>
-              <Pressable style={styles.skipButton} onPress={onSkip}>
-                <Text style={styles.skipButtonText}>{skipLabel}</Text>
-              </Pressable>
+              {currentStep === 1 ? (
+                <Pressable style={styles.skipButton} onPress={onSkip}>
+                  <Text style={styles.skipButtonText}>{skipLabel}</Text>
+                </Pressable>
+              ) : (
+                <Pressable style={styles.skipButton} onPress={onBack}>
+                  <Text style={styles.skipButtonText}>{backLabel}</Text>
+                </Pressable>
+              )}
               <Pressable style={styles.nextButton} onPress={onNext}>
                 <Text style={styles.nextButtonText}>
                   {isLastStep ? nextLabel : `${nextLabel} (${currentStep}/${totalSteps})`}
@@ -177,8 +211,15 @@ export function TutorialTooltip({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
+  },
+  overlayPart: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  overlayFull: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   highlight: {

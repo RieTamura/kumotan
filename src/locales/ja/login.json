@@ -22,9 +22,6 @@
     "advancedOptions": "詳細オプション",
     "useAppPassword": "App Passwordでログイン"
   },
-  "security": {
-    "note": "🔒 App Passwordは認証にのみ使用され、保存されません。"
-  },
   "form": {
     "hide": "フォームを閉じる"
   },

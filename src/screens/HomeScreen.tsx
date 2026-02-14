@@ -3,7 +3,7 @@
  * Displays Bluesky timeline feed with word selection functionality
  */
 
-import React, { useCallback, useState, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -127,11 +127,11 @@ export function HomeScreen(): React.JSX.Element {
       id: 'wordSelection',
       title: tt('steps.wordSelection.title'),
       description: tt('steps.wordSelection.description'),
-      targetPosition: tutorialPositions.contentColumn || {
+      targetPosition: tutorialPositions.firstWord || {
         x: 20,
         y: insets.top + 160,
-        width: SCREEN_WIDTH - 40,
-        height: 100,
+        width: 80,
+        height: 32,
       },
       arrowDirection: 'up',
     },
@@ -164,10 +164,10 @@ export function HomeScreen(): React.JSX.Element {
       title: tt('steps.tips.title'),
       description: tt('steps.tips.description'),
       targetPosition: tutorialPositions.tips || {
-        x: SCREEN_WIDTH - 58,
-        y: insets.top + 2,
-        width: 48,
-        height: 48,
+        x: SCREEN_WIDTH - 46,
+        y: insets.top + 14,
+        width: 24,
+        height: 24,
       },
       arrowDirection: 'up',
     },
@@ -180,6 +180,7 @@ export function HomeScreen(): React.JSX.Element {
     currentStepData,
     totalSteps,
     nextStep,
+    prevStep,
     skipTutorial,
   } = useTutorial(tutorialSteps);
 
@@ -337,12 +338,29 @@ export function HomeScreen(): React.JSX.Element {
       setTimeout(() => {
         tipsRef.current?.measureInWindow((x, y, width, height) => {
           if (x !== 0 || y !== 0) {
-            setTutorialPositions(prev => ({ ...prev, tips: { x, y, width, height } }));
+            // Shrink to fit the icon with small margin (remove button padding, keep slight breathing room)
+            const inset = Spacing.sm;
+            setTutorialPositions(prev => ({
+              ...prev,
+              tips: {
+                x: x + inset,
+                y: y + inset,
+                width: width - inset * 2,
+                height: height - inset * 2,
+              },
+            }));
           }
         });
       }, 500);
     }
   }, []);
+
+  // Measure tips button when tutorial becomes active
+  useEffect(() => {
+    if (isTutorialActive) {
+      measureTips();
+    }
+  }, [isTutorialActive, measureTips]);
 
   /**
    * Render individual post item
@@ -637,8 +655,10 @@ export function HomeScreen(): React.JSX.Element {
           currentStep={currentStepIndex}
           totalSteps={totalSteps}
           onNext={nextStep}
+          onBack={prevStep}
           onSkip={skipTutorial}
           nextLabel={currentStepIndex === totalSteps ? tt('done') : tt('next')}
+          backLabel={tt('back')}
           skipLabel={tt('skip')}
         />
       )}
