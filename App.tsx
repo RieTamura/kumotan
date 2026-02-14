@@ -16,6 +16,7 @@ import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, StyleSheet, Text, Animated, Easing, Image } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
@@ -221,9 +222,9 @@ export default function App(): React.JSX.Element {
   // メインアプリ
   return (
     <SafeAreaProvider>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <GestureHandlerRootView style={[styles.container, { backgroundColor: colors.background }]}>
         <AppNavigator />
-      </View>
+      </GestureHandlerRootView>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </SafeAreaProvider>
   );
