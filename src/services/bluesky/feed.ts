@@ -237,6 +237,7 @@ export async function getTimeline(
         uri: item.post.uri,
         cid: item.post.cid,
         text: (item.post.record as { text?: string })?.text ?? '',
+        facets: (item.post.record as { facets?: unknown[] })?.facets as any,
         author: {
           handle: item.post.author.handle,
           displayName: item.post.author.displayName ?? item.post.author.handle,
@@ -851,6 +852,7 @@ export async function getAuthorFeed(
         uri: item.post.uri,
         cid: item.post.cid,
         text: (item.post.record as { text?: string })?.text ?? '',
+        facets: (item.post.record as { facets?: unknown[] })?.facets as any,
         author: {
           handle: item.post.author.handle,
           displayName: item.post.author.displayName ?? item.post.author.handle,
