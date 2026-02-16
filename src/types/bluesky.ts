@@ -94,12 +94,44 @@ export type ReplyRestriction =
   | 'disabled';   // No replies allowed AND quoting disabled
 
 /**
+ * Facet feature types for links, mentions, and hashtags
+ */
+export interface FacetLink {
+  $type: 'app.bsky.richtext.facet#link';
+  uri: string;
+}
+
+export interface FacetMention {
+  $type: 'app.bsky.richtext.facet#mention';
+  did: string;
+}
+
+export interface FacetTag {
+  $type: 'app.bsky.richtext.facet#tag';
+  tag: string;
+}
+
+export type FacetFeature = FacetLink | FacetMention | FacetTag;
+
+/**
+ * Rich text facet containing position and feature information
+ */
+export interface RichTextFacet {
+  index: {
+    byteStart: number;
+    byteEnd: number;
+  };
+  features: FacetFeature[];
+}
+
+/**
  * Simplified post for display in the app
  */
 export interface TimelinePost {
   uri: string;
   cid: string;
   text: string;
+  facets?: RichTextFacet[];
   author: {
     handle: string;
     displayName: string;

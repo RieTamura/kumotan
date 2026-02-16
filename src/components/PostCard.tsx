@@ -15,7 +15,7 @@ import {
 import ImageViewing from 'react-native-image-viewing';
 import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink, AlertTriangle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { TimelinePost } from '../types/bluesky';
+import { TimelinePost, RichTextFacet } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { formatRelativeTime } from '../services/bluesky/feed';
 import { splitIntoSentences } from '../utils/validators';
@@ -231,6 +231,105 @@ interface SpecialMatch {
   end: number;
   type: 'url' | 'hashtag' | 'mention';
   value?: string; // For hashtags, the tag without #; for mentions, the handle without @
+}
+
+/**
+ * Parse text into tokens using Bluesky facets
+ * Facets contain accurate position information for links, mentions, and hashtags
+ */
+function parseTextWithFacets(text: string, facets?: RichTextFacet[]): TextToken[] {
+  // If no facets, fall back to regex-based parsing
+  if (!facets || facets.length === 0) {
+    return parseTextIntoTokens(text);
+  }
+
+  const tokens: TextToken[] = [];
+  let index = 0;
+
+  // Convert byte positions to character positions
+  const textBytes = new TextEncoder().encode(text);
+  const byteToCharMap = new Map<number, number>();
+  let bytePos = 0;
+  
+  for (let charPos = 0; charPos < text.length; charPos++) {
+    byteToCharMap.set(bytePos, charPos);
+    const char = text[charPos];
+    const charBytes = new TextEncoder().encode(char);
+    bytePos += charBytes.length;
+  }
+  byteToCharMap.set(bytePos, text.length); // Map end position
+
+  // Sort facets by position
+  const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart);
+
+  let currentPos = 0;
+
+  for (const facet of sortedFacets) {
+    const charStart = byteToCharMap.get(facet.index.byteStart) ?? 0;
+    const charEnd = byteToCharMap.get(facet.index.byteEnd) ?? text.length;
+
+    // Process text before this facet
+    if (charStart > currentPos) {
+      const beforeText = text.substring(currentPos, charStart);
+      const result = parseTextSegmentIntoTokens(beforeText, index);
+      tokens.push(...result.tokens);
+      index = result.nextIndex;
+    }
+
+    // Process facet
+    const facetText = text.substring(charStart, charEnd);
+    const feature = facet.features[0]; // Take first feature
+
+    if (feature.$type === 'app.bsky.richtext.facet#link') {
+      tokens.push({
+        text: facetText,
+        isEnglishWord: false,
+        isJapaneseWord: false,
+        isEnglishSentence: false,
+        isUrl: true,
+        isHashtag: false,
+        isMention: false,
+        index: index++,
+      });
+    } else if (feature.$type === 'app.bsky.richtext.facet#mention') {
+      const mentionHandle = 'did' in feature ? facetText.replace('@', '') : undefined;
+      tokens.push({
+        text: facetText,
+        isEnglishWord: false,
+        isJapaneseWord: false,
+        isEnglishSentence: false,
+        isUrl: false,
+        isHashtag: false,
+        isMention: true,
+        mentionHandle,
+        index: index++,
+      });
+    } else if (feature.$type === 'app.bsky.richtext.facet#tag') {
+      const tagValue = 'tag' in feature ? feature.tag : undefined;
+      tokens.push({
+        text: facetText,
+        isEnglishWord: false,
+        isJapaneseWord: false,
+        isEnglishSentence: false,
+        isUrl: false,
+        isHashtag: true,
+        isMention: false,
+        hashtagValue: tagValue,
+        index: index++,
+      });
+    }
+
+    currentPos = charEnd;
+  }
+
+  // Process remaining text
+  if (currentPos < text.length) {
+    const afterText = text.substring(currentPos);
+    const result = parseTextSegmentIntoTokens(afterText, index);
+    tokens.push(...result.tokens);
+  }
+
+  return tokens;
 }
 
 /**
@@ -668,17 +767,19 @@ function PostCardComponent({
    * Memoize parsed tokens to avoid re-parsing on every render
    */
   const tokens = useMemo(() => {
-    const result = parseTextIntoTokens(post.text);
+    const result = parseTextWithFacets(post.text, post.facets);
     if (__DEV__) {
       const mentionTokens = result.filter(t => t.isMention);
       const hashtagTokens = result.filter(t => t.isHashtag);
-      if (mentionTokens.length > 0 || hashtagTokens.length > 0) {
+      const urlTokens = result.filter(t => t.isUrl);
+      if (mentionTokens.length > 0 || hashtagTokens.length > 0 || urlTokens.length > 0) {
         console.log('Parsed tokens - mentions:', mentionTokens.map(t => ({ text: t.text, handle: t.mentionHandle })));
         console.log('Parsed tokens - hashtags:', hashtagTokens.map(t => ({ text: t.text, value: t.hashtagValue })));
+        console.log('Parsed tokens - urls:', urlTokens.map(t => ({ text: t.text })));
       }
     }
     return result;
-  }, [post.text]);
+  }, [post.text, post.facets]);
 
   /**
    * Render post text with touchable words
