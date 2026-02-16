@@ -4,13 +4,13 @@
  * Supports swipe navigation between tabs
  */
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, Easing, Image } from 'react-native';
 import { Home, BookOpen, HelpCircle, BarChart3, Settings } from 'lucide-react-native';
 import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -393,8 +393,58 @@ function RootNavigator(): React.JSX.Element {
  * Used while checking authentication status
  */
 function SplashPlaceholder(): React.JSX.Element {
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const startTimeRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    // プログレスバーを推定時間に基づいて進行させる
+    // OAuth認証は通常3-5秒程度かかるため、5秒で90%まで進む
+    // 残り10%は処理完了を待つための余裕
+    const animation = Animated.timing(progressAnim, {
+      toValue: 0.9, // 90%まで進める
+      duration: 5000, // 5秒
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1), // 加速カーブ（最初は速く、後半ゆっくり）
+      useNativeDriver: false, // widthアニメーションのためfalse
+    });
+    
+    animation.start();
+    
+    return () => {
+      animation.stop();
+    };
+  }, [progressAnim]);
+
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.primary }} />
+    <View style={[styles.splashPlaceholder, { backgroundColor: Colors.primary }]}>
+      <View style={styles.splashContent}>
+        {/* くもたんロゴ */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
+        
+        {/* プログレスバー */}
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBar}>
+            <Animated.View
+              style={[
+                styles.progressBarInner,
+                {
+                  backgroundColor: Colors.textInverse,
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            />
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -435,6 +485,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
+  },
+  splashPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoContainer: {
+    marginBottom: 60,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+  },
+  progressBarContainer: {
+    width: 200,
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarInner: {
+    height: '100%',
+    borderRadius: 2,
   },
 });
 
