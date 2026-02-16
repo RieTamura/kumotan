@@ -394,7 +394,6 @@ function RootNavigator(): React.JSX.Element {
  */
 function SplashPlaceholder(): React.JSX.Element {
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const startTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
     // プログレスバーを推定時間に基づいて進行させる
