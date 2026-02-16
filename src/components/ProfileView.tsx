@@ -3,7 +3,7 @@
  * Displays the logged-in user's Bluesky profile with their posts
  */
 
-import React, { memo, useEffect, useCallback } from 'react';
+import React, { memo, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   RefreshControl,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,6 +29,7 @@ import { Spacing, FontSizes } from '../constants/colors';
 import { TimelinePost } from '../types/bluesky';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { likePost, unlikePost } from '../services/bluesky/feed';
+import { tokenizeRichText } from '../utils/richText';
 
 interface ProfileViewProps {
   flatListRef?: React.RefObject<FlatList<TimelinePost> | null>;
@@ -65,6 +67,11 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll }: 
     refresh: refreshFeed,
     loadMore,
   } = useAuthorFeed();
+
+  const descriptionTokens = useMemo(
+    () => tokenizeRichText(profile?.description ?? ''),
+    [profile?.description]
+  );
 
   // Fetch profile on mount if not loaded
   useEffect(() => {
@@ -127,6 +134,30 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll }: 
     }
   }, [isLoadingMore, hasMore, loadMore]);
 
+  const openExternalUrl = useCallback(async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Failed to open URL:', error);
+      }
+    }
+  }, []);
+
+  const handleHashtagPress = useCallback(
+    async (tag: string) => {
+      await openExternalUrl(`https://bsky.app/search?q=%23${encodeURIComponent(tag)}`);
+    },
+    [openExternalUrl]
+  );
+
+  const handleMentionPress = useCallback(
+    async (handle: string) => {
+      await openExternalUrl(`https://bsky.app/profile/${encodeURIComponent(handle)}`);
+    },
+    [openExternalUrl]
+  );
+
   /**
    * Render profile header
    */
@@ -179,7 +210,50 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll }: 
           {/* Description */}
           {profile.description && (
             <Text style={[styles.description, { color: colors.text }]}>
-              {profile.description}
+              {descriptionTokens.map((token, index) => {
+                if (token.type === 'url') {
+                  return (
+                    <Text
+                      key={`${token.type}-${index}`}
+                      style={[styles.linkText, { color: colors.primary }]}
+                      onPress={() => openExternalUrl(token.text)}
+                      suppressHighlighting={false}
+                    >
+                      {token.text}
+                    </Text>
+                  );
+                }
+
+                if (token.type === 'hashtag' && token.value) {
+                  const hashtagValue = token.value;
+                  return (
+                    <Text
+                      key={`${token.type}-${index}`}
+                      style={[styles.linkText, { color: colors.primary }]}
+                      onPress={() => handleHashtagPress(hashtagValue)}
+                      suppressHighlighting={false}
+                    >
+                      {token.text}
+                    </Text>
+                  );
+                }
+
+                if (token.type === 'mention' && token.value) {
+                  const mentionValue = token.value;
+                  return (
+                    <Text
+                      key={`${token.type}-${index}`}
+                      style={[styles.linkText, { color: colors.primary }]}
+                      onPress={() => handleMentionPress(mentionValue)}
+                      suppressHighlighting={false}
+                    >
+                      {token.text}
+                    </Text>
+                  );
+                }
+
+                return <Text key={`${token.type}-${index}`}>{token.text}</Text>;
+              })}
             </Text>
           )}
 
@@ -220,7 +294,7 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll }: 
         </View>
       </View>
     );
-  }, [profile, colors, t]);
+  }, [profile, colors, t, descriptionTokens, openExternalUrl, handleHashtagPress, handleMentionPress]);
 
   /**
    * Render post item
@@ -417,6 +491,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     lineHeight: 22,
     marginTop: Spacing.md,
+  },
+  linkText: {
+    textDecorationLine: 'underline',
   },
   statsContainer: {
     flexDirection: 'row',
