@@ -44,7 +44,10 @@
     "correctAnswer": "Correct: {{answer}}",
     "retryButton": "Retry",
     "newQuizButton": "New Quiz",
-    "homeButton": "Back to Home"
+    "homeButton": "Back to Home",
+    "shareButton": "Share Result",
+    "shareText": "Quiz Result: {{correct}}/{{total}} correct ({{accuracy}}% accuracy)\n\n#kumotan #langsky",
+    "shareImageAlt": "Quiz result"
   },
   "stats": {
     "title": "Quiz Statistics",

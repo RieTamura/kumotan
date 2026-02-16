@@ -46,7 +46,10 @@
     "correctAnswer": "正解: {{answer}}",
     "retryButton": "もう一度",
     "newQuizButton": "新しいクイズ",
-    "homeButton": "ホームへ戻る"
+    "homeButton": "ホームへ戻る",
+    "shareButton": "結果をシェア",
+    "shareText": "クイズ結果: {{correct}}/{{total}}問正解（正答率{{accuracy}}%）\n\n#くもたん #英語学習 #langsky",
+    "shareImageAlt": "クイズ結果"
   },
   "stats": {
     "title": "クイズ統計",

@@ -3,7 +3,7 @@
  * Displays quiz results and incorrect answers
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,16 +14,22 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { captureRef } from 'react-native-view-shot';
 import {
   RotateCcw,
   Home,
   X,
   Check,
+  Share as ShareIcon,
 } from 'lucide-react-native';
 
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Button } from '../components/common/Button';
+import { PostCreationModal } from '../components/PostCreationModal';
+import { QuizShareCard, QUIZ_SHARE_CARD_WIDTH, QUIZ_SHARE_CARD_HEIGHT } from '../components/QuizShareCard';
+import { PostImageAttachment } from '../services/bluesky/feed';
 import { formatTimeSpent, getEncouragementKey } from '../services/quiz/quizEngine';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -106,11 +112,18 @@ export function QuizResultScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('quiz');
   const { colors } = useTheme();
+  const isConnected = useNetworkStatus();
 
   const { result } = route.params;
 
   const timeFormatted = formatTimeSpent(result.timeSpentSeconds);
   const encouragementKey = getEncouragementKey(result.accuracy);
+
+  // Share state
+  const shareCardRef = useRef<View>(null);
+  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
+  const [shareInitialText, setShareInitialText] = useState('');
+  const [shareInitialImages, setShareInitialImages] = useState<PostImageAttachment[]>([]);
 
   // Handle retry with same settings
   const handleRetry = useCallback(() => {
@@ -122,6 +135,37 @@ export function QuizResultScreen(): React.JSX.Element {
   const handleGoHome = useCallback(() => {
     navigation.navigate('Main');
   }, [navigation]);
+
+  // Handle share
+  const handleShare = useCallback(async () => {
+    const text = t('result.shareText', {
+      correct: result.correctCount,
+      total: result.totalQuestions,
+      accuracy: result.accuracy,
+    });
+    setShareInitialText(text);
+
+    // Capture QuizShareCard as image
+    try {
+      const uri = await captureRef(shareCardRef, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+      });
+      setShareInitialImages([{
+        uri,
+        mimeType: 'image/png',
+        width: QUIZ_SHARE_CARD_WIDTH,
+        height: QUIZ_SHARE_CARD_HEIGHT,
+        alt: t('result.shareImageAlt'),
+      }]);
+    } catch {
+      // Graceful degradation: proceed with text only
+      setShareInitialImages([]);
+    }
+
+    setIsShareModalVisible(true);
+  }, [result, t]);
 
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
@@ -198,14 +242,25 @@ export function QuizResultScreen(): React.JSX.Element {
 
         {/* Action buttons */}
         <View style={styles.buttonContainer}>
-          <Button
-            title={t('result.retryButton')}
-            onPress={handleRetry}
-            variant="outline"
-            leftIcon={<RotateCcw size={20} color={colors.primary} />}
-            fullWidth
-            style={styles.button}
-          />
+          <View style={styles.buttonRow}>
+            <Button
+              title={t('result.retryButton')}
+              onPress={handleRetry}
+              variant="outline"
+              leftIcon={<RotateCcw size={20} color={colors.primary} />}
+              fullWidth
+              style={styles.button}
+            />
+            <Button
+              title={t('result.shareButton')}
+              onPress={handleShare}
+              variant="outline"
+              leftIcon={<ShareIcon size={20} color={isConnected ? colors.primary : colors.textSecondary} />}
+              disabled={!isConnected}
+              fullWidth
+              style={styles.button}
+            />
+          </View>
           <Button
             title={t('result.homeButton')}
             onPress={handleGoHome}
@@ -215,6 +270,18 @@ export function QuizResultScreen(): React.JSX.Element {
           />
         </View>
       </ScrollView>
+
+      {/* Offscreen QuizShareCard for view-shot capture */}
+      <View style={styles.offscreen}>
+        <QuizShareCard ref={shareCardRef} result={result} colors={colors} />
+      </View>
+
+      <PostCreationModal
+        visible={isShareModalVisible}
+        onClose={() => { setIsShareModalVisible(false); setShareInitialImages([]); }}
+        initialText={shareInitialText}
+        initialImages={shareInitialImages}
+      />
     </View>
   );
 }
@@ -317,8 +384,18 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 12,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   button: {
     marginBottom: 0,
+    flex: 1,
+  },
+  offscreen: {
+    position: 'absolute',
+    left: -9999,
+    top: -9999,
   },
 });
 
