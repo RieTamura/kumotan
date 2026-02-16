@@ -21,8 +21,6 @@ import {
 } from '../constants/colors';
 import { useTheme } from '../hooks/useTheme';
 import { Word } from '../types/word';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
 import { MessageSquareShare } from 'lucide-react-native';
 import { FeedbackModal } from './FeedbackModal';
 
@@ -34,21 +32,6 @@ interface WordListItemProps {
   onToggleRead?: (word: Word) => void;
   onDelete?: (word: Word) => void;
   onPostPress?: (postUri: string) => void;
-}
-
-/**
- * Format the date for display
- * Database stores timestamps in JST (local time), display as-is
- */
-function formatDate(dateString: string): string {
-  try {
-    // SQLite returns timestamps in 'YYYY-MM-DD HH:MM:SS' format (JST)
-    // Parse as local time (not UTC) for display
-    const localDate = new Date(dateString.replace(' ', 'T'));
-    return format(localDate, 'yyyy/M/d HH:mm:ss', { locale: ja });
-  } catch {
-    return '-';
-  }
 }
 
 // Enable LayoutAnimation for Android
@@ -123,21 +106,16 @@ export function WordListItem({
 
       {/* Word content */}
       <View style={styles.content}>
-        <View style={styles.wordRow}>
-          <Text
-            style={[
-              styles.english,
-              { color: colors.text },
-              word.isRead && [styles.textRead, { color: colors.textTertiary }],
-            ]}
-            numberOfLines={1}
-          >
-            {word.english}
-          </Text>
-          <Text style={[styles.date, { color: colors.textTertiary }]}>
-            {formatDate(word.createdAt)}
-          </Text>
-        </View>
+        <Text
+          style={[
+            styles.english,
+            { color: colors.text },
+            word.isRead && [styles.textRead, { color: colors.textTertiary }],
+          ]}
+          numberOfLines={expanded ? undefined : 1}
+        >
+          {word.english}
+        </Text>
 
         <Text
           style={[
@@ -310,22 +288,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.sm,
   },
-  wordRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
   english: {
     fontSize: FontSizes.lg,
     fontWeight: '600',
     color: Colors.text,
-    flex: 1,
-  },
-  date: {
-    fontSize: FontSizes.xs,
-    color: Colors.textTertiary,
-    marginLeft: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   japanese: {
     fontSize: FontSizes.sm,
