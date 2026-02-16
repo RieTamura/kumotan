@@ -75,6 +75,16 @@ export interface PostEmbed {
     description: string;
     thumb?: string;
   };
+  quoted?: {
+    uri: string;
+    cid?: string;
+    text?: string;
+    author?: {
+      handle: string;
+      displayName: string;
+      avatar?: string;
+    };
+  };
 }
 
 /**

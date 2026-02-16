@@ -20,9 +20,9 @@ import { useTheme } from '../hooks/useTheme';
 import { Loading } from '../components/common/Loading';
 import { PostCard } from '../components/PostCard';
 import { WordPopup } from '../components/WordPopup';
-import { TimelinePost, PostEmbed, PostImage } from '../types/bluesky';
+import { TimelinePost } from '../types/bluesky';
 import { getAgent, hasActiveSession, refreshSession } from '../services/bluesky/auth';
-import { likePost, unlikePost } from '../services/bluesky/feed';
+import { likePost, unlikePost, extractPostEmbed } from '../services/bluesky/feed';
 import { addWord } from '../services/database/words';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -57,55 +57,6 @@ const initialWordPopupState: WordPopupState = {
 };
 
 /**
- * Extract embed from raw post data
- */
-function extractEmbed(rawEmbed: unknown): PostEmbed | undefined {
-  const embed = rawEmbed as {
-    $type?: string;
-    images?: Array<{
-      thumb?: string;
-      fullsize?: string;
-      alt?: string;
-      aspectRatio?: { width: number; height: number };
-    }>;
-    external?: {
-      uri?: string;
-      title?: string;
-      description?: string;
-      thumb?: string;
-    };
-  } | undefined;
-
-  if (!embed?.$type) return undefined;
-
-  if (embed.$type === 'app.bsky.embed.images#view' && embed.images) {
-    return {
-      $type: embed.$type,
-      images: embed.images.map((img): PostImage => ({
-        thumb: img.thumb ?? '',
-        fullsize: img.fullsize ?? '',
-        alt: img.alt ?? '',
-        aspectRatio: img.aspectRatio,
-      })),
-    };
-  }
-
-  if (embed.$type === 'app.bsky.embed.external#view' && embed.external) {
-    return {
-      $type: embed.$type,
-      external: {
-        uri: embed.external.uri ?? '',
-        title: embed.external.title ?? '',
-        description: embed.external.description ?? '',
-        thumb: embed.external.thumb,
-      },
-    };
-  }
-
-  return undefined;
-}
-
-/**
  * Convert raw post to TimelinePost
  */
 function toTimelinePost(post: {
@@ -138,7 +89,7 @@ function toTimelinePost(post: {
     likeCount: post.likeCount,
     repostCount: post.repostCount,
     replyCount: post.replyCount,
-    embed: extractEmbed(post.embed),
+    embed: extractPostEmbed(post.embed),
     viewer: post.viewer ? { like: post.viewer.like, repost: post.viewer.repost } : undefined,
     labels,
   };
@@ -147,7 +98,7 @@ function toTimelinePost(post: {
 /**
  * ThreadScreen Component
  */
-export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
+export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JSX.Element {
   const { postUri } = route.params;
   const { t } = useTranslation(['thread', 'common']);
   const { t: tc } = useTranslation('common');
@@ -321,6 +272,16 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
   }, []);
 
   /**
+   * Handle post press - navigate to thread
+   */
+  const handlePostPress = useCallback(
+    (targetPostUri: string) => {
+      navigation.navigate('Thread', { postUri: targetPostUri });
+    },
+    [navigation]
+  );
+
+  /**
    * Handle add word to vocabulary
    */
   const handleAddWord = useCallback(
@@ -407,6 +368,7 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
               post={threadData.parent}
               onWordSelect={handleWordSelect}
               onSentenceSelect={handleSentenceSelect}
+              onPostPress={handlePostPress}
               onLikePress={handleLikePress}
               clearSelection={shouldClearParentSelection}
             />
@@ -419,6 +381,7 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
             post={threadData.post}
             onWordSelect={handleWordSelect}
             onSentenceSelect={handleSentenceSelect}
+            onPostPress={handlePostPress}
             onLikePress={handleLikePress}
             clearSelection={shouldClearMainSelection}
           />
@@ -434,7 +397,7 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
         )}
       </View>
     );
-  }, [threadData, t, handleWordSelect, handleSentenceSelect, handleLikePress, wordPopup.visible, wordPopup.postUri]);
+  }, [threadData, t, handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Render reply item
@@ -447,12 +410,13 @@ export function ThreadScreen({ route }: ThreadScreenProps): React.JSX.Element {
           post={item}
           onWordSelect={handleWordSelect}
           onSentenceSelect={handleSentenceSelect}
+          onPostPress={handlePostPress}
           onLikePress={handleLikePress}
           clearSelection={shouldClearSelection}
         />
       </View>
     );
-  }, [handleWordSelect, handleSentenceSelect, handleLikePress, wordPopup.visible, wordPopup.postUri]);
+  }, [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Key extractor

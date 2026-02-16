@@ -636,8 +636,13 @@ export function WordPopup({
         }
       } else if (isJapanese) {
         // Japanese word - use English translation and optionally morphology result
-        const englishText = englishTranslation?.text ?? null;
+        const englishText = englishTranslation?.text?.trim();
         const readings = englishTranslation?.readings ?? null;
+
+        if (!englishText) {
+          Alert.alert(t('alerts.error'), t('sentence.noTranslation'));
+          return;
+        }
 
         // Build definition from English translation and morphology
         const definitionParts: string[] = [];
@@ -653,7 +658,7 @@ export function WordPopup({
         const definitionText = definitionParts.length > 0 ? definitionParts.join('\n') : undefined;
 
         const result = await addWordToStore({
-          english: englishText ?? undefined,
+          english: englishText,
           japanese: word,
           definition: definitionText,
           postUrl: postUri ?? undefined,

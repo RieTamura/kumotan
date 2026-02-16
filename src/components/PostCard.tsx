@@ -952,6 +952,14 @@ function PostCardComponent({
     const external = post.embed?.external;
     if (!external?.uri) return null;
 
+    const domain = (() => {
+      try {
+        return new URL(external.uri).hostname.replace(/^www\./, '');
+      } catch {
+        return external.uri;
+      }
+    })();
+
     return (
       <Pressable
         style={[styles.externalEmbedContainer, { borderColor: colors.border, backgroundColor: isDark ? colors.backgroundSecondary : '#FFF' }]}
@@ -971,7 +979,7 @@ function PostCardComponent({
           <View style={styles.externalEmbedHeader}>
             <ExternalLink size={14} color={colors.textTertiary} />
             <Text style={[styles.externalEmbedDomain, { color: colors.textSecondary }]} numberOfLines={1}>
-              {new URL(external.uri).hostname.replace(/^www\./, '')}
+              {domain}
             </Text>
           </View>
           {external.title ? (
@@ -985,6 +993,53 @@ function PostCardComponent({
             </Text>
           ) : null}
         </View>
+      </Pressable>
+    );
+  };
+
+  /**
+   * Render quoted post embed (record / recordWithMedia)
+   */
+  const renderQuotedEmbed = () => {
+    const quoted = post.embed?.quoted;
+    if (!quoted?.uri) return null;
+
+    const handleQuotePress = () => {
+      if (onPostPress) {
+        onPostPress(quoted.uri);
+        return;
+      }
+
+      const encodedUri = encodeURIComponent(quoted.uri);
+      handleUrlPress(`https://bsky.app/search?q=${encodedUri}`);
+    };
+
+    return (
+      <Pressable
+        style={[styles.quoteEmbedContainer, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}
+        onPress={handleQuotePress}
+        accessible={true}
+        accessibilityLabel={`引用投稿: ${quoted.author?.displayName || quoted.author?.handle || quoted.uri}`}
+        accessibilityRole="button"
+      >
+        <View style={styles.quoteEmbedHeader}>
+          {quoted.author?.avatar ? (
+            <Image source={{ uri: quoted.author.avatar }} style={styles.quoteAvatar} />
+          ) : null}
+          <View style={styles.quoteAuthorInfo}>
+            <Text style={[styles.quoteDisplayName, { color: colors.text }]} numberOfLines={1}>
+              {quoted.author?.displayName || t('home:quotePost', '引用投稿')}
+            </Text>
+            {quoted.author?.handle ? (
+              <Text style={[styles.quoteHandle, { color: colors.textSecondary }]} numberOfLines={1}>
+                @{quoted.author.handle}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        <Text style={[styles.quoteText, { color: colors.textSecondary }]} numberOfLines={3}>
+          {quoted.text || t('home:quotePostUnavailable', '引用投稿を開く')}
+        </Text>
       </Pressable>
     );
   };
@@ -1033,6 +1088,9 @@ function PostCardComponent({
 
           {/* External link embed */}
           {renderExternalEmbed()}
+
+          {/* Quoted post embed */}
+          {renderQuotedEmbed()}
 
           {/* Engagement metrics */}
           <View style={styles.metricsRow}>
@@ -1362,6 +1420,40 @@ const styles = StyleSheet.create({
   externalEmbedDescription: {
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  quoteEmbedContainer: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  quoteEmbedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  quoteAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: Spacing.xs,
+    backgroundColor: Colors.skeleton,
+  },
+  quoteAuthorInfo: {
+    flex: 1,
+  },
+  quoteDisplayName: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+  },
+  quoteHandle: {
+    fontSize: FontSizes.xs,
+    marginTop: 1,
+  },
+  quoteText: {
+    fontSize: FontSizes.sm,
     lineHeight: 18,
   },
 });

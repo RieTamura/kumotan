@@ -135,6 +135,159 @@ function getReplyRestriction(
   return hasNoReplyRules ? 'disabled' : 'restricted';
 }
 
+interface RawEmbedView {
+  $type?: string;
+  images?: Array<{
+    thumb?: string;
+    fullsize?: string;
+    alt?: string;
+    aspectRatio?: { width: number; height: number };
+  }>;
+  external?: {
+    uri?: string;
+    title?: string;
+    description?: string;
+    thumb?: string;
+  };
+  record?: {
+    record?: RawQuotedRecordView;
+  } | RawQuotedRecordView;
+  media?: {
+    $type?: string;
+    images?: Array<{
+      thumb?: string;
+      fullsize?: string;
+      alt?: string;
+      aspectRatio?: { width: number; height: number };
+    }>;
+    external?: {
+      uri?: string;
+      title?: string;
+      description?: string;
+      thumb?: string;
+    };
+  };
+}
+
+interface RawQuotedRecordView {
+  uri?: string;
+  cid?: string;
+  author?: {
+    handle?: string;
+    displayName?: string;
+    avatar?: string;
+  };
+  value?: {
+    text?: string;
+  };
+}
+
+function mapMediaEmbed(
+  media?: {
+    $type?: string;
+    images?: Array<{
+      thumb?: string;
+      fullsize?: string;
+      alt?: string;
+      aspectRatio?: { width: number; height: number };
+    }>;
+    external?: {
+      uri?: string;
+      title?: string;
+      description?: string;
+      thumb?: string;
+    };
+  }
+): Pick<PostEmbed, 'images' | 'external'> {
+  if (!media?.$type) return {};
+
+  if (media.$type === 'app.bsky.embed.images#view' && media.images) {
+    return {
+      images: media.images.map((img): PostImage => ({
+        thumb: img.thumb ?? '',
+        fullsize: img.fullsize ?? '',
+        alt: img.alt ?? '',
+        aspectRatio: img.aspectRatio,
+      })),
+    };
+  }
+
+  if (media.$type === 'app.bsky.embed.external#view' && media.external) {
+    return {
+      external: {
+        uri: media.external.uri ?? '',
+        title: media.external.title ?? '',
+        description: media.external.description ?? '',
+        thumb: media.external.thumb,
+      },
+    };
+  }
+
+  return {};
+}
+
+function extractQuotedRecord(rawEmbed: RawEmbedView): RawQuotedRecordView | undefined {
+  if (rawEmbed.$type === 'app.bsky.embed.record#view') {
+    return rawEmbed.record as RawQuotedRecordView | undefined;
+  }
+
+  if (rawEmbed.$type === 'app.bsky.embed.recordWithMedia#view') {
+    return (rawEmbed.record as { record?: RawQuotedRecordView } | undefined)?.record;
+  }
+
+  return undefined;
+}
+
+export function extractPostEmbed(raw: unknown): PostEmbed | undefined {
+  const rawEmbed = raw as RawEmbedView | undefined;
+  if (!rawEmbed?.$type) return undefined;
+
+  const embed: PostEmbed = { $type: rawEmbed.$type };
+
+  if (rawEmbed.$type === 'app.bsky.embed.images#view' || rawEmbed.$type === 'app.bsky.embed.external#view') {
+    const mediaEmbed = mapMediaEmbed(rawEmbed);
+    if (mediaEmbed.images) {
+      embed.images = mediaEmbed.images;
+    }
+    if (mediaEmbed.external) {
+      embed.external = mediaEmbed.external;
+    }
+    return embed.images || embed.external ? embed : undefined;
+  }
+
+  if (rawEmbed.$type === 'app.bsky.embed.record#view' || rawEmbed.$type === 'app.bsky.embed.recordWithMedia#view') {
+    const quotedRecord = extractQuotedRecord(rawEmbed);
+    if (quotedRecord?.uri) {
+      embed.quoted = {
+        uri: quotedRecord.uri,
+        cid: quotedRecord.cid,
+        text: quotedRecord.value?.text,
+        author: quotedRecord.author?.handle
+          ? {
+              handle: quotedRecord.author.handle,
+              displayName: quotedRecord.author.displayName ?? quotedRecord.author.handle,
+              avatar: quotedRecord.author.avatar,
+            }
+          : undefined,
+      };
+    }
+
+    if (rawEmbed.$type === 'app.bsky.embed.recordWithMedia#view') {
+      const mediaEmbed = mapMediaEmbed(rawEmbed.media);
+      if (mediaEmbed.images) {
+        embed.images = mediaEmbed.images;
+      }
+      if (mediaEmbed.external) {
+        embed.external = mediaEmbed.external;
+      }
+    }
+
+    return embed.quoted || embed.images || embed.external ? embed : undefined;
+  }
+
+  return undefined;
+}
+
 /**
  * Fetch timeline posts from Bluesky
  */
@@ -165,46 +318,8 @@ export async function getTimeline(
     // Map response to our TimelinePost type
     const posts: TimelinePost[] = response.data.feed.map((item) => {
       // Extract embed information if present
-      let embed: PostEmbed | undefined;
-      const rawEmbed = item.post.embed as {
-        $type?: string;
-        images?: Array<{
-          thumb?: string;
-          fullsize?: string;
-          alt?: string;
-          aspectRatio?: { width: number; height: number };
-        }>;
-        external?: {
-          uri?: string;
-          title?: string;
-          description?: string;
-          thumb?: string;
-        };
-      } | undefined;
-
-      if (rawEmbed?.$type) {
-        if (rawEmbed.$type === 'app.bsky.embed.images#view' && rawEmbed.images) {
-          embed = {
-            $type: rawEmbed.$type,
-            images: rawEmbed.images.map((img): PostImage => ({
-              thumb: img.thumb ?? '',
-              fullsize: img.fullsize ?? '',
-              alt: img.alt ?? '',
-              aspectRatio: img.aspectRatio,
-            })),
-          };
-        } else if (rawEmbed.$type === 'app.bsky.embed.external#view' && rawEmbed.external) {
-          embed = {
-            $type: rawEmbed.$type,
-            external: {
-              uri: rawEmbed.external.uri ?? '',
-              title: rawEmbed.external.title ?? '',
-              description: rawEmbed.external.description ?? '',
-              thumb: rawEmbed.external.thumb,
-            },
-          };
-        }
-      }
+      const embed = extractPostEmbed(item.post.embed);
+      const rawEmbed = item.post.embed as { $type?: string } | undefined;
 
       // Extract viewer state
       const viewer = item.post.viewer as { like?: string; repost?: string } | undefined;
@@ -779,46 +894,8 @@ export async function getAuthorFeed(
     // Map response to our TimelinePost type
     const posts: TimelinePost[] = response.data.feed.map((item) => {
       // Extract embed information if present
-      let embed: PostEmbed | undefined;
-      const rawEmbed = item.post.embed as {
-        $type?: string;
-        images?: Array<{
-          thumb?: string;
-          fullsize?: string;
-          alt?: string;
-          aspectRatio?: { width: number; height: number };
-        }>;
-        external?: {
-          uri?: string;
-          title?: string;
-          description?: string;
-          thumb?: string;
-        };
-      } | undefined;
-
-      if (rawEmbed?.$type) {
-        if (rawEmbed.$type === 'app.bsky.embed.images#view' && rawEmbed.images) {
-          embed = {
-            $type: rawEmbed.$type,
-            images: rawEmbed.images.map((img): PostImage => ({
-              thumb: img.thumb ?? '',
-              fullsize: img.fullsize ?? '',
-              alt: img.alt ?? '',
-              aspectRatio: img.aspectRatio,
-            })),
-          };
-        } else if (rawEmbed.$type === 'app.bsky.embed.external#view' && rawEmbed.external) {
-          embed = {
-            $type: rawEmbed.$type,
-            external: {
-              uri: rawEmbed.external.uri ?? '',
-              title: rawEmbed.external.title ?? '',
-              description: rawEmbed.external.description ?? '',
-              thumb: rawEmbed.external.thumb,
-            },
-          };
-        }
-      }
+      const embed = extractPostEmbed(item.post.embed);
+      const rawEmbed = item.post.embed as { $type?: string } | undefined;
 
       // Extract viewer state
       const viewer = item.post.viewer as { like?: string; repost?: string } | undefined;
