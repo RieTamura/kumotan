@@ -78,5 +78,13 @@
   "contentLabelPorn": "成人向け（ポルノ等）",
   "contentLabelGraphicMedia": "生々しいメディア（グロ・事故・戦争・災害等）",
   "contentWarning": "コンテンツの警告",
-  "contentWarningTap": "タップして表示"
+  "contentWarningTap": "タップして表示",
+  "replyTitle": "返信",
+  "replyTo": "@{{handle}} への返信",
+  "repost": "リポスト",
+  "unrepost": "リポストを解除",
+  "quotePost": "引用リポスト",
+  "repostActionTitle": "リポスト",
+  "replyDisabled": "この投稿には返信できません",
+  "quoteDisabled": "この投稿は引用できません"
 }

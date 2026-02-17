@@ -5,7 +5,7 @@
 
 import * as FileSystem from 'expo-file-system/legacy';
 import { Result } from '../../types/result';
-import { TimelinePost, PostEmbed, PostImage, ReplyRestriction } from '../../types/bluesky';
+import { TimelinePost, PostEmbed, PostImage, ReplyRestriction, ReplyRef } from '../../types/bluesky';
 import { AppError, ErrorCode, mapToAppError } from '../../utils/errors';
 import { PAGINATION } from '../../constants/config';
 import { getAgent, refreshSession, hasActiveSession } from './auth';
@@ -661,7 +661,8 @@ export async function createPost(
   text: string,
   replySettings?: PostReplySettings,
   embed?: Record<string, unknown>,
-  selfLabels?: string[]
+  selfLabels?: string[],
+  reply?: ReplyRef
 ): Promise<Result<{ uri: string; cid: string }, AppError>> {
   try {
     const agent = getAgent();
@@ -688,6 +689,13 @@ export async function createPost(
 
     if (facets.length > 0) {
       postRecord.facets = facets;
+    }
+
+    if (reply) {
+      postRecord.reply = {
+        root: { uri: reply.root.uri, cid: reply.root.cid },
+        parent: { uri: reply.parent.uri, cid: reply.parent.cid },
+      };
     }
 
     if (embed) {
@@ -841,6 +849,81 @@ export async function unlikePost(
     return {
       success: false,
       error: mapToAppError(error, 'いいね解除'),
+    };
+  }
+}
+
+/**
+ * Repost a post on Bluesky
+ */
+export async function repostPost(
+  uri: string,
+  cid: string
+): Promise<Result<{ uri: string }, AppError>> {
+  try {
+    const agent = getAgent();
+
+    if (!hasActiveSession()) {
+      const refreshResult = await refreshSession();
+      if (!refreshResult.success) {
+        return { success: false, error: refreshResult.error };
+      }
+    }
+
+    await rateLimiter.throttle();
+
+    const response = await agent.repost(uri, cid);
+
+    if (__DEV__) {
+      console.log('Post reposted successfully:', response.uri);
+    }
+
+    return { success: true, data: { uri: response.uri } };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to repost:', error);
+    }
+
+    return {
+      success: false,
+      error: mapToAppError(error, 'リポスト'),
+    };
+  }
+}
+
+/**
+ * Unrepost a post on Bluesky
+ */
+export async function unrepostPost(
+  repostUri: string
+): Promise<Result<boolean, AppError>> {
+  try {
+    const agent = getAgent();
+
+    if (!hasActiveSession()) {
+      const refreshResult = await refreshSession();
+      if (!refreshResult.success) {
+        return { success: false, error: refreshResult.error };
+      }
+    }
+
+    await rateLimiter.throttle();
+
+    await agent.deleteRepost(repostUri);
+
+    if (__DEV__) {
+      console.log('Post unreposted successfully');
+    }
+
+    return { success: true, data: true };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to unrepost:', error);
+    }
+
+    return {
+      success: false,
+      error: mapToAppError(error, 'リポスト解除'),
     };
   }
 }

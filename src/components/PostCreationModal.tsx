@@ -24,7 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { X, Globe, ImagePlus, Tag } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
-import { usePostCreation } from '../hooks/usePostCreation';
+import { usePostCreation, ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { PostImageAttachment } from '../services/bluesky/feed';
 import { Button } from './common/Button';
 import { ReplySettingsModal } from './ReplySettingsModal';
@@ -78,12 +78,16 @@ export function PostCreationModal({
   onPostSuccess,
   initialText,
   initialImages,
+  replyTo,
+  quoteTo,
 }: {
   visible: boolean;
   onClose: () => void;
   onPostSuccess?: () => void;
   initialText?: string;
   initialImages?: PostImageAttachment[];
+  replyTo?: ReplyToInfo;
+  quoteTo?: QuoteToInfo;
 }): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('home');
@@ -112,7 +116,7 @@ export function PostCreationModal({
     submitPost,
     reset,
     clearError,
-  } = usePostCreation(initialText, initialImages);
+  } = usePostCreation(initialText, initialImages, replyTo, quoteTo);
 
   const [showReplySettings, setShowReplySettings] = useState(false);
   const [showContentLabels, setShowContentLabels] = useState(false);
@@ -278,6 +282,10 @@ export function PostCreationModal({
             <Text style={[styles.cancelText, { color: colors.primary }]}>{t('postCancel')}</Text>
           </Pressable>
 
+          {replyTo && (
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('replyTitle')}</Text>
+          )}
+
           <View style={styles.headerRight}>
             <Button
               title={isPosting ? t('posting') : t('postButton')}
@@ -300,6 +308,18 @@ export function PostCreationModal({
             keyboardShouldPersistTaps="handled"
             bounces={true}
           >
+            {/* Reply target info */}
+            {replyTo && (
+              <View style={[styles.replyTargetContainer, { backgroundColor: colors.backgroundSecondary }]}>
+                <Text style={[styles.replyTargetLabel, { color: colors.primary }]}>
+                  {t('replyTo', { handle: replyTo.author.handle })}
+                </Text>
+                <Text style={[styles.replyTargetText, { color: colors.textSecondary }]} numberOfLines={2}>
+                  {replyTo.text}
+                </Text>
+              </View>
+            )}
+
             {/* Input Area */}
             <View style={styles.inputSection}>
               <TextInput
@@ -334,6 +354,26 @@ export function PostCreationModal({
                 </ScrollView>
                 <Text style={[styles.imageCount, { color: colors.textSecondary }]}>
                   {images.length}/4
+                </Text>
+              </View>
+            )}
+
+            {/* Quote preview */}
+            {quoteTo && (
+              <View style={[styles.quotePreviewContainer, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
+                <View style={styles.quotePreviewHeader}>
+                  {quoteTo.author.avatar && (
+                    <Image source={{ uri: quoteTo.author.avatar }} style={styles.quotePreviewAvatar} />
+                  )}
+                  <Text style={[styles.quotePreviewDisplayName, { color: colors.text }]} numberOfLines={1}>
+                    {quoteTo.author.displayName}
+                  </Text>
+                  <Text style={[styles.quotePreviewHandle, { color: colors.textSecondary }]} numberOfLines={1}>
+                    @{quoteTo.author.handle}
+                  </Text>
+                </View>
+                <Text style={[styles.quotePreviewText, { color: colors.textSecondary }]} numberOfLines={3}>
+                  {quoteTo.text}
                 </Text>
               </View>
             )}
@@ -379,14 +419,16 @@ export function PostCreationModal({
                 </Text>
               </Pressable>
 
-              {/* Image Picker Button */}
-              <Pressable
-                style={styles.toolbarButton}
-                onPress={handleAddImage}
-                disabled={isPosting || !canAddImage}
-              >
-                <ImagePlus size={20} color={canAddImage ? colors.primary : colors.disabled} />
-              </Pressable>
+              {/* Image Picker Button (hidden in quote mode) */}
+              {!quoteTo && (
+                <Pressable
+                  style={styles.toolbarButton}
+                  onPress={handleAddImage}
+                  disabled={isPosting || !canAddImage}
+                >
+                  <ImagePlus size={20} color={canAddImage ? colors.primary : colors.disabled} />
+                </Pressable>
+              )}
 
               {/* Content Label Button (only when images attached) */}
               {images.length > 0 && (
@@ -445,6 +487,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16, // Spacing.lg
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerTitle: {
+    fontSize: 16, // FontSizes.lg
+    fontWeight: '600',
   },
   headerCancel: {
     paddingVertical: 8, // Spacing.sm
@@ -591,6 +637,52 @@ const styles = StyleSheet.create({
   imageCount: {
     fontSize: 12,
     marginTop: 6,
+  },
+  replyTargetContainer: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+  },
+  replyTargetLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  replyTargetText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  quotePreviewContainer: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  quotePreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  quotePreviewAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 6,
+  },
+  quotePreviewDisplayName: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  quotePreviewHandle: {
+    fontSize: 12,
+    flex: 1,
+  },
+  quotePreviewText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 

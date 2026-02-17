@@ -39,7 +39,8 @@ import { IndexTabs, TabType } from '../components/IndexTabs';
 import { ProfileView } from '../components/ProfileView';
 import { TimelinePost } from '../types/bluesky';
 import { useAuthProfile } from '../store/authStore';
-import { likePost, unlikePost } from '../services/bluesky/feed';
+import { likePost, unlikePost, repostPost, unrepostPost } from '../services/bluesky/feed';
+import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { useTheme } from '../hooks/useTheme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -211,6 +212,8 @@ export function HomeScreen(): React.JSX.Element {
 
   // Post creation modal state
   const [isPostModalVisible, setIsPostModalVisible] = useState(false);
+  const [replyTarget, setReplyTarget] = useState<ReplyToInfo | null>(null);
+  const [quoteTarget, setQuoteTarget] = useState<QuoteToInfo | null>(null);
 
   /**
    * Handle end reached for infinite scroll
@@ -318,6 +321,66 @@ export function HomeScreen(): React.JSX.Element {
   );
 
   /**
+   * Handle reply press
+   */
+  const handleReplyPress = useCallback((post: TimelinePost) => {
+    setReplyTarget({
+      uri: post.uri,
+      cid: post.cid,
+      author: { handle: post.author.handle, displayName: post.author.displayName },
+      text: post.text,
+    });
+    setQuoteTarget(null);
+    setIsPostModalVisible(true);
+  }, []);
+
+  /**
+   * Handle repost press
+   */
+  const handleRepostPress = useCallback(
+    async (post: TimelinePost, shouldRepost: boolean) => {
+      try {
+        if (shouldRepost) {
+          const result = await repostPost(post.uri, post.cid);
+          if (!result.success && __DEV__) {
+            console.error('Failed to repost:', result.error);
+          }
+        } else {
+          if (post.viewer?.repost) {
+            const result = await unrepostPost(post.viewer.repost);
+            if (!result.success && __DEV__) {
+              console.error('Failed to unrepost:', result.error);
+            }
+          }
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.error('Repost operation failed:', error);
+        }
+      }
+    },
+    []
+  );
+
+  /**
+   * Handle quote press
+   */
+  const handleQuotePress = useCallback((post: TimelinePost) => {
+    setQuoteTarget({
+      uri: post.uri,
+      cid: post.cid,
+      author: {
+        handle: post.author.handle,
+        displayName: post.author.displayName,
+        avatar: post.author.avatar,
+      },
+      text: post.text,
+    });
+    setReplyTarget(null);
+    setIsPostModalVisible(true);
+  }, []);
+
+  /**
    * Handle first post elements layout for tutorial
    */
   const handlePostLayoutElements = useCallback((elements: any) => {
@@ -377,12 +440,15 @@ export function HomeScreen(): React.JSX.Element {
           onSentenceSelect={handleSentenceSelect}
           onPostPress={handlePostPress}
           onLikePress={handleLikePress}
+          onReplyPress={handleReplyPress}
+          onRepostPress={handleRepostPress}
+          onQuotePress={handleQuotePress}
           clearSelection={shouldClearSelection}
           onLayoutElements={index === 0 ? handlePostLayoutElements : undefined}
         />
       );
     },
-    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
+    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
   );
 
   /**
@@ -599,6 +665,9 @@ export function HomeScreen(): React.JSX.Element {
           <ProfileView
             flatListRef={profileFlatListRef}
             onScroll={handleProfileScroll}
+            onReplyPress={handleReplyPress}
+            onRepostPress={handleRepostPress}
+            onQuotePress={handleQuotePress}
           />
         </View>
       </PagerView>
@@ -626,11 +695,19 @@ export function HomeScreen(): React.JSX.Element {
 
       <PostCreationModal
         visible={isPostModalVisible}
-        onClose={() => setIsPostModalVisible(false)}
+        onClose={() => {
+          setIsPostModalVisible(false);
+          setReplyTarget(null);
+          setQuoteTarget(null);
+        }}
         onPostSuccess={() => {
           setIsPostModalVisible(false);
+          setReplyTarget(null);
+          setQuoteTarget(null);
           refresh();
         }}
+        replyTo={replyTarget ?? undefined}
+        quoteTo={quoteTarget ?? undefined}
       />
 
       <WordPopup

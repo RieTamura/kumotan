@@ -11,6 +11,9 @@ import {
   Image,
   Pressable,
   Linking,
+  Platform,
+  ActionSheetIOS,
+  Alert,
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
 import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink, AlertTriangle } from 'lucide-react-native';
@@ -31,6 +34,9 @@ interface PostCardProps {
   onSentenceSelect?: (sentence: string, postUri: string, postText: string) => void;
   onPostPress?: (postUri: string) => void;
   onLikePress?: (post: TimelinePost, isLiked: boolean) => void;
+  onReplyPress?: (post: TimelinePost) => void;
+  onRepostPress?: (post: TimelinePost, isReposted: boolean) => void;
+  onQuotePress?: (post: TimelinePost) => void;
   clearSelection?: boolean;
   onLayoutElements?: (elements: {
     bookIcon?: { x: number; y: number; width: number; height: number };
@@ -474,6 +480,9 @@ function PostCardComponent({
   onSentenceSelect,
   onPostPress,
   onLikePress,
+  onReplyPress,
+  onRepostPress,
+  onQuotePress,
   clearSelection,
   onLayoutElements
 }: PostCardProps): React.JSX.Element {
@@ -483,6 +492,7 @@ function PostCardComponent({
   const postTextContainerRef = React.useRef<View>(null);
   const firstWordTextRef = React.useRef<string>('');
   const contentColumnRef = React.useRef<View>(null);
+  const metricButtonPressed = React.useRef(false);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
@@ -492,6 +502,11 @@ function PostCardComponent({
   const [isLiked, setIsLiked] = useState(!!post.viewer?.like);
   const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+
+  // Repost state - track locally for immediate UI feedback
+  const [isReposted, setIsReposted] = useState(!!post.viewer?.repost);
+  const [repostCount, setRepostCount] = useState(post.repostCount ?? 0);
+  const [isRepostLoading, setIsRepostLoading] = useState(false);
 
   // Image viewer state
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -506,6 +521,12 @@ function PostCardComponent({
     setIsLiked(!!post.viewer?.like);
     setLikeCount(post.likeCount ?? 0);
   }, [post.viewer?.like, post.likeCount]);
+
+  // Sync repost state with post prop changes
+  useEffect(() => {
+    setIsReposted(!!post.viewer?.repost);
+    setRepostCount(post.repostCount ?? 0);
+  }, [post.viewer?.repost, post.repostCount]);
 
   /**
    * Clear selection when clearSelection prop changes to true
@@ -645,6 +666,7 @@ function PostCardComponent({
    * Handle BookSearch button press - select entire post as sentence
    */
   const handleBookSearchPress = useCallback(() => {
+    metricButtonPressed.current = true;
     if (!onSentenceSelect) return;
     const fullText = post.text.trim();
     if (fullText) {
@@ -679,6 +701,12 @@ function PostCardComponent({
    * Handle press to clear selection or navigate to thread
    */
   const handlePress = useCallback(() => {
+    // Skip thread navigation when a metric button was pressed
+    if (metricButtonPressed.current) {
+      metricButtonPressed.current = false;
+      return;
+    }
+
     // If there's a selection, clear it first
     if (selectedWord || selectedSentence) {
       setSelectedWord(null);
@@ -748,6 +776,7 @@ function PostCardComponent({
    * Handle like button press
    */
   const handleLikePress = useCallback(() => {
+    metricButtonPressed.current = true;
     if (isLikeLoading || !onLikePress) return;
 
     // Optimistic update
@@ -762,6 +791,89 @@ function PostCardComponent({
     // Reset loading state after a short delay
     setTimeout(() => setIsLikeLoading(false), 500);
   }, [isLiked, isLikeLoading, onLikePress, post]);
+
+  /**
+   * Handle reply button press
+   */
+  const handleReplyPress = useCallback(() => {
+    metricButtonPressed.current = true;
+    if (!onReplyPress) return;
+    if (post.replyRestriction === 'disabled') return;
+    onReplyPress(post);
+  }, [onReplyPress, post]);
+
+  /**
+   * Handle repost toggle (simple repost)
+   */
+  const handleRepostToggle = useCallback(() => {
+    if (isRepostLoading || !onRepostPress) return;
+
+    setIsRepostLoading(true);
+    const newIsReposted = !isReposted;
+    setIsReposted(newIsReposted);
+    setRepostCount((prev) => newIsReposted ? prev + 1 : Math.max(0, prev - 1));
+
+    onRepostPress(post, newIsReposted);
+
+    setTimeout(() => setIsRepostLoading(false), 500);
+  }, [isReposted, isRepostLoading, onRepostPress, post]);
+
+  /**
+   * Handle repost icon press - show action sheet with repost/quote options
+   */
+  const handleRepostPress = useCallback(() => {
+    metricButtonPressed.current = true;
+    if (!onRepostPress && !onQuotePress) return;
+
+    const isDisabled = post.replyRestriction === 'disabled';
+
+    if (Platform.OS === 'ios') {
+      const options: string[] = [];
+      const actions: (() => void)[] = [];
+
+      if (onRepostPress) {
+        options.push(isReposted ? t('home:unrepost') : t('home:repost'));
+        actions.push(handleRepostToggle);
+      }
+      if (onQuotePress && !isDisabled) {
+        options.push(t('home:quotePost'));
+        actions.push(() => onQuotePress(post));
+      }
+      options.push(t('home:postCancel'));
+
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: options.length - 1,
+          destructiveButtonIndex: isReposted ? 0 : undefined,
+          title: t('home:repostActionTitle'),
+        },
+        (buttonIndex) => {
+          if (buttonIndex < actions.length) {
+            actions[buttonIndex]();
+          }
+        },
+      );
+    } else {
+      const buttons: Array<{ text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }> = [];
+
+      if (onRepostPress) {
+        buttons.push({
+          text: isReposted ? t('home:unrepost') : t('home:repost'),
+          onPress: handleRepostToggle,
+        });
+      }
+      if (onQuotePress && !isDisabled) {
+        buttons.push({
+          text: t('home:quotePost'),
+          onPress: () => onQuotePress(post),
+        });
+      }
+      buttons.push({ text: t('home:postCancel'), style: 'cancel' });
+
+      Alert.alert(t('home:repostActionTitle'), undefined, buttons);
+    }
+  }, [onRepostPress, onQuotePress, post, isReposted, handleRepostToggle, t]);
 
   /**
    * Memoize parsed tokens to avoid re-parsing on every render
@@ -1195,7 +1307,12 @@ function PostCardComponent({
 
           {/* Engagement metrics */}
           <View style={styles.metricsRow}>
-            <View style={styles.metric}>
+            <Pressable
+              style={styles.metric}
+              onPress={handleReplyPress}
+              disabled={post.replyRestriction === 'disabled' || !onReplyPress}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
               {post.replyRestriction === 'disabled' ? (
                 <MessageCircleOff size={16} color={colors.textSecondary} />
               ) : post.replyRestriction === 'restricted' ? (
@@ -1204,11 +1321,21 @@ function PostCardComponent({
                 <MessageCircle size={16} color={colors.textSecondary} />
               )}
               <Text style={[styles.metricText, { color: colors.textSecondary }]}>{post.replyCount ?? 0}</Text>
-            </View>
-            <View style={styles.metric}>
-              <Repeat2 size={16} color={colors.textSecondary} />
-              <Text style={[styles.metricText, { color: colors.textSecondary }]}>{post.repostCount ?? 0}</Text>
-            </View>
+            </Pressable>
+            <Pressable
+              style={styles.metric}
+              onPress={handleRepostPress}
+              disabled={isRepostLoading || (!onRepostPress && !onQuotePress)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Repeat2
+                size={16}
+                color={isReposted ? colors.success : colors.textSecondary}
+              />
+              <Text style={[styles.metricText, { color: colors.textSecondary }, isReposted && { color: colors.success }]}>
+                {repostCount}
+              </Text>
+            </Pressable>
             <Pressable
               style={styles.likeButton}
               onPress={handleLikePress}

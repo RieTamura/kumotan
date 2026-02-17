@@ -88,6 +88,14 @@ export interface PostEmbed {
 }
 
 /**
+ * Reply reference for creating reply posts
+ */
+export interface ReplyRef {
+  root: { uri: string; cid: string };
+  parent: { uri: string; cid: string };
+}
+
+/**
  * Viewer state for a post
  */
 export interface PostViewer {

@@ -34,12 +34,15 @@ import { tokenizeRichText } from '../utils/richText';
 interface ProfileViewProps {
   flatListRef?: React.RefObject<FlatList<TimelinePost> | null>;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  onReplyPress?: (post: TimelinePost) => void;
+  onRepostPress?: (post: TimelinePost, shouldRepost: boolean) => Promise<void>;
+  onQuotePress?: (post: TimelinePost) => void;
 }
 
 /**
  * ProfileView - Displays user profile information with their posts
  */
-export const ProfileView = memo(function ProfileView({ flatListRef, onScroll }: ProfileViewProps): React.JSX.Element {
+export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, onReplyPress, onRepostPress, onQuotePress }: ProfileViewProps): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation('home');
   const { colors } = useTheme();
@@ -308,13 +311,16 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll }: 
           post={item}
           onPostPress={handlePostPress}
           onLikePress={handleLikePress}
+          onReplyPress={onReplyPress}
+          onRepostPress={onRepostPress}
+          onQuotePress={onQuotePress}
           onWordSelect={handleWordSelect}
           onSentenceSelect={handleSentenceSelect}
           clearSelection={shouldClearSelection}
         />
       );
     },
-    [handlePostPress, handleLikePress, handleWordSelect, handleSentenceSelect, wordPopup.visible, wordPopup.postUri]
+    [handlePostPress, handleLikePress, onReplyPress, onRepostPress, onQuotePress, handleWordSelect, handleSentenceSelect, wordPopup.visible, wordPopup.postUri]
   );
 
   /**

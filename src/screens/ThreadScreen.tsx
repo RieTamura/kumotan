@@ -19,10 +19,12 @@ import { Colors, Spacing, FontSizes, BorderRadius } from '../constants/colors';
 import { useTheme } from '../hooks/useTheme';
 import { Loading } from '../components/common/Loading';
 import { PostCard } from '../components/PostCard';
+import { PostCreationModal } from '../components/PostCreationModal';
 import { WordPopup } from '../components/WordPopup';
 import { TimelinePost } from '../types/bluesky';
 import { getAgent, hasActiveSession, refreshSession } from '../services/bluesky/auth';
-import { likePost, unlikePost, extractPostEmbed } from '../services/bluesky/feed';
+import { likePost, unlikePost, repostPost, unrepostPost, extractPostEmbed } from '../services/bluesky/feed';
+import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { addWord } from '../services/database/words';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -111,6 +113,11 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
 
   // Word popup state
   const [wordPopup, setWordPopup] = useState<WordPopupState>(initialWordPopupState);
+
+  // Post creation modal state
+  const [isPostModalVisible, setIsPostModalVisible] = useState(false);
+  const [replyTarget, setReplyTarget] = useState<ReplyToInfo | null>(null);
+  const [quoteTarget, setQuoteTarget] = useState<QuoteToInfo | null>(null);
 
   /**
    * Fetch thread data
@@ -344,6 +351,66 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
     []
   );
 
+  /**
+   * Handle reply press
+   */
+  const handleReplyPress = useCallback((post: TimelinePost) => {
+    setReplyTarget({
+      uri: post.uri,
+      cid: post.cid,
+      author: { handle: post.author.handle, displayName: post.author.displayName },
+      text: post.text,
+    });
+    setQuoteTarget(null);
+    setIsPostModalVisible(true);
+  }, []);
+
+  /**
+   * Handle repost press
+   */
+  const handleRepostPress = useCallback(
+    async (post: TimelinePost, shouldRepost: boolean) => {
+      try {
+        if (shouldRepost) {
+          const result = await repostPost(post.uri, post.cid);
+          if (!result.success && __DEV__) {
+            console.error('Failed to repost:', result.error);
+          }
+        } else {
+          if (post.viewer?.repost) {
+            const result = await unrepostPost(post.viewer.repost);
+            if (!result.success && __DEV__) {
+              console.error('Failed to unrepost:', result.error);
+            }
+          }
+        }
+      } catch (err) {
+        if (__DEV__) {
+          console.error('Repost operation failed:', err);
+        }
+      }
+    },
+    []
+  );
+
+  /**
+   * Handle quote press
+   */
+  const handleQuotePress = useCallback((post: TimelinePost) => {
+    setQuoteTarget({
+      uri: post.uri,
+      cid: post.cid,
+      author: {
+        handle: post.author.handle,
+        displayName: post.author.displayName,
+        avatar: post.author.avatar,
+      },
+      text: post.text,
+    });
+    setReplyTarget(null);
+    setIsPostModalVisible(true);
+  }, []);
+
   // Fetch thread on mount
   useEffect(() => {
     fetchThread();
@@ -370,6 +437,9 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
               onSentenceSelect={handleSentenceSelect}
               onPostPress={handlePostPress}
               onLikePress={handleLikePress}
+              onReplyPress={handleReplyPress}
+              onRepostPress={handleRepostPress}
+              onQuotePress={handleQuotePress}
               clearSelection={shouldClearParentSelection}
             />
           </View>
@@ -383,6 +453,9 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
             onSentenceSelect={handleSentenceSelect}
             onPostPress={handlePostPress}
             onLikePress={handleLikePress}
+            onReplyPress={handleReplyPress}
+            onRepostPress={handleRepostPress}
+            onQuotePress={handleQuotePress}
             clearSelection={shouldClearMainSelection}
           />
         </View>
@@ -397,7 +470,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
         )}
       </View>
     );
-  }, [threadData, t, handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, wordPopup.visible, wordPopup.postUri]);
+  }, [threadData, t, handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Render reply item
@@ -412,11 +485,14 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
           onSentenceSelect={handleSentenceSelect}
           onPostPress={handlePostPress}
           onLikePress={handleLikePress}
+          onReplyPress={handleReplyPress}
+          onRepostPress={handleRepostPress}
+          onQuotePress={handleQuotePress}
           clearSelection={shouldClearSelection}
         />
       </View>
     );
-  }, [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, wordPopup.visible, wordPopup.postUri]);
+  }, [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Key extractor
@@ -471,6 +547,23 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
           />
         }
         showsVerticalScrollIndicator={false}
+      />
+
+      <PostCreationModal
+        visible={isPostModalVisible}
+        onClose={() => {
+          setIsPostModalVisible(false);
+          setReplyTarget(null);
+          setQuoteTarget(null);
+        }}
+        onPostSuccess={() => {
+          setIsPostModalVisible(false);
+          setReplyTarget(null);
+          setQuoteTarget(null);
+          handleRefresh();
+        }}
+        replyTo={replyTarget ?? undefined}
+        quoteTo={quoteTarget ?? undefined}
       />
 
       <WordPopup

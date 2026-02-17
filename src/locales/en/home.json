@@ -78,5 +78,13 @@
   "contentLabelPorn": "Adult Content (Pornography)",
   "contentLabelGraphicMedia": "Graphic Media",
   "contentWarning": "Content Warning",
-  "contentWarningTap": "Tap to show"
+  "contentWarningTap": "Tap to show",
+  "replyTitle": "Reply",
+  "replyTo": "Replying to @{{handle}}",
+  "repost": "Repost",
+  "unrepost": "Undo repost",
+  "quotePost": "Quote post",
+  "repostActionTitle": "Repost",
+  "replyDisabled": "Replies are disabled for this post",
+  "quoteDisabled": "Quoting is disabled for this post"
 }

@@ -918,6 +918,37 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - [x] `AppNavigator` に `LegalDocument` ルート追加
 - [x] 設定画面のアプリ情報セクション（タグライン下）にリンク配置
 
+### M10: 返信・リポスト・引用リポスト ✅ **完了** (2026-02-17)
+
+**目的**: タイムライン投稿への返信・リポスト・引用リポスト機能の実装
+
+- [x] 返信機能（Phase 1）
+  - `createPost()`に`reply`パラメータ追加（root/parent URI+CID）
+  - `PostCreationModal`を返信モードで開く（返信先ヘッダー表示）
+  - `PostCard`の返信アイコンを`Pressable`化
+  - HomeScreen、ThreadScreenから返信可能
+- [x] 単純リポスト機能（Phase 2）
+  - `repostPost()` / `unrepostPost()`関数追加
+  - いいねと同パターンのオプティミスティックUI
+  - リポスト済みアイコンを`colors.success`（緑）で表示
+- [x] 引用リポスト機能（Phase 3）
+  - リポストアイコンタップ時にアクションシート表示
+  - `PostCreationModal`を引用モードで開く（引用元プレビュー表示）
+  - `embed`に`app.bsky.embed.record`として元投稿を埋め込み
+- [x] PostCardのタップ競合修正（`metricButtonPressed` ref）
+- [x] プロフィールタブの投稿にも返信・リポスト・引用を接続
+- 変更ファイル:
+  - `src/types/bluesky.ts`: `ReplyRef`型追加
+  - `src/services/bluesky/feed.ts`: `reply`パラメータ、`repostPost()`、`unrepostPost()`追加
+  - `src/hooks/usePostCreation.ts`: `ReplyToInfo`、`QuoteToInfo`型、`replyTo`/`quoteTo`パラメータ追加
+  - `src/components/PostCreationModal.tsx`: `replyTo`/`quoteTo` prop、返信ヘッダー、引用プレビューUI
+  - `src/components/PostCard.tsx`: `onReplyPress`/`onRepostPress`/`onQuotePress` prop、オプティミスティックUI
+  - `src/components/ProfileView.tsx`: 返信・リポスト・引用のprops追加
+  - `src/screens/HomeScreen.tsx`: ハンドラ追加、ProfileViewへのprops接続
+  - `src/screens/ThreadScreen.tsx`: ハンドラ追加、`PostCreationModal`追加
+  - `src/locales/ja/home.json`、`src/locales/en/home.json`: 翻訳キー追加
+- 詳細: `doc/reply-repost-implementation-plan.md`
+
 ## 注意事項・制約
 
 ### API制限
@@ -996,6 +1027,21 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.31 (2026-02-17)
+
+- **返信・リポスト・引用リポスト機能の実装（M10）**
+  - 投稿への返信機能: PostCreationModalを返信モードで開き、AT Protocol reply参照を構築して投稿
+  - 単純リポスト機能: `repostPost()`/`unrepostPost()`によるトグル、オプティミスティックUI
+  - 引用リポスト機能: アクションシートで選択、PostCreationModal引用モードで引用embed構築
+  - PostCardのタップ競合修正（`metricButtonPressed` refパターン）
+  - プロフィールタブの投稿にも返信・リポスト・引用を接続
+  - 変更ファイル:
+    - `src/types/bluesky.ts`, `src/services/bluesky/feed.ts`, `src/hooks/usePostCreation.ts`
+    - `src/components/PostCreationModal.tsx`, `src/components/PostCard.tsx`, `src/components/ProfileView.tsx`
+    - `src/screens/HomeScreen.tsx`, `src/screens/ThreadScreen.tsx`
+    - `src/locales/ja/home.json`, `src/locales/en/home.json`
+  - 詳細: `doc/reply-repost-implementation-plan.md`
 
 ### v1.30 (2026-02-13)
 

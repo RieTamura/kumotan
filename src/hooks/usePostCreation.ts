@@ -6,7 +6,28 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createPost, PostReplySettings, DEFAULT_REPLY_SETTINGS, PostImageAttachment, buildImageEmbed } from '../services/bluesky/feed';
+import { ReplyRef } from '../types/bluesky';
 import { AppError } from '../utils/errors';
+
+/**
+ * Reply target info for creating a reply
+ */
+export interface ReplyToInfo {
+  uri: string;
+  cid: string;
+  author: { handle: string; displayName: string };
+  text: string;
+}
+
+/**
+ * Quote target info for creating a quote post
+ */
+export interface QuoteToInfo {
+  uri: string;
+  cid: string;
+  author: { handle: string; displayName: string; avatar?: string };
+  text: string;
+}
 
 /**
  * Maximum number of images per post
@@ -101,7 +122,12 @@ const initialState: PostCreationState = {
  * @param initialText - Optional initial text to pre-fill the post
  * @param initialImages - Optional initial images to pre-attach (e.g., from share flow)
  */
-export function usePostCreation(initialText?: string, initialImages?: PostImageAttachment[]): UsePostCreationReturn {
+export function usePostCreation(
+  initialText?: string,
+  initialImages?: PostImageAttachment[],
+  replyTo?: ReplyToInfo,
+  quoteTo?: QuoteToInfo
+): UsePostCreationReturn {
   const [state, setState] = useState<PostCreationState>(initialState);
   const [hashtagHistory, setHashtagHistory] = useState<string[]>(DEFAULT_HASHTAGS);
 
@@ -316,6 +342,26 @@ export function usePostCreation(initialText?: string, initialImages?: PostImageA
       embed = embedResult.data;
     }
 
+    // Build quote embed if quoting a post
+    if (quoteTo && !embed) {
+      embed = {
+        $type: 'app.bsky.embed.record',
+        record: {
+          uri: quoteTo.uri,
+          cid: quoteTo.cid,
+        },
+      };
+    }
+
+    // Build reply reference
+    let replyRef: ReplyRef | undefined;
+    if (replyTo) {
+      replyRef = {
+        root: { uri: replyTo.uri, cid: replyTo.cid },
+        parent: { uri: replyTo.uri, cid: replyTo.cid },
+      };
+    }
+
     const labelsToSend = state.images.length > 0 && state.selfLabels.length > 0
       ? state.selfLabels
       : undefined;
@@ -325,6 +371,7 @@ export function usePostCreation(initialText?: string, initialImages?: PostImageA
       isDefaultSettings ? undefined : settings,
       embed,
       labelsToSend,
+      replyRef,
     );
 
     if (result.success) {
