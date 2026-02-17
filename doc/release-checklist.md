@@ -33,7 +33,7 @@
 - [x] 上記URLでプライバシーポリシーがホスティングされているか確認
 - [x] 利用規約も同様にWebでアクセス可能か確認（`terms-of-service.html`）
 - [x] 未ホスティングの場合、GitHub Pagesにデプロイする
-- [ ] アプリ内（LegalDocumentScreen）と同じ内容であることを確認
+- [x] アプリ内（LegalDocumentScreen）と同じ内容であることを確認
 
 ---
 
