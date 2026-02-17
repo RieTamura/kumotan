@@ -60,14 +60,9 @@ export const QuizShareCard = React.forwardRef<View, QuizShareCardProps>(
           {/* Hero Accuracy Circle */}
           <View style={[styles.hero, { borderColor: QUIZ_DAY_COLOR }]}>
             <Text style={styles.heroNumber}>
-              {result.accuracy}%
+              {result.accuracy}
             </Text>
           </View>
-
-          {/* Score (on white cloud area) */}
-          <Text style={styles.scoreLabel}>
-            {result.correctCount}/{result.totalQuestions}
-          </Text>
 
           {/* Stats Row (on white cloud area) */}
           <View style={styles.statsRow}>
@@ -146,13 +141,6 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: '800',
     color: PRIMARY,
-  },
-  scoreLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: PRIMARY_DARK,
-    textAlign: 'center',
-    marginTop: 8,
   },
   statsRow: {
     flexDirection: 'row',
