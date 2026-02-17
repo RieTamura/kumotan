@@ -25,6 +25,10 @@
   "form": {
     "hide": "フォームを閉じる"
   },
+  "noAccount": {
+    "text": "Blueskyアカウントをお持ちでない方は",
+    "link": "こちらから作成"
+  },
   "version": "バージョン {{version}}",
   "errors": {
     "offline": "オフライン",

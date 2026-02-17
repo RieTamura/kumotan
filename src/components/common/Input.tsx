@@ -27,6 +27,8 @@ interface InputProps extends TextInputProps {
   rightIcon?: React.ReactNode;
   containerStyle?: ViewStyle;
   showPasswordToggle?: boolean;
+  labelStyle?: object;
+  hintStyle?: object;
 }
 
 /**
@@ -44,6 +46,8 @@ export const Input = forwardRef<TextInput, InputProps>(
       showPasswordToggle = false,
       secureTextEntry,
       style,
+      labelStyle,
+      hintStyle,
       ...props
     },
     ref
@@ -72,7 +76,7 @@ export const Input = forwardRef<TextInput, InputProps>(
 
     return (
       <View style={[styles.container, containerStyle]}>
-        {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
+        {label && <Text style={[styles.label, { color: colors.text }, labelStyle]}>{label}</Text>}
 
         <View
           style={[
@@ -118,7 +122,7 @@ export const Input = forwardRef<TextInput, InputProps>(
         </View>
 
         {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
-        {hint && !error && <Text style={[styles.hintText, { color: colors.textSecondary }]}>{hint}</Text>}
+        {hint && !error && <Text style={[styles.hintText, { color: colors.textSecondary }, hintStyle]}>{hint}</Text>}
       </View>
     );
   }

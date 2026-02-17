@@ -25,6 +25,10 @@
   "form": {
     "hide": "Hide form"
   },
+  "noAccount": {
+    "text": "Don't have a Bluesky account?",
+    "link": "Create one here"
+  },
   "version": "Version {{version}}",
   "errors": {
     "offline": "Offline",

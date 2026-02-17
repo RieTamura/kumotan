@@ -12,6 +12,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
+  Linking,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -86,7 +89,7 @@ export function LoginScreen(): React.JSX.Element {
   }, [identifier, isConnected, validateIdentifier, loginWithOAuth, t, tc]);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.primary }]} edges={['top', 'left', 'right']}>
       <StaticOfflineBanner visible={!isConnected} />
 
       <KeyboardAvoidingView
@@ -100,12 +103,15 @@ export function LoginScreen(): React.JSX.Element {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.appName, { color: colors.primary }]}>{APP_INFO.NAME}</Text>
-            <Text style={[styles.tagline, { color: colors.textSecondary }]}>{APP_INFO.DESCRIPTION}</Text>
+            <Image 
+              source={require('../../assets/icon.png')} 
+              style={styles.appIcon}
+              resizeMode="contain"
+            />
           </View>
 
           {/* Description */}
-          <View style={[styles.descriptionContainer, { backgroundColor: colors.backgroundSecondary }]}>
+          <View style={[styles.descriptionContainer, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
             <Text style={[styles.description, { color: colors.text }]}>
               {t('description')}
             </Text>
@@ -137,6 +143,8 @@ export function LoginScreen(): React.JSX.Element {
               returnKeyType="done"
               onSubmitEditing={handleOAuthLogin}
               editable={!isLoading}
+              labelStyle={{ color: '#FFFFFF' }}
+              hintStyle={{ color: '#FFFFFF' }}
             />
 
             {/* Actions */}
@@ -148,15 +156,34 @@ export function LoginScreen(): React.JSX.Element {
                 disabled={!isConnected || isLoading}
                 fullWidth
                 size="large"
-                style={styles.mainButton}
+                style={[styles.mainButton, { backgroundColor: '#FFFFFF' }]}
+                textStyle={{ color: colors.primary, fontWeight: '700' }}
               />
+            </View>
+
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* No Account Info */}
+            <View style={styles.noAccountContainer}>
+              <Text style={styles.noAccountText}>
+                {t('noAccount.text')}
+              </Text>
+              <TouchableOpacity 
+                onPress={() => Linking.openURL('https://bsky.app')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.noAccountLink}>
+                  {t('noAccount.link')}
+                </Text>
+              </TouchableOpacity>
             </View>
 
           </View>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.textTertiary }]}>
+            <Text style={[styles.footerText, { color: '#FFFFFF' }]}>
               {t('version', { version: APP_INFO.VERSION })}
             </Text>
           </View>
@@ -169,7 +196,7 @@ export function LoginScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.primary,
   },
   keyboardView: {
     flex: 1,
@@ -184,8 +211,11 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: Spacing.xxl,
-    marginBottom: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  appIcon: {
+    width: 160,
+    height: 160,
   },
   appName: {
     fontSize: FontSizes.xxxl,
@@ -195,10 +225,10 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: FontSizes.md,
-    color: Colors.textSecondary,
+    color: '#FFFFFF',
   },
   descriptionContainer: {
-    backgroundColor: Colors.backgroundSecondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -238,6 +268,28 @@ const styles = StyleSheet.create({
   },
   mainButton: {
     marginBottom: Spacing.md,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginVertical: Spacing.lg,
+  },
+  noAccountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  noAccountText: {
+    fontSize: FontSizes.sm,
+    color: '#FFFFFF',
+    marginRight: Spacing.xs,
+  },
+  noAccountLink: {
+    fontSize: FontSizes.sm,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 
