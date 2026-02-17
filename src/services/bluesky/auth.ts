@@ -16,10 +16,10 @@ import { signIn as oauthSignIn, restoreSession as oauthRestore, oauthClient } fr
 // Helper to access protected tokens
 async function getSessionTokens(session: any) {
   try {
-    console.log('[OAuth] getSessionTokens: calling session.getTokenSet()...');
+    if (__DEV__) console.log('[OAuth] getSessionTokens: calling session.getTokenSet()...');
     // Pass 'false' to skip refresh and just get the stored token set
     const tokenSet = await session.getTokenSet(false);
-    console.log('[OAuth] getSessionTokens: got tokenSet', {
+    if (__DEV__) console.log('[OAuth] getSessionTokens: got tokenSet', {
       hasAccessToken: !!tokenSet.access_token,
       hasRefreshToken: !!tokenSet.refresh_token,
       scope: tokenSet.scope,
@@ -29,8 +29,8 @@ async function getSessionTokens(session: any) {
       refresh_token: tokenSet.refresh_token
     };
   } catch (error: any) {
-    console.error('[OAuth] getSessionTokens error:', error.message);
-    console.error('[OAuth] getSessionTokens error details:', {
+    if (__DEV__) console.error('[OAuth] getSessionTokens error:', error.message);
+    if (__DEV__) console.error('[OAuth] getSessionTokens error details:', {
       name: error.name,
       error: error.error,
       errorDescription: error.errorDescription,
@@ -67,7 +67,7 @@ export function setOAuthSession(session: any): void {
     did: session.did,
     fetchHandler: session.fetchHandler.bind(session),
   };
-  console.log('[OAuth] Agent initialized with OAuth session fetchHandler');
+  if (__DEV__) console.log('[OAuth] Agent initialized with OAuth session fetchHandler');
 }
 
 /**
@@ -228,7 +228,7 @@ export async function resumeSession(): Promise<Result<void, AppError>> {
     try {
       const oauthSession = await oauthRestore(storedAuth.did);
       if (oauthSession) {
-        console.log('Valid OAuth session found, initializing agent with OAuth fetchHandler');
+        if (__DEV__) console.log('Valid OAuth session found, initializing agent with OAuth fetchHandler');
         // Initialize the agent with OAuth session's fetchHandler
         setOAuthSession(oauthSession);
         return { success: true, data: undefined };
@@ -236,7 +236,7 @@ export async function resumeSession(): Promise<Result<void, AppError>> {
     } catch (e: any) {
       // Not an OAuth session or restore failed, fall back to standard resume
       // likely an App Password session
-      console.log('Not an OAuth session or restore failed, trying standard resume:', e?.message);
+      if (__DEV__) console.log('Not an OAuth session or restore failed, trying standard resume:', e?.message);
     }
 
     await bskyAgent.resumeSession({
@@ -422,7 +422,7 @@ export async function startOAuthFlow(
     // Call the new OAuth client implementation
     const session = await oauthSignIn(handle);
 
-    console.log('[OAuth] Sign-in successful, session established');
+    if (__DEV__) console.log('[OAuth] Sign-in successful, session established');
     oauthLogger.info('OAuth sign-in successful');
 
     // Store session data into SecureStore for app usage
@@ -441,7 +441,7 @@ export async function startOAuthFlow(
 
         // Initialize the agent with OAuth session's fetchHandler for DPoP-bound token support
         setOAuthSession(session);
-        console.log('[OAuth] Session stored and agent initialized with OAuth fetchHandler');
+        if (__DEV__) console.log('[OAuth] Session stored and agent initialized with OAuth fetchHandler');
 
         oauthLogger.info('Session data stored and agent initialized');
       }
@@ -451,7 +451,7 @@ export async function startOAuthFlow(
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     oauthLogger.error('OAuth flow error', { error: errorMessage });
-    console.log('[OAuth] OAuth flow error:', errorMessage);
+    if (__DEV__) console.log('[OAuth] OAuth flow error:', errorMessage);
 
     if (errorMessage.includes('cancelled') || errorMessage.includes('dismissed')) {
       return {

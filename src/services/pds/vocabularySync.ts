@@ -76,22 +76,22 @@ export async function syncWordToPds(
   word: Word
 ): Promise<string | null> {
   const did = getDid(agent);
-  console.log('[syncWordToPds] did:', did, 'word:', word.english);
+  if (__DEV__) console.log('[syncWordToPds] did:', did, 'word:', word.english);
   if (!did) {
-    console.warn('[syncWordToPds] No DID found, skipping PDS sync');
+    if (__DEV__) console.warn('[syncWordToPds] No DID found, skipping PDS sync');
     return null;
   }
 
   try {
     const record = buildPdsRecord(word);
 
-    console.log('[syncWordToPds] Calling createRecord...');
+    if (__DEV__) console.log('[syncWordToPds] Calling createRecord...');
     const response = await agent.api.com.atproto.repo.createRecord({
       repo: did,
       collection: COLLECTION,
       record,
     });
-    console.log('[syncWordToPds] Response:', response.data.uri);
+    if (__DEV__) console.log('[syncWordToPds] Response:', response.data.uri);
 
     const rkey = extractRkey(response.data.uri);
     if (rkey) {
@@ -104,7 +104,7 @@ export async function syncWordToPds(
 
     return rkey;
   } catch (error) {
-    console.error('[syncWordToPds] Failed to sync word to PDS:', error);
+    if (__DEV__) console.error('[syncWordToPds] Failed to sync word to PDS:', error);
     return null;
   }
 }
@@ -133,7 +133,7 @@ export async function deleteWordFromPds(
     });
     return true;
   } catch (error) {
-    console.error('[deleteWordFromPds] Failed to delete word from PDS:', error);
+    if (__DEV__) console.error('[deleteWordFromPds] Failed to delete word from PDS:', error);
     return false;
   }
 }
@@ -167,7 +167,7 @@ export async function updateWordInPds(
     });
     return true;
   } catch (error) {
-    console.error('[updateWordInPds] Failed to update word in PDS:', error);
+    if (__DEV__) console.error('[updateWordInPds] Failed to update word in PDS:', error);
     return false;
   }
 }
@@ -286,7 +286,7 @@ export async function restoreWordsFromPds(
             }
           }
         } catch (error) {
-          console.error('[restoreWordsFromPds] Failed to restore record:', error);
+          if (__DEV__) console.error('[restoreWordsFromPds] Failed to restore record:', error);
           result.failed++;
         }
       }
@@ -296,7 +296,7 @@ export async function restoreWordsFromPds(
 
     return result;
   } catch (error) {
-    console.error('[restoreWordsFromPds] Failed to restore from PDS:', error);
+    if (__DEV__) console.error('[restoreWordsFromPds] Failed to restore from PDS:', error);
     throw error;
   }
 }

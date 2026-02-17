@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プライバシーポリシー - くもたん</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1DA1F2;
+            margin-bottom: 30px;
+            font-size: 2em;
+            border-bottom: 3px solid #1DA1F2;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #555;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #1DA1F2;
+            color: white;
+        }
+        a {
+            color: #1DA1F2;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            h2 {
+                font-size: 1.3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>プライバシーポリシー</h1>
+
+        <p>くもたん（以下「本アプリ」といいます。）の運営者（以下「運営者」といいます。）は、本アプリにおけるユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます。）を定めます。</p>
+
+        <h2>第1条（個人情報の定義）</h2>
+        <p>「個人情報」とは、個人情報保護法にいう「個人情報」を指すものとし、生存する個人に関する情報であって、当該情報に含まれる氏名、生年月日、住所、電話番号、連絡先その他の記述等により特定の個人を識別できる情報（個人識別符号となるものを含む）を指します。</p>
+
+        <h2>第2条（収集する情報）</h2>
+        <p>本アプリは、以下の情報を取得する場合があります。</p>
+
+        <h3>1. Blueskyアカウント情報</h3>
+        <p>Bluesky OAuth認証を通じて以下の情報を取得します。</p>
+        <ul>
+            <li>ユーザーのDID（分散型識別子）</li>
+            <li>ハンドル名（ユーザー名）</li>
+            <li>表示名、アバター画像、プロフィール情報</li>
+        </ul>
+
+        <h3>2. 端末内に保存されるデータ</h3>
+        <p>以下のデータはユーザーの端末内にのみ保存され、運営者のサーバーに送信されることはありません。</p>
+        <ul>
+            <li>登録した単語データ（英単語、日本語訳、定義、登録元の投稿情報）</li>
+            <li>学習統計データ（日別の学習数、クイズ履歴等）</li>
+            <li>アプリ設定（テーマ、言語、チュートリアル完了状態等）</li>
+            <li>外部サービスのAPIキー（DeepL API Key、Yahoo! JAPAN Client ID）</li>
+        </ul>
+
+        <h3>3. PDSに同期されるデータ</h3>
+        <p>AT Protocolの仕組みに基づき、以下のデータがユーザー自身のPDS（Personal Data Server）に同期されます。</p>
+        <ul>
+            <li>登録した単語データ（英単語、日本語訳、定義、既読状態、登録元の投稿URL等）</li>
+            <li>学習セッション情報</li>
+        </ul>
+
+        <h3>4. 外部サービスに送信されるデータ</h3>
+        <p>本アプリの機能を提供するため、以下のデータが外部サービスに送信されます。</p>
+        <ul>
+            <li><strong>Bluesky / AT Protocol</strong>: タイムライン取得リクエスト、投稿内容（進捗シェア時）、画像データ（投稿添付時）</li>
+            <li><strong>DeepL API</strong>: 翻訳対象のテキスト（ユーザーがAPIキーを設定した場合のみ）</li>
+            <li><strong>Yahoo! JAPAN テキスト解析API</strong>: 解析対象の日本語テキスト（ユーザーがClient IDを設定した場合のみ）</li>
+            <li><strong>Free Dictionary API</strong>: 検索する英単語</li>
+        </ul>
+
+        <h3>5. フィードバック情報</h3>
+        <p>ユーザーがアプリ内のフィードバック機能を利用した場合、以下の情報が送信されます。</p>
+        <ul>
+            <li>フィードバックの種類（バグ報告、機能要望、辞書修正等）</li>
+            <li>フィードバックの内容（件名、説明、コメント）</li>
+            <li>関連する単語情報や投稿URL（該当する場合）</li>
+        </ul>
+
+        <h2>第3条（情報の利用目的）</h2>
+        <p>運営者が情報を利用する目的は、以下のとおりです。</p>
+        <ol>
+            <li>本アプリの提供・運営のため</li>
+            <li>ユーザー認証およびBlueskyアカウントとの連携のため</li>
+            <li>単語データの保存・復元機能を提供するため</li>
+            <li>辞書検索、翻訳、テキスト解析等の学習支援機能を提供するため</li>
+            <li>ユーザーからのフィードバックに対応し、本アプリを改善するため</li>
+            <li>本アプリの不具合の修正および機能改善のため</li>
+        </ol>
+
+        <h2>第4条（個人情報の第三者提供）</h2>
+        <ol>
+            <li>運営者は、次に掲げる場合を除いて、あらかじめユーザーの同意を得ることなく、第三者に個人情報を提供することはありません。
+                <ul>
+                    <li>人の生命、身体または財産の保護のために必要がある場合であって、本人の同意を得ることが困難であるとき</li>
+                    <li>公衆衛生の向上または児童の健全な育成の推進のために特に必要がある場合であって、本人の同意を得ることが困難であるとき</li>
+                    <li>国の機関もしくは地方公共団体またはその委託を受けた者が法令の定める事務を遂行することに対して協力する必要がある場合であって、本人の同意を得ることにより当該事務の遂行に支障を及ぼすおそれがあるとき</li>
+                    <li>その他法令で認められる場合</li>
+                </ul>
+            </li>
+            <li>本アプリは、ユーザーが設定した外部サービス（DeepL、Yahoo! JAPAN等）にデータを送信しますが、これはユーザーが自ら設定したAPIキーに基づく送信であり、運営者による第三者提供には該当しません。</li>
+        </ol>
+
+        <h2>第5条（安全管理措置）</h2>
+        <ol>
+            <li>運営者は、個人情報の漏えい、滅失またはき損の防止その他の個人情報の安全管理のために、以下の措置を講じています。
+                <ul>
+                    <li>認証トークンおよびAPIキーは、端末の暗号化ストレージ（Expo SecureStore）に保存します</li>
+                    <li>Bluesky認証にはOAuth（PKCE + DPoP）を採用し、ユーザーのパスワードを取得・保存しません</li>
+                    <li>外部サービスとの通信はHTTPSによる暗号化通信を使用します</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>第6条（アナリティクス・トラッキング）</h2>
+        <p>本アプリは、アクセス解析ツール、広告配信SDK、トラッキングツール等を使用しておりません。ユーザーの行動データを収集・分析する機能は搭載していません。</p>
+
+        <h2>第7条（端末のアクセス権限）</h2>
+        <p>本アプリは、以下の端末機能へのアクセス許可を求める場合があります。</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>権限</th>
+                    <th>用途</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>写真ライブラリ</td>
+                    <td>学習進捗の画像を保存・シェアするため、投稿に画像を添付するため</td>
+                </tr>
+                <tr>
+                    <td>カメラ</td>
+                    <td>投稿に添付する写真を撮影するため</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>これらの権限は、ユーザーが該当する機能を利用する際にのみ求められ、許可しなくても本アプリの基本機能は利用できます。</p>
+
+        <h2>第8条（データの削除）</h2>
+        <ol>
+            <li>ユーザーは、本アプリの設定画面から「すべてのデータを削除」を実行することにより、端末内に保存されたすべての学習データを削除できます。</li>
+            <li>ログアウトを行うことにより、端末内に保存された認証情報は削除されます。</li>
+            <li>PDSに同期されたデータの削除については、ユーザー自身のPDS管理に委ねられます。</li>
+            <li>本アプリをアンインストールすることにより、端末内のすべてのデータが削除されます。</li>
+            <li>削除されたデータは復元できません。ユーザーは、削除前に必要に応じてデータエクスポート機能を利用し、バックアップを行ってください。</li>
+        </ol>
+
+        <h2>第9条（未成年者の利用）</h2>
+        <p>本アプリは、特に未成年者を対象としたサービスではありませんが、未成年者が利用する場合は、保護者の同意のもとで利用することを推奨します。</p>
+
+        <h2>第10条（プライバシーポリシーの変更）</h2>
+        <ol>
+            <li>運営者は、必要に応じて本ポリシーを変更することがあります。</li>
+            <li>本ポリシーの変更は、本アプリ内または運営者のウェブサイト上で通知するものとします。</li>
+            <li>変更後に本アプリの利用を継続した場合、ユーザーは変更後のポリシーに同意したものとみなします。</li>
+        </ol>
+
+        <h2>第11条（お問い合わせ窓口）</h2>
+        <p>本ポリシーに関するお問い合わせは、下記の窓口までお願いいたします。</p>
+        <p><strong>運営者:</strong> RieTamura<br>
+        <strong>お問い合わせ:</strong> <a href="https://github.com/RieTamura/kumotan/issues" target="_blank">GitHub Issues</a></p>
+
+        <div class="footer">
+            <p><strong>最終更新日:</strong> 2026年2月12日</p>
+        </div>
+    </div>
+</body>
+</html>

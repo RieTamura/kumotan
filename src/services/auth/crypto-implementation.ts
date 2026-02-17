@@ -10,39 +10,39 @@ const activeLocks = new Map<string, Promise<void>>();
 
 export const cryptoImplementation: RuntimeImplementation = {
   createKey: async (algs: string[]): Promise<Key> => {
-    console.log('[Crypto] createKey starting...', { algs });
+    if (__DEV__) console.log('[Crypto] createKey starting...', { algs });
     try {
       if (!algs.includes('ES256')) throw new Error('Unsupported algorithm');
 
-      console.log('[Crypto] Generating entropy for KeyPair...');
+      if (__DEV__) console.log('[Crypto] Generating entropy for KeyPair...');
       // Manually provide entropy because elliptic's auto-detection fails in RN
       const entropy = new Uint8Array(32);
       Crypto.getRandomValues(entropy);
 
-      console.log('[Crypto] Generating new EC KeyPair with manual entropy...');
+      if (__DEV__) console.log('[Crypto] Generating new EC KeyPair with manual entropy...');
       const keyPair = ec.genKeyPair({ entropy: Array.from(entropy) });
 
-      console.log('[Crypto] Wrapping in JoseKey...');
+      if (__DEV__) console.log('[Crypto] Wrapping in JoseKey...');
       const key = new JoseKey(keyPair);
 
-      console.log('[Crypto] createKey success');
+      if (__DEV__) console.log('[Crypto] createKey success');
       return key;
     } catch (err: any) {
-      console.error('[Crypto] createKey failed', err.message || err);
+      if (__DEV__) console.error('[Crypto] createKey failed', err.message || err);
       throw err;
     }
   },
 
   getRandomValues: async (length: number) => {
-    console.log('[Crypto] getRandomValues starting...', { length });
+    if (__DEV__) console.log('[Crypto] getRandomValues starting...', { length });
     const array = new Uint8Array(length);
     Crypto.getRandomValues(array);
-    console.log('[Crypto] getRandomValues success');
+    if (__DEV__) console.log('[Crypto] getRandomValues success');
     return array;
   },
 
   digest: async (data: Uint8Array, algorithm: { name: string }) => {
-    console.log('[Crypto] digest starting...', { alg: algorithm.name });
+    if (__DEV__) console.log('[Crypto] digest starting...', { alg: algorithm.name });
     let alg: Crypto.CryptoDigestAlgorithm;
     switch (algorithm.name) {
       case 'sha256': alg = Crypto.CryptoDigestAlgorithm.SHA256; break;
@@ -53,16 +53,16 @@ export const cryptoImplementation: RuntimeImplementation = {
 
     try {
       const hash = await Crypto.digest(alg, data as any);
-      console.log('[Crypto] digest success');
+      if (__DEV__) console.log('[Crypto] digest success');
       return new Uint8Array(hash);
     } catch (err: any) {
-      console.error('[Crypto] digest failed', err.message || err);
+      if (__DEV__) console.error('[Crypto] digest failed', err.message || err);
       throw err;
     }
   },
 
   requestLock: async <T>(name: string, fn: () => T | PromiseLike<T>): Promise<T> => {
-    console.log('[Crypto] requestLock starting...', { name });
+    if (__DEV__) console.log('[Crypto] requestLock starting...', { name });
     const prevLock = activeLocks.get(name) || Promise.resolve();
 
     let releaseLock: () => void = () => { };
@@ -74,13 +74,13 @@ export const cryptoImplementation: RuntimeImplementation = {
 
     try {
       await prevLock;
-      console.log('[Crypto] Lock acquired', { name });
+      if (__DEV__) console.log('[Crypto] Lock acquired', { name });
       const result = await fn();
-      console.log('[Crypto] Lock work finished', { name });
+      if (__DEV__) console.log('[Crypto] Lock work finished', { name });
       return result;
     } finally {
       releaseLock();
-      console.log('[Crypto] Lock released', { name });
+      if (__DEV__) console.log('[Crypto] Lock released', { name });
     }
   }
 }

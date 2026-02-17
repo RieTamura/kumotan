@@ -19,9 +19,6 @@
       "bundleIdentifier": "com.kumotan.app",
       "buildNumber": "2",
       "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
-        },
         "CFBundleDisplayName": "くもたん",
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "学習進捗の画像を保存・シェアするために写真ライブラリへのアクセスが必要です。",
