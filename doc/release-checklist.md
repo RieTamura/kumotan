@@ -16,8 +16,8 @@
 - **参照**: `doc/app-store/release-info.md` (L113〜)
 - **問題**: シーン案はあるが、実際のスクリーンショット画像が未作成
 - **対応**: App Store Connectへの提出に必要なスクリーンショットを作成する
-- [ ] 6.7インチ（iPhone 15 Pro Max等）用スクリーンショット
-- [ ] 6.1インチ（iPhone 15 Pro等）用スクリーンショット
+- [ ] 6.5インチ（1284 x 2778px）用スクリーンショット作成
+  - **注**: この1サイズのみでOK（他サイズは自動スケーリング）
 - [ ] 最低3枚、推奨5〜6枚（以下のシーン案を更新版で反映）
   1. ホーム画面（Following/Profileタブ表示）
   2. 単語選択（WordPopupモーダル表示中）
@@ -25,6 +25,7 @@
   4. 進捗画面（カレンダー・統計＋投稿作成）
   5. クイズモード画面
   6. 設定画面
+- [ ] `doc/app-store/screenshots/6.5-inch/` に配置
 
 ### 3. プライバシーポリシー・利用規約のWebホスティング確認
 - **URL**: `https://rietamura.github.io/kumotan/privacy-policy.html`
