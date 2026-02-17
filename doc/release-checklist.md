@@ -10,7 +10,7 @@
 - **問題**: すべてのHTTP通信を許可する設定が有効になっている
 - **リスク**: App Store審査でリジェクトされる可能性が高い
 - **対応**: すべてのAPIがHTTPS通信のため、この設定を削除する
-- [ ] `NSAllowsArbitraryLoads` を `infoPlist` から削除
+- [x] `NSAllowsArbitraryLoads` を `infoPlist` から削除
 
 ### 2. App Storeスクリーンショットの準備
 - **参照**: `doc/app-store/release-info.md` (L113〜)
@@ -29,9 +29,9 @@
 ### 3. プライバシーポリシー・利用規約のWebホスティング確認
 - **URL**: `https://rietamura.github.io/kumotan/privacy-policy.html`
 - **問題**: App Store Connectに設定するURLが審査時にアクセス可能である必要がある
-- [ ] 上記URLでプライバシーポリシーがホスティングされているか確認
-- [ ] 利用規約も同様にWebでアクセス可能か確認（`terms-of-service.html`）
-- [ ] 未ホスティングの場合、GitHub Pagesにデプロイする
+- [x] 上記URLでプライバシーポリシーがホスティングされているか確認
+- [x] 利用規約も同様にWebでアクセス可能か確認（`terms-of-service.html`）
+- [x] 未ホスティングの場合、GitHub Pagesにデプロイする
 - [ ] アプリ内（LegalDocumentScreen）と同じ内容であることを確認
 
 ---
@@ -76,8 +76,8 @@
 ### 5. console.log の整理
 - **部分完了**: M2.6でデバッグログ削除済み（words.ts等）
 - **残タスク**: 認証・OAuth関連のログ最終確認
-- [ ] `__DEV__` ガードなしの `console.log/warn/error` を最終確認
-- [ ] 認証・暗号化関連のログがセキュアか確認
+- [x] `__DEV__` ガードなしの `console.log/warn/error` を最終確認
+- [x] 認証・暗号化関連のログがセキュアか確認
   - `src/services/auth/oauth-client.ts`
   - `src/services/bluesky/auth.ts`
   - `src/services/auth/crypto-implementation.ts`
@@ -85,7 +85,7 @@
 
 ### 6. テストの最終確認
 - **現状**: 165+テストが通過（M3 Phase 1完了）
-- [ ] `npm test` で全テストがパスすることを確認
+- [x] `npm test` で全テストがパスすることを確認
 - [ ] カバレッジレポートの確認（目標: 60%以上）
 - [ ] スキップされたテストがないか確認
   - `freeDictionary.test.ts` のバッチ処理テスト
