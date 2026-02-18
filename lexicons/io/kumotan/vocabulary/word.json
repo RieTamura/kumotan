@@ -25,6 +25,11 @@
             "maxLength": 5000,
             "description": "English definition"
           },
+          "definitionJa": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Japanese translation of the English definition"
+          },
           "postUrl": {
             "type": "string",
             "format": "uri",

@@ -4,6 +4,7 @@
     "account": "Account",
     "tips": "Help",
     "apiSettings": "API Settings",
+    "translation": "Translation Settings",
     "dictionary": "Dictionary Data",
     "dataManagement": "Data Management",
     "feedback": "Feedback",
@@ -11,6 +12,11 @@
     "language": "Language",
     "appearance": "Appearance",
     "moderation": "Moderation"
+  },
+  "translation": {
+    "translateDefinition": "Translate definition to Japanese",
+    "translateDefinitionDescription": "Uses DeepL API",
+    "translateDefinitionNoApiKey": "Set a DeepL API key to enable this feature"
   },
   "account": {
     "loading": "Loading...",

@@ -10,6 +10,7 @@ export interface Word {
   english: string;
   japanese: string | null;
   definition: string | null;
+  definitionJa: string | null;
   postUrl: string | null;
   postText: string | null;
   isRead: boolean;
@@ -24,6 +25,7 @@ export interface CreateWordInput {
   english: string;
   japanese?: string | null;
   definition?: string | null;
+  definitionJa?: string | null;
   postUrl?: string | null;
   postText?: string | null;
 }

@@ -36,6 +36,7 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
       english TEXT NOT NULL,
       japanese TEXT,
       definition TEXT,
+      definition_ja TEXT,
       post_url TEXT,
       post_text TEXT,
       is_read INTEGER DEFAULT 0 CHECK(is_read IN (0, 1)),
@@ -302,6 +303,22 @@ async function runMigrations(
 
     if (__DEV__) {
       console.log('Migration to version 6 completed: Added pds_rkey column for PDS sync');
+    }
+  }
+
+  // Migration to version 7: Add definition_ja column
+  if (currentVersion < 7) {
+    await database.execAsync(`
+      ALTER TABLE words ADD COLUMN definition_ja TEXT DEFAULT NULL;
+    `);
+
+    await database.runAsync(
+      'INSERT INTO schema_version (version) VALUES (?)',
+      [7]
+    );
+
+    if (__DEV__) {
+      console.log('Migration to version 7 completed: Added definition_ja column');
     }
   }
 

@@ -58,6 +58,7 @@ function buildPdsRecord(word: Word): Record<string, unknown> {
   };
   if (word.japanese) record.japanese = word.japanese;
   if (word.definition) record.definition = word.definition;
+  if (word.definitionJa) record.definitionJa = word.definitionJa;
   if (word.postUrl) record.postUrl = word.postUrl;
   if (word.postText) record.postText = word.postText;
   if (word.readAt) record.readAt = new Date(word.readAt).toISOString();
@@ -230,6 +231,7 @@ export async function restoreWordsFromPds(
             english,
             japanese: (value.japanese as string) ?? null,
             definition: (value.definition as string) ?? null,
+            definitionJa: (value.definitionJa as string) ?? null,
             postUrl: (value.postUrl as string) ?? null,
             postText: (value.postText as string) ?? null,
           });

@@ -4,6 +4,7 @@
     "account": "アカウント",
     "tips": "ヘルプ",
     "apiSettings": "API設定",
+    "translation": "翻訳設定",
     "dictionary": "辞書データ",
     "dataManagement": "データ管理",
     "feedback": "フィードバック",
@@ -11,6 +12,11 @@
     "language": "言語",
     "appearance": "外観",
     "moderation": "モデレーション"
+  },
+  "translation": {
+    "translateDefinition": "英語の定義を日本語に翻訳",
+    "translateDefinitionDescription": "DeepL APIを使用します",
+    "translateDefinitionNoApiKey": "DeepL APIキーを設定すると有効になります"
   },
   "account": {
     "loading": "読み込み中...",

@@ -40,6 +40,7 @@ function rowToWord(row: Record<string, unknown>): Word {
     english: row.english as string,
     japanese: row.japanese as string | null,
     definition: row.definition as string | null,
+    definitionJa: row.definition_ja as string | null,
     postUrl: row.post_url as string | null,
     postText: row.post_text as string | null,
     isRead: (row.is_read as number) === 1,
@@ -76,12 +77,13 @@ export async function insertWord(
 
     // Insert the word with explicit local timestamp
     const result = await database.runAsync(
-      `INSERT INTO words (english, japanese, definition, post_url, post_text, created_at)
-       VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
+      `INSERT INTO words (english, japanese, definition, definition_ja, post_url, post_text, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
       [
         sanitizedEnglish,
         input.japanese ?? null,
         input.definition ?? null,
+        input.definitionJa ?? null,
         input.postUrl ?? null,
         input.postText ?? null,
       ]

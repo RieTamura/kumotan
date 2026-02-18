@@ -14,6 +14,7 @@ import {
   Linking,
   Image,
   Share,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -42,6 +43,7 @@ import { FeedbackModal, type FeedbackType } from '../components/FeedbackModal';
 import { GithubIcon } from '../components/common/GithubIcon';
 import { useTutorial } from '../hooks/useTutorial';
 import { useTheme } from '../hooks/useTheme';
+import { useSettingsStore } from '../store/settingsStore';
 
 /**
  * Settings item component props
@@ -142,6 +144,7 @@ export function SettingsScreen(): React.JSX.Element {
   const { toastState, showSuccess, showError, hideToast } = useToast();
   const { resetTutorial } = useTutorial([], false);
   const { colors, mode, setMode, isDark } = useTheme();
+  const { translateDefinition, setTranslateDefinition } = useSettingsStore();
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -559,6 +562,29 @@ export function SettingsScreen(): React.JSX.Element {
             subtitle={yahooClientIdSet ? t('api.configured') : t('api.notConfigured')}
             onPress={handleYahooApiKeySettings}
           />
+        </SettingsSection>
+
+        {/* Translation Settings Section */}
+        <SettingsSection title={t('sections.translation')}>
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: apiKeySet ? colors.text : colors.textTertiary }]}>
+                {t('translation.translateDefinition')}
+              </Text>
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+                {apiKeySet
+                  ? t('translation.translateDefinitionDescription')
+                  : t('translation.translateDefinitionNoApiKey')}
+              </Text>
+            </View>
+            <Switch
+              value={apiKeySet ? translateDefinition : false}
+              onValueChange={setTranslateDefinition}
+              disabled={!apiKeySet}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.card}
+            />
+          </View>
         </SettingsSection>
 
         {/* Dictionary Section */}

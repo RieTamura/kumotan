@@ -7,7 +7,7 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { addWord } from '../services/database/words';
+import { insertWord } from '../services/database/words';
 import { syncWordToPds } from '../services/pds/vocabularySync';
 import { getAgent } from '../services/bluesky/auth';
 import { useAuthStore } from '../store/authStore';
@@ -40,6 +40,7 @@ export interface UseWordRegistrationReturn {
     word: string,
     japanese: string | null,
     definition: string | null,
+    definitionJa: string | null,
     postUri: string | null,
     postText: string | null
   ) => void;
@@ -109,17 +110,19 @@ export function useWordRegistration(): UseWordRegistrationReturn {
       word: string,
       japanese: string | null,
       definition: string | null,
+      definitionJa: string | null,
       postUri: string | null,
       postText: string | null
     ) => {
       try {
-        const result = await addWord(
-          word,
-          japanese ?? undefined,
-          definition ?? undefined,
-          postUri ?? undefined,
-          postText ?? undefined
-        );
+        const result = await insertWord({
+          english: word,
+          japanese: japanese ?? null,
+          definition: definition ?? null,
+          definitionJa: definitionJa ?? null,
+          postUrl: postUri ?? null,
+          postText: postText ?? null,
+        });
 
         if (result.success) {
           Alert.alert(tc('status.success'), t('wordAdded'));

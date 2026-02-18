@@ -41,6 +41,8 @@ import {
 import { MessageSquareShare } from 'lucide-react-native';
 import { FeedbackModal } from './FeedbackModal';
 import { API } from '../constants/config';
+import { translateToJapanese, hasApiKey as hasDeepLApiKey } from '../services/dictionary/deepl';
+import { useSettingsStore } from '../store/settingsStore';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
@@ -193,6 +195,7 @@ interface LoadingState {
   wordsInfo: boolean;
   japanese: boolean;
   englishTranslation: boolean;
+  definitionTranslation: boolean;
 }
 
 /**
@@ -213,6 +216,7 @@ export function WordPopup({
   const [backdropOpacity] = useState(new Animated.Value(0));
 
   const [definition, setDefinition] = useState<DictionaryResult | null>(null);
+  const [definitionJa, setDefinitionJa] = useState<string | null>(null);
   const [translation, setTranslation] = useState<ExtendedTranslateResult | null>(null);
   const [japaneseInfo, setJapaneseInfo] = useState<JapaneseWordInfo[]>([]);
   const [englishTranslation, setEnglishTranslation] = useState<EnglishTranslateResult | null>(null);
@@ -235,6 +239,7 @@ export function WordPopup({
     sentenceTranslation: false,
     wordsInfo: false,
     englishTranslation: false,
+    definitionTranslation: false,
   });
 
   // Helper to update loading state
@@ -249,6 +254,7 @@ export function WordPopup({
 
   // Get addWord from word store
   const addWordToStore = useWordStore(state => state.addWord);
+  const translateDefinition = useSettingsStore(state => state.translateDefinition);
 
   /**
    * Animate popup open/close
@@ -355,6 +361,17 @@ export function WordPopup({
         if (defResult.success) {
           console.log(`WordPopup: Definition found:`, defResult.data);
           setDefinition(defResult.data);
+
+          // Translate definition to Japanese if settings allow
+          const hasDeepLKey = await hasDeepLApiKey();
+          if (translateDefinition && hasDeepLKey) {
+            updateLoading('definitionTranslation', true);
+            const jaResult = await translateToJapanese(defResult.data.definition);
+            if (jaResult.success) {
+              setDefinitionJa(jaResult.data.text);
+            }
+            updateLoading('definitionTranslation', false);
+          }
         } else {
           console.log(`WordPopup: Definition error:`, defResult.error.message);
           // WORD_NOT_FOUNDの場合は穏やかな「見つからない」状態にする
@@ -383,7 +400,7 @@ export function WordPopup({
         setTranslationAvailable(false);
       }
     }
-  }, [word]);
+  }, [word, translateDefinition]);
 
   /**
    * Fetch data for English sentence mode
@@ -555,6 +572,7 @@ export function WordPopup({
       console.log('WordPopup useEffect: Calling fetchWordData');
       // Reset state before fetching new data
       setDefinition(null);
+      setDefinitionJa(null);
       setTranslation(null);
       setJapaneseInfo([]);
       setSentenceTranslation(null);
@@ -573,6 +591,7 @@ export function WordPopup({
       console.log('WordPopup useEffect: Resetting state');
       // Reset state when closed
       setDefinition(null);
+      setDefinitionJa(null);
       setTranslation(null);
       setJapaneseInfo([]);
       setSentenceTranslation(null);
@@ -679,6 +698,7 @@ export function WordPopup({
           english: word,
           japanese: translation?.text ?? undefined,
           definition: definition?.definition ?? undefined,
+          definitionJa: definitionJa ?? undefined,
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
         });
@@ -698,7 +718,7 @@ export function WordPopup({
     } finally {
       setIsAdding(false);
     }
-  }, [word, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, translation, definition, postUri, postText, addWordToStore, onAddToWordList, onClose]);
+  }, [word, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, translation, definition, definitionJa, postUri, postText, addWordToStore, onAddToWordList, onClose]);
 
   /**
    * Handle backdrop press
@@ -941,6 +961,11 @@ export function WordPopup({
                     ) : definition ? (
                       <>
                         <Text style={[styles.definitionText, { color: colors.text }]}>{definition.definition}</Text>
+                        {loading.definitionTranslation ? (
+                          <ActivityIndicator size="small" color={colors.primary} style={styles.definitionJaLoader} />
+                        ) : definitionJa ? (
+                          <Text style={[styles.definitionJaText, { color: colors.textSecondary }]}>{definitionJa}</Text>
+                        ) : null}
                         {definition.example && (
                           <Text style={[styles.exampleText, { color: colors.textSecondary }]}>
                             例: "{definition.example}"
@@ -1162,6 +1187,17 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.text,
     lineHeight: 22,
+  },
+  definitionJaLoader: {
+    marginTop: Spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  definitionJaText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginTop: Spacing.xs,
+    fontStyle: 'italic',
   },
   definitionCard: {
     backgroundColor: Colors.backgroundSecondary,

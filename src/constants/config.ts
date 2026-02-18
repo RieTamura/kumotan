@@ -116,7 +116,7 @@ export const EXTERNAL_LINKS = {
  */
 export const DATABASE = {
   NAME: 'kumotan.db',
-  VERSION: 6,
+  VERSION: 7,
 } as const;
 
 /**
