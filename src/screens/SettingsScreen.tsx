@@ -144,7 +144,7 @@ export function SettingsScreen(): React.JSX.Element {
   const { toastState, showSuccess, showError, hideToast } = useToast();
   const { resetTutorial } = useTutorial([], false);
   const { colors, mode, setMode, isDark } = useTheme();
-  const { translateDefinition, setTranslateDefinition } = useSettingsStore();
+  const { translateDefinition, setTranslateDefinition, translateSentenceToEnglish, setTranslateSentenceToEnglish } = useSettingsStore();
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -580,6 +580,25 @@ export function SettingsScreen(): React.JSX.Element {
             <Switch
               value={apiKeySet ? translateDefinition : false}
               onValueChange={setTranslateDefinition}
+              disabled={!apiKeySet}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.card}
+            />
+          </View>
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: apiKeySet ? colors.text : colors.textTertiary }]}>
+                {t('translation.translateSentenceToEnglish')}
+              </Text>
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+                {apiKeySet
+                  ? t('translation.translateSentenceToEnglishDescription')
+                  : t('translation.translateSentenceToEnglishNoApiKey')}
+              </Text>
+            </View>
+            <Switch
+              value={apiKeySet ? translateSentenceToEnglish : false}
+              onValueChange={setTranslateSentenceToEnglish}
               disabled={!apiKeySet}
               trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor={colors.card}

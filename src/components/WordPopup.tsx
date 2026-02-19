@@ -255,6 +255,7 @@ export function WordPopup({
   // Get addWord from word store
   const addWordToStore = useWordStore(state => state.addWord);
   const translateDefinition = useSettingsStore(state => state.translateDefinition);
+  const translateSentenceToEnglish = useSettingsStore(state => state.translateSentenceToEnglish);
 
   /**
    * Animate popup open/close
@@ -477,6 +478,21 @@ export function WordPopup({
    * Fetch data for Japanese sentence mode
    */
   const fetchJapaneseSentenceData = useCallback(async () => {
+    // Translate Japanese sentence to English if settings allow
+    const hasDeepLKey = await hasDeepLApiKey();
+    if (translateSentenceToEnglish && hasDeepLKey) {
+      updateLoading('sentenceTranslation', true);
+      const englishResult = await translateToEnglishWithFallback(word, { isWord: false });
+      updateLoading('sentenceTranslation', false);
+
+      if (englishResult.success) {
+        setSentenceTranslation(englishResult.data);
+        setTranslationAvailable(true);
+      } else {
+        setSentenceError(englishResult.error.message);
+      }
+    }
+
     const hasYahooId = await hasYahooClientId();
     setYahooClientIdAvailable(hasYahooId);
 
@@ -516,7 +532,7 @@ export function WordPopup({
       console.error('WordPopup: Morphological analysis error:', result.error.message);
       setSentenceError(result.error.message);
     }
-  }, [word, convertJapaneseInfoToWordInfo]);
+  }, [word, convertJapaneseInfoToWordInfo, translateSentenceToEnglish]);
 
   /**
    * Fetch data for sentence mode
@@ -803,19 +819,17 @@ export function WordPopup({
               <>
                 {/* Sentence Translation */}
                 <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>文章の日本語訳</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                    {isJapanese ? t('sentence.englishTranslation') : t('sentence.japaneseTranslation')}
+                  </Text>
                   {loading.sentenceTranslation ? (
                     <ActivityIndicator size="small" color={colors.primary} />
                   ) : sentenceTranslation ? (
                     <Text style={[styles.translationText, { color: colors.text }]}>{sentenceTranslation.text}</Text>
                   ) : sentenceError ? (
                     <Text style={[styles.errorText, { color: colors.error }]}>{sentenceError}</Text>
-                  ) : !translationAvailable ? (
-                    <Text style={styles.hintText}>
-                      翻訳が利用できません
-                    </Text>
                   ) : (
-                    <Text style={styles.hintText}>-</Text>
+                    <Text style={styles.hintText}>{t('sentence.translationUnavailable')}</Text>
                   )}
                 </View>
 

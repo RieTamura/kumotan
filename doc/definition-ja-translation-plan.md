@@ -401,3 +401,59 @@ restoreWordsFromPds(agent)
 **関連ドキュメント**:
 - [pds-vocabulary-sync-plan.md](./pds-vocabulary-sync-plan.md) - PDS同期の基本設計
 - [pds-read-status-sync-plan.md](./pds-read-status-sync-plan.md) - 既存Lexicon拡張の参考例
+
+---
+
+## 8. 関連する完了機能
+
+### 日本語文章モードの英語翻訳表示 + 設定トグル
+
+> **ステータス: 完了 (2026-02-19)**
+
+本機能と同じ設計パターン（設定トグル + DeepL翻訳 + WordPopup表示）で以下を実装した。
+
+| 項目 | 内容 |
+| ---- | ---- |
+| 目的 | 日本語文章モード時に文章全体の英語訳を登録ポップアップに表示 |
+| 設定キー | `translateSentenceToEnglish`（`settingsStore.ts`） |
+| 翻訳処理 | `fetchJapaneseSentenceData` 内で `translateToEnglishWithFallback(word, { isWord: false })` を呼び出し |
+| UI変更 | セクションタイトルを `isJapanese` に応じて "文章の英語訳" / "文章の日本語訳" に動的切り替え |
+| DBへの保存 | なし（文章翻訳は表示専用。保存は将来機能として下記に記載） |
+| 変更ファイル数 | 5ファイル（settingsStore, WordPopup, SettingsScreen, locales×2） |
+
+---
+
+## 9. 将来の拡張計画
+
+### 日本語文章モードの英語翻訳をPDSに保存する
+
+> **ステータス: 未実装（将来機能）**
+
+#### 概要
+
+日本語文章モードで投稿を登録する際、文章全体の英語翻訳（`translateToEnglish()` の結果）を各単語レコードに紐づけてDB・PDSに保存する。
+
+#### 変更が必要なレイヤー
+
+| レイヤー | ファイル | 変更内容 |
+| ------- | ------- | ------- |
+| Lexicon | `lexicons/io/kumotan/vocabulary/word.json` | `sentenceTranslation` フィールド追加（string, maxLength 5000） |
+| 型定義 | `src/types/word.ts` | `Word` と `CreateWordInput` に `sentenceTranslation?: string \| null` 追加 |
+| DBマイグレーション | `src/services/database/init.ts` | v8: `ALTER TABLE words ADD COLUMN sentence_translation TEXT DEFAULT NULL` |
+| DBサービス | `src/services/database/words.ts` | INSERT文・`rowToWord()` マッピングに追加 |
+| PDS sync | `src/services/pds/vocabularySync.ts` | `buildPdsRecord()` と `restoreWordsFromPds()` に追加 |
+| WordPopup | `src/components/WordPopup.tsx` | 日本語文章モードの `addWordToStore` 呼び出し時に `sentenceTranslation?.text` を渡す |
+
+#### 設計メモ
+
+- フィールド名は `sentenceTranslation`（既存の `english` フィールドとの衝突を避けるため）
+- 同じ文章から登録された各単語が **同じ** `sentenceTranslation` を共有して保存される
+- 設定 `translateSentenceToEnglish` がOFFの場合は保存しない
+- Lexiconの `required` 配列は変更しない（後方互換のため）
+- `restoreWordsFromPds` での復元対応も必須
+
+#### 実装しなかった理由（2026-02-19時点）
+
+- `postText`（元の投稿文）がすでに保存されており、必要なら再翻訳が可能
+- Lexiconへの追加は後から削除・リネームしにくく、フィールドの価値を確認してから追加するのが安全
+- 工数・リスクに対してユーザー価値が現時点では不明

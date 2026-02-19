@@ -20,6 +20,8 @@
     "noTranslation": "翻訳を取得できませんでした",
     "mode": "文章モード",
     "japaneseTranslation": "文章の日本語訳",
+    "englishTranslation": "文章の英語訳",
+    "translationUnavailable": "翻訳が利用できません",
     "containedWords": "含まれる単語",
     "swipeInstruction": "登録しない単語は左にスワイプして除外",
     "noWordsFound": "単語が見つかりませんでした"

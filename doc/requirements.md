@@ -209,6 +209,21 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 ## 将来機能（Phase 2以降）
 
+### 翻訳・登録機能の拡張
+
+- **日本語投稿・文章モードの英語翻訳表示** ✅ 完了 (2026-02-19)
+  - 日本語文章モード起動時、文章全体を DeepL で英語訳して "文章の英語訳" セクションに表示
+  - 設定トグル `translateSentenceToEnglish`（デフォルトON）でON/OFF切り替え可能
+  - DeepLキー未設定時は "翻訳が利用できません" を表示、設定画面のトグルはグレーアウト
+  - 詳細: [definition-ja-translation-plan.md](./definition-ja-translation-plan.md)
+
+- **日本語文章モードの英語翻訳をPDSに保存する**
+  - 日本語文章モードで単語を登録する際、文章全体の英語翻訳（`sentenceTranslation`）を各単語レコードに紐づけてDB・PDSに保存する
+  - 設定トグル `translateSentenceToEnglish` がONの場合のみ保存
+  - 変更レイヤー: Lexicon（`word.json`）、型定義、DBマイグレーション（v8）、DBサービス、PDS sync、WordPopup
+  - 詳細設計: [definition-ja-translation-plan.md - セクション8](./definition-ja-translation-plan.md)
+  - **保留理由**: `postText`（元の投稿文）がすでに保存済みで再翻訳可能。Lexicon変更の不可逆性を考慮し、ユーザー価値を確認してから追加予定
+
 ### Phase 2: 学習機能強化
 - フラッシュカード機能（ランダム出題、正解/不正解の記録）
 - クイズモード（4択、記述式）
@@ -948,6 +963,22 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - `src/screens/ThreadScreen.tsx`: ハンドラ追加、`PostCreationModal`追加
   - `src/locales/ja/home.json`、`src/locales/en/home.json`: 翻訳キー追加
 - 詳細: `doc/reply-repost-implementation-plan.md`
+
+### M11: 日本語投稿・文章モードの英語翻訳表示 ✅ **完了** (2026-02-19)
+
+**目的**: 日本語文章モードで文章全体の英語訳を表示し、内容理解を支援する
+
+- [x] 日本語文章モード起動時に `translateToEnglishWithFallback()` で文章全体を英語訳
+- [x] 登録ポップアップの "文章の英語訳" セクションに翻訳結果を表示
+- [x] セクションタイトルを言語に応じて動的切り替え（英語文章→"文章の日本語訳" / 日本語文章→"文章の英語訳"）
+- [x] 設定画面に `translateSentenceToEnglish` トグル追加（DeepLキー未設定時はグレーアウト）
+- 変更ファイル:
+  - `src/store/settingsStore.ts`: `translateSentenceToEnglish` トグル追加
+  - `src/components/WordPopup.tsx`: 翻訳呼び出し・セクションタイトル動的切り替え
+  - `src/screens/SettingsScreen.tsx`: Switch コンポーネント追加
+  - `src/locales/ja/wordPopup.json`, `src/locales/en/wordPopup.json`: `sentence.englishTranslation`、`sentence.translationUnavailable` 追加
+  - `src/locales/ja/settings.json`, `src/locales/en/settings.json`: `translation.translateSentenceToEnglish` 関連 3キー追加
+- 詳細: [definition-ja-translation-plan.md - セクション8](./definition-ja-translation-plan.md)
 
 ## 注意事項・制約
 

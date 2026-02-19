@@ -20,6 +20,8 @@
     "noTranslation": "Could not get translation",
     "mode": "Sentence Mode",
     "japaneseTranslation": "Japanese Translation",
+    "englishTranslation": "English Translation",
+    "translationUnavailable": "Translation unavailable",
     "containedWords": "Words in Sentence",
     "swipeInstruction": "Swipe left to exclude words you don't want to register",
     "noWordsFound": "No words found"

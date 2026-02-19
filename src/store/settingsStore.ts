@@ -18,6 +18,8 @@ const zustandStorage = {
 interface SettingsState {
   translateDefinition: boolean;
   setTranslateDefinition: (value: boolean) => void;
+  translateSentenceToEnglish: boolean;
+  setTranslateSentenceToEnglish: (value: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -25,6 +27,8 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       translateDefinition: true,
       setTranslateDefinition: (value) => set({ translateDefinition: value }),
+      translateSentenceToEnglish: true,
+      setTranslateSentenceToEnglish: (value) => set({ translateSentenceToEnglish: value }),
     }),
     {
       name: 'settings-storage',
