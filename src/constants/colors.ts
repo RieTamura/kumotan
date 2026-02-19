@@ -79,6 +79,14 @@ export const LightColors = {
   indexTabShadow: 'rgba(0, 0, 0, 0.1)',
   indexTabText: '#657786',
   indexTabTextActive: '#14171A',
+
+  // Login screen
+  loginBackground: '#1DA1F2',
+  loginOnBackground: '#FFFFFF',
+  loginCardBackground: 'rgba(255, 255, 255, 0.9)',
+  loginButtonBackground: '#FFFFFF',
+  loginButtonText: '#1DA1F2',
+  loginDivider: 'rgba(255, 255, 255, 0.3)',
 } as const;
 
 export const DarkColors = {
@@ -157,6 +165,14 @@ export const DarkColors = {
   indexTabShadow: 'rgba(0, 0, 0, 0.3)',
   indexTabText: '#8899A6',
   indexTabTextActive: '#FFFFFF',
+
+  // Login screen
+  loginBackground: '#15202B',
+  loginOnBackground: '#FFFFFF',
+  loginCardBackground: '#192734',
+  loginButtonBackground: '#1DA1F2',
+  loginButtonText: '#FFFFFF',
+  loginDivider: '#38444D',
 } as const;
 
 export type ThemeColors = Record<keyof typeof LightColors, string>;

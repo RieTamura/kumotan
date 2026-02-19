@@ -34,7 +34,7 @@ import { useTheme } from '../hooks/useTheme';
 export function LoginScreen(): React.JSX.Element {
   const { t } = useTranslation('login');
   const { t: tc } = useTranslation('common');
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   // Auth store
   const { loginWithOAuth, isLoading, error, clearError } = useAuthStore();
@@ -89,7 +89,7 @@ export function LoginScreen(): React.JSX.Element {
   }, [identifier, isConnected, validateIdentifier, loginWithOAuth, t, tc]);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.primary }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.loginBackground }]} edges={['top', 'left', 'right']}>
       <StaticOfflineBanner visible={!isConnected} />
 
       <KeyboardAvoidingView
@@ -104,14 +104,14 @@ export function LoginScreen(): React.JSX.Element {
           {/* Header */}
           <View style={styles.header}>
             <Image 
-              source={require('../../assets/icon.png')} 
+              source={require('../../assets/icon-dark.png')}
               style={styles.appIcon}
               resizeMode="contain"
             />
           </View>
 
           {/* Description */}
-          <View style={[styles.descriptionContainer, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
+          <View style={[styles.descriptionContainer, { backgroundColor: colors.loginCardBackground }]}>
             <Text style={[styles.description, { color: colors.text }]}>
               {t('description')}
             </Text>
@@ -143,8 +143,8 @@ export function LoginScreen(): React.JSX.Element {
               returnKeyType="done"
               onSubmitEditing={handleOAuthLogin}
               editable={!isLoading}
-              labelStyle={{ color: '#FFFFFF' }}
-              hintStyle={{ color: '#FFFFFF' }}
+              labelStyle={{ color: colors.loginOnBackground }}
+              hintStyle={{ color: colors.loginOnBackground }}
             />
 
             {/* Actions */}
@@ -156,24 +156,24 @@ export function LoginScreen(): React.JSX.Element {
                 disabled={!isConnected || isLoading}
                 fullWidth
                 size="large"
-                style={[styles.mainButton, { backgroundColor: '#FFFFFF' }]}
-                textStyle={{ color: colors.primary, fontWeight: '700' }}
+                style={[styles.mainButton, { backgroundColor: colors.loginButtonBackground }]}
+                textStyle={{ color: colors.loginButtonText, fontWeight: '700' }}
               />
             </View>
 
             {/* Divider */}
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.loginDivider }]} />
 
             {/* No Account Info */}
             <View style={styles.noAccountContainer}>
-              <Text style={styles.noAccountText}>
+              <Text style={[styles.noAccountText, { color: colors.loginOnBackground }]}>
                 {t('noAccount.text')}
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => Linking.openURL('https://bsky.app')}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.noAccountLink}>
+                <Text style={[styles.noAccountLink, { color: colors.loginOnBackground }]}>
                   {t('noAccount.link')}
                 </Text>
               </TouchableOpacity>
@@ -183,7 +183,7 @@ export function LoginScreen(): React.JSX.Element {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: '#FFFFFF' }]}>
+            <Text style={[styles.footerText, { color: colors.loginOnBackground }]}>
               {t('version', { version: APP_INFO.VERSION })}
             </Text>
           </View>
@@ -271,7 +271,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     marginVertical: Spacing.lg,
   },
   noAccountContainer: {
@@ -282,12 +281,10 @@ const styles = StyleSheet.create({
   },
   noAccountText: {
     fontSize: FontSizes.sm,
-    color: '#FFFFFF',
     marginRight: Spacing.xs,
   },
   noAccountLink: {
     fontSize: FontSizes.sm,
-    color: '#FFFFFF',
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
