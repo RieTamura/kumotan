@@ -21,8 +21,9 @@ import {
 } from '../constants/colors';
 import { useTheme } from '../hooks/useTheme';
 import { Word } from '../types/word';
-import { MessageSquareShare } from 'lucide-react-native';
+import { MessageSquareShare, Volume2, VolumeX } from 'lucide-react-native';
 import { FeedbackModal } from './FeedbackModal';
+import { useSpeech } from '../hooks/useSpeech';
 
 /**
  * WordListItem props interface
@@ -51,6 +52,7 @@ export function WordListItem({
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
+  const { speak, stop: stopSpeech, isSpeaking } = useSpeech();
 
   /**
    * Handle item press - toggle expansion
@@ -132,6 +134,29 @@ export function WordListItem({
         {/* Expanded details */}
         {expanded && (
           <View style={[styles.expandedContent, { borderTopColor: colors.divider }]}>
+            {/* Speaker button */}
+            <Pressable
+              onPress={() => {
+                if (isSpeaking) {
+                  stopSpeech();
+                } else {
+                  speak(word.english, { language: 'en-US' });
+                }
+              }}
+              style={[styles.speakerButton, { borderColor: colors.border }]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onStartShouldSetResponder={() => true}
+              onResponderTerminationRequest={() => false}
+            >
+              {isSpeaking
+                ? <VolumeX size={16} color={colors.primary} />
+                : <Volume2 size={16} color={colors.primary} />
+              }
+              <Text style={[styles.speakerButtonText, { color: colors.primary }]}>
+                {isSpeaking ? '停止' : '読み上げ'}
+              </Text>
+            </Pressable>
+
             {/* Definition or morphological analysis */}
             {word.definition && (
               <View style={styles.detailSection}>
@@ -344,6 +369,23 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.primary,
     lineHeight: 18,
+  },
+  speakerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  speakerButtonText: {
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
+    color: Colors.primary,
   },
   feedbackButton: {
     flexDirection: 'row',

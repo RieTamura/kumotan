@@ -38,7 +38,8 @@ import {
   translateToEnglishWithFallback,
   ExtendedTranslateResult as EnglishTranslateResult,
 } from '../services/dictionary/translate';
-import { MessageSquareShare } from 'lucide-react-native';
+import { MessageSquareShare, Volume2, VolumeX } from 'lucide-react-native';
+import { useSpeech } from '../hooks/useSpeech';
 import { FeedbackModal } from './FeedbackModal';
 import { API } from '../constants/config';
 import { translateToJapanese, hasApiKey as hasDeepLApiKey } from '../services/dictionary/deepl';
@@ -271,6 +272,8 @@ export function WordPopup({
   const [isJapanese, setIsJapanese] = useState(false);
   const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
 
+  const { speak, stop: stopSpeech, isSpeaking } = useSpeech();
+
   // Get addWord from word store
   const addWordToStore = useWordStore(state => state.addWord);
   const translateDefinition = useSettingsStore(state => state.translateDefinition);
@@ -319,6 +322,7 @@ export function WordPopup({
       word: token.word,
       japanese: token.reading,
       definition: `${token.partOfSpeech} - 基本形: ${token.baseForm}`,
+      definitionJa: null,
       isRegistered: false,
       isSelected: true,
     }));
@@ -639,6 +643,7 @@ export function WordPopup({
       fetchWordData();
     } else {
       console.log('WordPopup useEffect: Resetting state');
+      stopSpeech();
       // Reset state when closed
       setDefinition(null);
       setDefinitionJa(null);
@@ -833,6 +838,24 @@ export function WordPopup({
                 </View>
               )}
             </View>
+
+            {/* Speaker Icon */}
+            <Pressable
+              onPress={() => {
+                if (isSpeaking) {
+                  stopSpeech();
+                } else {
+                  speak(word, { language: isJapanese ? 'ja-JP' : 'en-US' });
+                }
+              }}
+              style={styles.feedbackButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {isSpeaking
+                ? <VolumeX size={22} color={colors.primary} />
+                : <Volume2 size={22} color={colors.primary} />
+              }
+            </Pressable>
 
             {/* Feedback Icon */}
             <Pressable

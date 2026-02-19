@@ -227,7 +227,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ### Phase 2: 学習機能強化
 - フラッシュカード機能（ランダム出題、正解/不正解の記録）
 - クイズモード（4択、記述式）
-- 音声読み上げ機能（Text-to-Speech）
+- **音声読み上げ機能（Text-to-Speech）** ✅ 完了 (2026-02-19)
+  - `expo-speech` を使用したデバイス内蔵TTS（外部API不要・オフライン動作）
+  - WordPopup ヘッダーに読み上げボタン追加（英語/日本語を `isJapanese` フラグで自動判定）
+  - WordListItem 展開時に読み上げボタン追加（常に英語 `en-US`）
+  - 読み上げ中は `VolumeX` アイコンに変化しタップで停止、ポップアップ閉鎖時に自動停止
+  - `src/hooks/useSpeech.ts` にTTSロジックをカプセル化
+  - 詳細設計: [tts-implementation-plan.md](./tts-implementation-plan.md)
 - **日本語訳ルビ振り機能**
   - Yahoo! JAPAN Text Analysis APIのFurigana機能を使用
   - 単語詳細画面・単語帳一覧で日本語訳にふりがな表示
@@ -1053,11 +1059,22 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 ---
 
 **作成日**: 2025年1月1日
-**最終更新日**: 2026年2月12日
-**バージョン**: 1.28
+**最終更新日**: 2026年2月19日
+**バージョン**: 1.32
 **作成者**: RieTamura
 
 ## 変更履歴
+
+### v1.32 (2026-02-19)
+
+- **音声読み上げ機能（Text-to-Speech）の実装**
+  - `expo-speech` を使用したデバイス内蔵TTS（外部API不要・オフライン動作）
+  - `src/hooks/useSpeech.ts` 新規作成（speak/stop/isSpeaking を提供するカスタムフック）
+  - WordPopup ヘッダーにスピーカーボタン追加（英語/日本語を `isJapanese` フラグで自動判定）
+  - WordListItem 展開時にスピーカーボタン追加（英語 `en-US` 固定）
+  - 読み上げ中は `VolumeX` アイコンに変化しタップで停止、ポップアップ閉鎖時に自動停止
+  - 変更ファイル：`package.json`, `src/hooks/useSpeech.ts`, `src/components/WordPopup.tsx`, `src/components/WordListItem.tsx`
+  - 詳細：`doc/tts-implementation-plan.md`
 
 ### v1.31 (2026-02-17)
 
