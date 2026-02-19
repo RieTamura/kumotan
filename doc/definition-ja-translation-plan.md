@@ -26,6 +26,7 @@
 | `src/components/WordPopup.tsx` | DeepL翻訳呼び出し・日本語訳表示 |
 | `src/locales/ja/settings.json` | 設定トグル関連テキスト追加 |
 | `src/locales/en/settings.json` | 設定トグル関連テキスト追加 |
+| `src/components/WordListItem.tsx` | 単語カード展開時に「定義の日本語訳」セクション追加 |
 
 ---
 
@@ -423,13 +424,52 @@ restoreWordsFromPds(agent)
 
 ---
 
-## 9. 将来の拡張計画
+## 9. 単語帳ページへの表示追加
+
+> **ステータス: 完了 (2026-02-19)**
+
+### 概要
+
+単語帳ページの単語カード（展開時）に `definitionJa`（定義の日本語訳）を表示するよう対応した。
+
+### 変更内容
+
+**変更ファイル:** [WordListItem.tsx](../src/components/WordListItem.tsx)
+
+展開時の「英語定義」セクション直下に「定義の日本語訳」セクションを追加。
+
+```tsx
+{/* Japanese translation of definition */}
+{word.definition && word.definitionJa && (
+  <View style={styles.detailSection}>
+    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>定義の日本語訳</Text>
+    <Text style={[styles.detailText, { color: colors.text }]}>{word.definitionJa}</Text>
+  </View>
+)}
+```
+
+### 表示条件
+
+- `word.definition`が非null（英語定義が存在する）
+- かつ`word.definitionJa`が非null（日本語訳が保存済み）
+
+両条件を満たさない場合はセクション自体を非表示とする。
+
+### 設計メモ
+
+- バックエンド（DB・PDS・型定義）は前フェーズで完成済みのため、UI追加のみ（10行程度）
+- 既存の `detailLabel` / `detailText` スタイルを流用し、新規スタイル追加なし
+- 新旧どちらの登録データとも後方互換（`definitionJa = null` の単語では非表示になるだけ）
+
+---
+
+## 10. 将来の拡張計画
 
 ### 日本語文章モードの英語翻訳をPDSに保存する
 
 > **ステータス: 未実装（将来機能）**
 
-#### 概要
+#### 機能概要
 
 日本語文章モードで投稿を登録する際、文章全体の英語翻訳（`translateToEnglish()` の結果）を各単語レコードに紐づけてDB・PDSに保存する。
 
@@ -444,7 +484,7 @@ restoreWordsFromPds(agent)
 | PDS sync | `src/services/pds/vocabularySync.ts` | `buildPdsRecord()` と `restoreWordsFromPds()` に追加 |
 | WordPopup | `src/components/WordPopup.tsx` | 日本語文章モードの `addWordToStore` 呼び出し時に `sentenceTranslation?.text` を渡す |
 
-#### 設計メモ
+#### 将来機能の設計メモ
 
 - フィールド名は `sentenceTranslation`（既存の `english` フィールドとの衝突を避けるため）
 - 同じ文章から登録された各単語が **同じ** `sentenceTranslation` を共有して保存される
