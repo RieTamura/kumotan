@@ -2,16 +2,12 @@
   "header": "設定",
   "sections": {
     "account": "アカウント",
-    "tips": "ヘルプ",
-    "apiSettings": "API設定",
-    "translation": "翻訳設定",
+    "general": "一般",
+    "apiTranslation": "API・翻訳",
     "dictionary": "辞書データ",
     "dataManagement": "データ管理",
-    "feedback": "フィードバック",
-    "other": "その他",
-    "language": "言語",
-    "appearance": "外観",
-    "moderation": "モデレーション"
+    "support": "サポート",
+    "other": "その他"
   },
   "translation": {
     "translateDefinition": "英語の定義を日本語に翻訳",

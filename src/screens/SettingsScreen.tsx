@@ -24,7 +24,7 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { APP_INFO, EXTERNAL_LINKS } from '../constants/config';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/common/Button';
-import { hasApiKey } from '../services/dictionary/deepl';
+import { hasApiKey, getUsage, formatUsage, isUsageCritical, isUsageWarning, type DeepLUsage } from '../services/dictionary/deepl';
 import { hasClientId } from '../services/dictionary/yahooJapan';
 import { exportWords, deleteAllWords } from '../services/database/words';
 import { restoreWordsFromPds } from '../services/pds/vocabularySync';
@@ -51,6 +51,7 @@ import { useSettingsStore } from '../store/settingsStore';
 interface SettingsItemProps {
   title: string;
   subtitle?: string;
+  subtitleColor?: string;
   onPress: () => void;
   showArrow?: boolean;
   danger?: boolean;
@@ -63,6 +64,7 @@ interface SettingsItemProps {
 function SettingsItem({
   title,
   subtitle,
+  subtitleColor,
   onPress,
   showArrow = true,
   danger = false,
@@ -90,7 +92,7 @@ function SettingsItem({
           {title}
         </Text>
         {subtitle && (
-          <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.settingsItemSubtitle, { color: subtitleColor ?? colors.textSecondary }]}>
             {subtitle}
           </Text>
         )}
@@ -131,6 +133,7 @@ export function SettingsScreen(): React.JSX.Element {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [apiKeySet, setApiKeySet] = useState(false);
+  const [deepLUsage, setDeepLUsage] = useState<DeepLUsage | null>(null);
   const [yahooClientIdSet, setYahooClientIdSet] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -157,6 +160,13 @@ export function SettingsScreen(): React.JSX.Element {
     const checkApiKeys = async () => {
       const hasKey = await hasApiKey();
       setApiKeySet(hasKey);
+
+      if (hasKey) {
+        const usageResult = await getUsage();
+        setDeepLUsage(usageResult.success ? usageResult.data : null);
+      } else {
+        setDeepLUsage(null);
+      }
 
       const hasYahooId = await hasClientId();
       setYahooClientIdSet(hasYahooId);
@@ -492,46 +502,13 @@ export function SettingsScreen(): React.JSX.Element {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Tips Section */}
-        <SettingsSection title={t('sections.tips')}>
-          <SettingsItem
-            title={t('tips.title')}
-            subtitle={t('tips.subtitle')}
-            onPress={() => navigation.navigate('Tips')}
-          />
-          <SettingsItem
-            title={t('tips.reset')}
-            subtitle={t('tips.resetSubtitle')}
-            onPress={() => {
-              Alert.alert(
-                t('tips.resetConfirmTitle'),
-                t('tips.resetConfirmMessage'),
-                [
-                  { text: tc('buttons.cancel'), style: 'cancel' },
-                  {
-                    text: tc('buttons.ok'),
-                    onPress: async () => {
-                      await resetTutorial();
-                      showSuccess(t('tips.resetSuccess'));
-                    },
-                  },
-                ]
-              );
-            }}
-          />
-        </SettingsSection>
-
-        {/* Language Section */}
-        <SettingsSection title={t('sections.language')}>
+        {/* General Section (Language + Appearance) */}
+        <SettingsSection title={t('sections.general')}>
           <SettingsItem
             title={t('language.title')}
             subtitle={currentLang === 'ja' ? t('language.japanese') : t('language.english')}
             onPress={handleLanguageChange}
           />
-        </SettingsSection>
-
-        {/* Appearance Section */}
-        <SettingsSection title={t('sections.appearance')}>
           <SettingsItem
             title={t('appearance.theme')}
             subtitle={
@@ -545,20 +522,26 @@ export function SettingsScreen(): React.JSX.Element {
           />
         </SettingsSection>
 
-        {/* Moderation Section */}
-        <SettingsSection title={t('sections.moderation')}>
-          <SettingsItem
-            title={t('moderation.title')}
-            subtitle={t('moderation.subtitle')}
-            onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_MODERATION)}
-          />
-        </SettingsSection>
-
-        {/* API Settings Section */}
-        <SettingsSection title={t('sections.apiSettings')}>
+        {/* API & Translation Section */}
+        <SettingsSection title={t('sections.apiTranslation')}>
           <SettingsItem
             title={t('api.deepLKey')}
-            subtitle={apiKeySet ? t('api.configured') : t('api.notConfigured')}
+            subtitle={
+              apiKeySet && deepLUsage
+                ? formatUsage(deepLUsage)
+                : apiKeySet
+                  ? t('api.configured')
+                  : t('api.notConfigured')
+            }
+            subtitleColor={
+              apiKeySet && deepLUsage
+                ? isUsageCritical(deepLUsage)
+                  ? colors.error
+                  : isUsageWarning(deepLUsage)
+                    ? colors.warning
+                    : undefined
+                : undefined
+            }
             onPress={handleDeepLApiKeySettings}
           />
           <SettingsItem
@@ -566,10 +549,6 @@ export function SettingsScreen(): React.JSX.Element {
             subtitle={yahooClientIdSet ? t('api.configured') : t('api.notConfigured')}
             onPress={handleYahooApiKeySettings}
           />
-        </SettingsSection>
-
-        {/* Translation Settings Section */}
-        <SettingsSection title={t('sections.translation')}>
           <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
             <View style={styles.settingsItemContent}>
               <Text style={[styles.settingsItemTitle, { color: apiKeySet ? colors.text : colors.textTertiary }]}>
@@ -687,10 +666,33 @@ export function SettingsScreen(): React.JSX.Element {
           />
         </SettingsSection>
 
-
-
-        {/* Feedback Section */}
-        <SettingsSection title={t('sections.feedback')}>
+        {/* Support Section (Tips + Feedback) */}
+        <SettingsSection title={t('sections.support')}>
+          <SettingsItem
+            title={t('tips.title')}
+            subtitle={t('tips.subtitle')}
+            onPress={() => navigation.navigate('Tips')}
+          />
+          <SettingsItem
+            title={t('tips.reset')}
+            subtitle={t('tips.resetSubtitle')}
+            onPress={() => {
+              Alert.alert(
+                t('tips.resetConfirmTitle'),
+                t('tips.resetConfirmMessage'),
+                [
+                  { text: tc('buttons.cancel'), style: 'cancel' },
+                  {
+                    text: tc('buttons.ok'),
+                    onPress: async () => {
+                      await resetTutorial();
+                      showSuccess(t('tips.resetSuccess'));
+                    },
+                  },
+                ]
+              );
+            }}
+          />
           <SettingsItem
             title={t('feedbackItems.reportBug')}
             subtitle={t('feedbackItems.reportBugSubtitle')}
@@ -701,11 +703,15 @@ export function SettingsScreen(): React.JSX.Element {
             subtitle={t('feedbackItems.suggestSubtitle')}
             onPress={() => openFeedback('feature')}
           />
-
         </SettingsSection>
 
-        {/* About Section */}
+        {/* Other Section (Moderation + About) */}
         <SettingsSection title={t('sections.other')}>
+          <SettingsItem
+            title={t('moderation.title')}
+            subtitle={t('moderation.subtitle')}
+            onPress={() => openLink(EXTERNAL_LINKS.BLUESKY_MODERATION)}
+          />
           <SettingsItem
             title={t('other.debugLogs')}
             subtitle={t('other.debugLogsSubtitle')}
@@ -725,8 +731,6 @@ export function SettingsScreen(): React.JSX.Element {
             subtitle={t('support.starSubtitle')}
             onPress={() => openLink(EXTERNAL_LINKS.GITHUB_REPO)}
           />
-
-
         </SettingsSection>
 
         {/* Logout Button */}

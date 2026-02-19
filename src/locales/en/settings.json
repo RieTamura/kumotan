@@ -2,16 +2,12 @@
   "header": "Settings",
   "sections": {
     "account": "Account",
-    "tips": "Help",
-    "apiSettings": "API Settings",
-    "translation": "Translation Settings",
+    "general": "General",
+    "apiTranslation": "API & Translation",
     "dictionary": "Dictionary Data",
     "dataManagement": "Data Management",
-    "feedback": "Feedback",
-    "other": "Other",
-    "language": "Language",
-    "appearance": "Appearance",
-    "moderation": "Moderation"
+    "support": "Support",
+    "other": "Other"
   },
   "translation": {
     "translateDefinition": "Translate definition to Japanese",
