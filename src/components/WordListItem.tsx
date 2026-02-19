@@ -142,6 +142,14 @@ export function WordListItem({
               </View>
             )}
 
+            {/* Japanese translation of definition */}
+            {word.definition && word.definitionJa && (
+              <View style={styles.detailSection}>
+                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>定義の日本語訳</Text>
+                <Text style={[styles.detailText, { color: colors.text }]}>{word.definitionJa}</Text>
+              </View>
+            )}
+
             {/* Post text */}
             {word.postText && (
               <View style={styles.detailSection}>
