@@ -151,7 +151,9 @@ describe('AuthStore', () => {
 
       expect(isAuthenticated).toBe(true);
       const state = useAuthStore.getState();
-      expect(state.isAuthenticated).toBe(true);
+      // fix #21: checkAuth() keeps isAuthenticated=false until resumeSession completes
+      expect(state.isAuthenticated).toBe(false);
+      expect(state.isLoading).toBe(true);
       expect(state.user).toEqual({
         handle: 'test.bsky.social',
         did: 'did:plc:test123',

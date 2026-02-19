@@ -200,6 +200,7 @@ interface WordPopupProps {
     word: string,
     japanese: string | null,
     definition: string | null,
+    definitionJa: string | null,
     postUri: string | null,
     postText: string | null
   ) => void;
@@ -1040,7 +1041,7 @@ export function WordPopup({
                         ) : null}
                         {definition.example && (
                           <Text style={[styles.exampleText, { color: colors.textSecondary }]}>
-                            例: "{definition.example}"
+                            例: &quot;{definition.example}&quot;
                           </Text>
                         )}
                       </>

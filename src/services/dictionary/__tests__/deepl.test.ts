@@ -15,6 +15,7 @@ import {
   isUsageWarning,
   isUsageCritical,
   formatUsage,
+  clearDeeplCache,
 } from '../deepl';
 import { ErrorCode } from '../../../utils/errors';
 import { STORAGE_KEYS } from '../../../constants/config';
@@ -29,6 +30,7 @@ describe('DeepL API Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    clearDeeplCache();
   });
 
   afterEach(() => {

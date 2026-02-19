@@ -46,6 +46,7 @@ function rowToWord(row: Record<string, unknown>): Word {
     english: row.english as string,
     japanese: row.japanese as string | null,
     definition: row.definition as string | null,
+    definitionJa: row.definition_ja as string | null,
     postUrl: row.post_url as string | null,
     postText: row.post_text as string | null,
     isRead: (row.is_read as number) === 1,

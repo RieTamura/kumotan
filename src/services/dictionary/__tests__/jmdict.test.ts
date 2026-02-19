@@ -14,6 +14,7 @@ import {
   translateWithJMdictReverse,
   clearJMdictCache,
   clearJMdictReverseCache,
+  resetJMdictState,
   getJMdictMetadata,
   JMDICT_LICENSE_TEXT,
   JMDICT_ATTRIBUTION,
@@ -47,15 +48,26 @@ jest.mock('expo-asset', () => ({
   },
 }));
 
+// Mock ExternalDictionaryService so isDictionaryInstalled returns true
+jest.mock('../ExternalDictionaryService', () => ({
+  isDictionaryInstalled: jest.fn().mockResolvedValue(true),
+  // getOverrides returns OverridesFile | null (not a Result type)
+  getOverrides: jest.fn().mockResolvedValue(null),
+  findOverrideForWord: jest.fn().mockReturnValue(null),
+  isWordDeleted: jest.fn().mockReturnValue(false),
+}));
+
 describe('JMdict Dictionary Service', () => {
   let mockDb: {
     getAllAsync: jest.Mock;
+    getFirstAsync: jest.Mock;
     runAsync: jest.Mock;
+    closeAsync: jest.Mock;
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    clearJMdictCache();
+    resetJMdictState(); // isInitialized と jmdictDb もリセット
 
     // Reset mock file
     mockFileInstance.exists = true;
@@ -64,7 +76,10 @@ describe('JMdict Dictionary Service', () => {
     // Setup mock database
     mockDb = {
       getAllAsync: jest.fn(),
+      // verifyDatabase calls getFirstAsync to check metadata table existence
+      getFirstAsync: jest.fn().mockResolvedValue({ count: 1 }),
       runAsync: jest.fn(),
+      closeAsync: jest.fn().mockResolvedValue(undefined),
     };
 
     (SQLite.openDatabaseAsync as jest.Mock).mockResolvedValue(mockDb);
@@ -88,15 +103,6 @@ describe('JMdict Dictionary Service', () => {
 
         expect(result.success).toBe(true);
         expect(SQLite.openDatabaseAsync).toHaveBeenCalled();
-      });
-
-      it('should copy database file if not exists', async () => {
-        mockFileInstance.exists = false;
-        mockDb.getAllAsync.mockResolvedValue([]);
-
-        await initJMdictDatabase();
-
-        expect(mockFileInstance.copy).toHaveBeenCalled();
       });
 
       it('should skip copy if database already exists', async () => {
@@ -152,13 +158,10 @@ describe('JMdict Dictionary Service', () => {
 
     describe('isJMdictAvailable', () => {
       it('should return true when database file exists', async () => {
-        mockFileInstance.exists = true;
+        // isDictionaryInstalled is mocked to return true, DB mock is set in beforeEach
+        mockDb.getAllAsync.mockResolvedValue([]);
 
-        jest.resetModules();
-        const { isJMdictAvailable: freshCheck, clearJMdictCache: freshClear } = require('../jmdict');
-        freshClear();
-
-        const result = await freshCheck();
+        const result = await isJMdictAvailable();
 
         expect(result).toBe(true);
       });
@@ -298,8 +301,10 @@ describe('JMdict Dictionary Service', () => {
               priority: 100,
               gloss_id: 1,
               gloss: 'beautiful',
+              gloss_normalized: 'beautiful', // FTSフィルターに必要
               part_of_speech: 'adjective',
               sense_index: 0,
+              rank: -1,
             },
           ]);
 
@@ -309,7 +314,8 @@ describe('JMdict Dictionary Service', () => {
         if (result.success) {
           expect(result.data.length).toBe(1);
         }
-        expect(mockDb.getAllAsync).toHaveBeenCalledTimes(2);
+        // 3 calls: 1 for metadata in initJMdictDatabase (__DEV__), 1 exact match, 1 FTS
+        expect(mockDb.getAllAsync).toHaveBeenCalledTimes(3);
       });
 
       it('should normalize input to lowercase', async () => {

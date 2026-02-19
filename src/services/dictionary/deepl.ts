@@ -511,3 +511,8 @@ export function formatUsage(usage: DeepLUsage): string {
   const limit = usage.characterLimit.toLocaleString();
   return `${used} / ${limit} 文字 (${usage.usagePercentage}%)`;
 }
+
+/** テスト用: 翻訳キャッシュをクリア */
+export function clearDeeplCache(): void {
+  translationCache.clear();
+}

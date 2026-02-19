@@ -551,6 +551,13 @@ export function clearJMdictCache(): void {
   jmdictCache.clear();
 }
 
+/** テスト用: JMdict初期化状態をリセット */
+export function resetJMdictState(): void {
+  jmdictCache.clear();
+  isInitialized = false;
+  jmdictDb = null;
+}
+
 /**
  * JMdict辞書のメタデータを取得
  */
