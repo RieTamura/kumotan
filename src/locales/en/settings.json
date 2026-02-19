@@ -19,7 +19,10 @@
     "translateDefinitionNoApiKey": "Set a DeepL API key to enable this feature",
     "translateSentenceToEnglish": "Translate Japanese sentences to English",
     "translateSentenceToEnglishDescription": "Uses DeepL API",
-    "translateSentenceToEnglishNoApiKey": "Set a DeepL API key to enable this feature"
+    "translateSentenceToEnglishNoApiKey": "Set a DeepL API key to enable this feature",
+    "translateDefinitionInEnglishSentence": "Translate definitions in English sentence mode",
+    "translateDefinitionInEnglishSentenceDescription": "Uses DeepL API (consumes quota per word in sentence)",
+    "translateDefinitionInEnglishSentenceNoApiKey": "Set a DeepL API key to enable this feature"
   },
   "account": {
     "loading": "Loading...",

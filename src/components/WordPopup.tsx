@@ -121,6 +121,15 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
           </View>
         )}
 
+        {wordInfo.definition && wordInfo.definitionJa && (
+          <View style={styles.wordCardRow}>
+            <Text style={[styles.wordCardLabel, { color: colors.textSecondary }]}>定義の日本語訳:</Text>
+            <Text style={[styles.wordCardDefinition, { color: colors.text }]} numberOfLines={3}>
+              {wordInfo.definitionJa}
+            </Text>
+          </View>
+        )}
+
         <Text style={[styles.wordItemHint, { color: colors.textTertiary }]}>この単語は既に登録されています</Text>
       </View>
     );
@@ -155,6 +164,16 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
             <Text style={[styles.wordCardLabel, { color: colors.textSecondary }]}>定義:</Text>
             <Text style={[styles.wordCardDefinition, { color: colors.text }]} numberOfLines={3}>
               {wordInfo.definition}
+            </Text>
+          </View>
+        )}
+
+        {/* 定義の日本語訳 */}
+        {wordInfo.definition && wordInfo.definitionJa && (
+          <View style={styles.wordCardRow}>
+            <Text style={[styles.wordCardLabel, { color: colors.textSecondary }]}>定義の日本語訳:</Text>
+            <Text style={[styles.wordCardDefinition, { color: colors.text }]} numberOfLines={3}>
+              {wordInfo.definitionJa}
             </Text>
           </View>
         )}
@@ -256,6 +275,7 @@ export function WordPopup({
   const addWordToStore = useWordStore(state => state.addWord);
   const translateDefinition = useSettingsStore(state => state.translateDefinition);
   const translateSentenceToEnglish = useSettingsStore(state => state.translateSentenceToEnglish);
+  const translateDefinitionInEnglishSentence = useSettingsStore(state => state.translateDefinitionInEnglishSentence);
 
   /**
    * Animate popup open/close
@@ -434,7 +454,10 @@ export function WordPopup({
       registeredWords.map(w => w.english.toLowerCase())
     );
 
-    // 4. Fetch info for each word
+    // 4. Check DeepL availability once before the loop
+    const hasDeepLKey = await hasDeepLApiKey();
+
+    // 5. Fetch info for each word
     updateLoading('wordsInfo', true);
 
     const wordsInfoPromises = words.map(async (w): Promise<WordInfo> => {
@@ -449,6 +472,7 @@ export function WordPopup({
           word: w,
           japanese: registeredWord?.japanese || null,
           definition: registeredWord?.definition || null,
+          definitionJa: registeredWord?.definitionJa || null,
           isRegistered: true,
           isSelected: false, // Will be set by user
         };
@@ -460,10 +484,20 @@ export function WordPopup({
         translateToJapaneseWithFallback(w),
       ]);
 
+      // Translate definition to Japanese if settings allow
+      let definitionJa: string | null = null;
+      if (defResult.success && translateDefinitionInEnglishSentence && hasDeepLKey) {
+        const jaResult = await translateToJapanese(defResult.data.definition);
+        if (jaResult.success) {
+          definitionJa = jaResult.data.text;
+        }
+      }
+
       return {
         word: w,
         japanese: transResult.success ? transResult.data.text : null,
         definition: defResult.success ? defResult.data.definition : null,
+        definitionJa,
         isRegistered: false,
         isSelected: !isRegistered, // Auto-select unregistered words
       };
@@ -472,7 +506,7 @@ export function WordPopup({
     const wordsInfoResults = await Promise.all(wordsInfoPromises);
     setWordsInfo(wordsInfoResults);
     updateLoading('wordsInfo', false);
-  }, [word]);
+  }, [word, translateDefinitionInEnglishSentence]);
 
   /**
    * Fetch data for Japanese sentence mode
@@ -648,6 +682,7 @@ export function WordPopup({
               english: w.word,
               japanese: w.japanese ?? undefined,
               definition: w.definition ?? undefined,
+              definitionJa: w.definitionJa ?? undefined,
               postUrl: postUri ?? undefined,
               postText: postText ?? undefined,
             })

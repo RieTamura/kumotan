@@ -463,13 +463,60 @@ restoreWordsFromPds(agent)
 
 ---
 
-## 10. 将来の拡張計画
+## 10. 英語文章モードの定義日本語訳 + 設定トグル
+
+> **ステータス: 完了 (2026-02-19)**
+
+### 機能概要
+
+英語文章モード（英語投稿の文章モード選択時）において、各単語カードに定義の日本語訳を表示し、登録時に `definitionJa` として保存する機能を追加した。クォータ消費懸念に対応するため、独立した設定トグルも追加。
+
+### 変更ファイル一覧
+
+| ファイル | 変更内容 |
+| ------- | ------- |
+| `src/types/word.ts` | `WordInfo` に `definitionJa: string \| null` フィールドを追加 |
+| `src/store/settingsStore.ts` | `translateDefinitionInEnglishSentence`（デフォルト `true`）+ setter を追加 |
+| `src/locales/ja/settings.json` | `translateDefinitionInEnglishSentence` 関連3キー追加（クォータ消費の注記含む） |
+| `src/locales/en/settings.json` | 同上（英語） |
+| `src/components/WordPopup.tsx` | `fetchEnglishSentenceData` に定義翻訳処理追加・`SwipeableWordCard` に表示追加・`handleAddToWordList` に `definitionJa` 受け渡し追加 |
+| `src/screens/SettingsScreen.tsx` | 既存「翻訳設定」セクションに3つ目のトグルを追加 |
+
+### 設計判断
+
+| 判断事項 | 決定 | 理由 |
+| ------- | ---- | ---- |
+| 設定キー | `translateDefinitionInEnglishSentence`（独立） | 文章モードは単語数分のDeepL消費が発生するため、`translateDefinition`（単語モード用）と分離 |
+| DeepLキー確認タイミング | ループ前に1回 `hasDeepLApiKey()` を呼び出し | 単語数分の非同期呼び出しを避けてパフォーマンス最適化 |
+| `definitionJa` の取得順序 | `lookupWord` 完了後に逐次で `translateToJapanese` を呼び出し | 定義文が必要なため。単語間は引き続き `Promise.all` で並列実行 |
+| 既登録単語の `definitionJa` | `registeredWord.definitionJa` をそのまま表示 | 再翻訳不要。登録済み単語カードには保存済みの値を表示 |
+| バックエンド変更 | なし | DB・PDS・`WordListItem` は前フェーズで完成済み |
+
+### 設定画面の翻訳設定セクション（完成後）
+
+```text
+翻訳設定
+┌────────────────────────────────────────────────────────┐
+│ 英語の定義を日本語に翻訳                      ● ON    │  ← 単語モード用
+│ DeepL APIを使用します                                  │
+├────────────────────────────────────────────────────────┤
+│ 日本語投稿の文章モードを英語に翻訳            ● ON    │  ← 日本語文章モード用
+│ DeepL APIを使用します                                  │
+├────────────────────────────────────────────────────────┤
+│ 英語文章モードの定義を日本語に翻訳            ● ON    │  ← 新規（英語文章モード用）
+│ DeepL APIを使用します（文章内の単語数分消費）          │
+└────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 11. 将来の拡張計画
 
 ### 日本語文章モードの英語翻訳をPDSに保存する
 
 > **ステータス: 未実装（将来機能）**
 
-#### 機能概要
+#### 目的
 
 日本語文章モードで投稿を登録する際、文章全体の英語翻訳（`translateToEnglish()` の結果）を各単語レコードに紐づけてDB・PDSに保存する。
 

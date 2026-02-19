@@ -89,6 +89,7 @@ export interface WordInfo {
   word: string;
   japanese: string | null;
   definition: string | null;
+  definitionJa: string | null;
   isRegistered: boolean;
   isSelected: boolean;
 }

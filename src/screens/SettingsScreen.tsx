@@ -144,7 +144,11 @@ export function SettingsScreen(): React.JSX.Element {
   const { toastState, showSuccess, showError, hideToast } = useToast();
   const { resetTutorial } = useTutorial([], false);
   const { colors, mode, setMode, isDark } = useTheme();
-  const { translateDefinition, setTranslateDefinition, translateSentenceToEnglish, setTranslateSentenceToEnglish } = useSettingsStore();
+  const {
+    translateDefinition, setTranslateDefinition,
+    translateSentenceToEnglish, setTranslateSentenceToEnglish,
+    translateDefinitionInEnglishSentence, setTranslateDefinitionInEnglishSentence,
+  } = useSettingsStore();
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -599,6 +603,25 @@ export function SettingsScreen(): React.JSX.Element {
             <Switch
               value={apiKeySet ? translateSentenceToEnglish : false}
               onValueChange={setTranslateSentenceToEnglish}
+              disabled={!apiKeySet}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.card}
+            />
+          </View>
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: apiKeySet ? colors.text : colors.textTertiary }]}>
+                {t('translation.translateDefinitionInEnglishSentence')}
+              </Text>
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+                {apiKeySet
+                  ? t('translation.translateDefinitionInEnglishSentenceDescription')
+                  : t('translation.translateDefinitionInEnglishSentenceNoApiKey')}
+              </Text>
+            </View>
+            <Switch
+              value={apiKeySet ? translateDefinitionInEnglishSentence : false}
+              onValueChange={setTranslateDefinitionInEnglishSentence}
               disabled={!apiKeySet}
               trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor={colors.card}
