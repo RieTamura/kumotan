@@ -59,7 +59,7 @@ export function HomeScreen(): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const profile = useAuthProfile();
   const user = useAuthUser();
-  const { setFollowing, setBlocking } = useSocialStore();
+  const { setFollowing, setBlocking, userStates } = useSocialStore();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('following');
@@ -192,7 +192,7 @@ export function HomeScreen(): React.JSX.Element {
 
   // Feed state and actions
   const {
-    posts,
+    posts: rawPosts,
     isLoading,
     isRefreshing,
     isLoadingMore,
@@ -219,6 +219,18 @@ export function HomeScreen(): React.JSX.Element {
   const [isPostModalVisible, setIsPostModalVisible] = useState(false);
   const [replyTarget, setReplyTarget] = useState<ReplyToInfo | null>(null);
   const [quoteTarget, setQuoteTarget] = useState<QuoteToInfo | null>(null);
+
+  // Filter out blocked users' posts immediately from the current feed.
+  // Unfollowed users' posts disappear on next refresh (no immediate removal).
+  const posts = useMemo(() => {
+    const blockedDids = new Set(
+      Object.entries(userStates)
+        .filter(([_, s]) => s.blocking != null)
+        .map(([did]) => did)
+    );
+    if (blockedDids.size === 0) return rawPosts;
+    return rawPosts.filter((p) => !blockedDids.has(p.author.did));
+  }, [rawPosts, userStates]);
 
   // Block confirmation modal state
   const [blockConfirm, setBlockConfirm] = useState<{
