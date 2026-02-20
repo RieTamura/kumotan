@@ -1072,6 +1072,48 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 ## 変更履歴
 
+### v1.33 (2026-02-20)
+
+- **フォロー・ブロック機能 + アバタータッププロフィールプレビューの実装**
+
+  **フィードリファクタリング**
+  - `getTimeline` と `getAuthorFeed` に存在した重複マッピングコードを `mapPostItem()` 関数に抽出
+  - `TimelinePost.author` に `did` と `viewer`（`AuthorViewer`型）を追加し、フォロー・ブロック状態をフィードデータから取得可能に
+
+  **ソーシャルグラフ状態管理**
+  - `src/store/socialStore.ts` を新規作成（Zustand）
+    - DID をキーとするセッション内オーバーライドストア（`string` = URI有効 / `null` = 明示的解除 / `undefined` = サーバー値使用）
+    - `resolveFollowState` / `resolveBlockState` ヘルパー関数でストア値とサーバー値を統合
+  - `src/services/bluesky/social.ts` を新規作成
+    - `followUser(did)` / `unfollowUser(followUri)` — `agent.follow` / `agent.deleteFollow` を使用
+    - `blockUser(did)` / `unblockUser(blockUri)` — `agent.app.bsky.graph.block` を使用
+    - `getUserProfile(actor)` — `agent.getProfile` でプロフィール情報を取得
+
+  **HomeScreen ハンドラー**
+  - `handleFollowPress` — 楽観的更新 + API呼び出し、失敗時ロールバック
+  - `handleBlockPress` — ブロック前に `ConfirmModal` 表示、解除は即時楽観的更新
+  - `handleAvatarPress` — プロフィールプレビューモーダルを開く
+  - ブロックユーザーの投稿を `useMemo` フィルターでフィードから即時除去
+
+  **プロフィールプレビューモーダル（アバタータップ）**
+  - `src/components/ProfilePreviewModal.tsx` を新規作成
+    - 投稿データから即時表示: アバター・表示名・ハンドル
+    - `getUserProfile` で非同期取得: bio・フォロー中数/フォロワー数/投稿数
+    - フォロー/フォロー解除・ブロック/ブロック解除ボタン（`useSocialStore` でクロスカード同期）
+    - 自分のプロフィールにはアクションボタン非表示
+  - `PostCard.tsx` を簡略化：ActionSheet を削除し `onAvatarPress` コールバックに一本化
+
+  - 変更ファイル:
+    - `src/types/bluesky.ts` — `AuthorViewer` 追加、`TimelinePost.author` 拡張
+    - `src/services/bluesky/feed.ts` — `mapPostItem()` 抽出リファクタリング
+    - `src/store/socialStore.ts` — **新規**
+    - `src/services/bluesky/social.ts` — **新規**
+    - `src/components/ProfilePreviewModal.tsx` — **新規**
+    - `src/components/PostCard.tsx` — `onAvatarPress` 対応、ActionSheet 削除
+    - `src/screens/HomeScreen.tsx` — 各ハンドラー追加、プロフィールモーダル配置
+    - `src/locales/ja/home.json`, `src/locales/en/home.json` — フォロー・ブロック・プロフィール関連キー追加
+  - 詳細: `doc/follow-block-implementation-plan.md`
+
 ### v1.32 (2026-02-19)
 
 - **音声読み上げ機能（Text-to-Speech）の実装**
