@@ -38,8 +38,11 @@ import { TutorialTooltip } from '../components/Tutorial';
 import { IndexTabs, TabType } from '../components/IndexTabs';
 import { ProfileView } from '../components/ProfileView';
 import { TimelinePost } from '../types/bluesky';
-import { useAuthProfile } from '../store/authStore';
+import { useAuthProfile, useAuthUser } from '../store/authStore';
 import { likePost, unlikePost, repostPost, unrepostPost } from '../services/bluesky/feed';
+import { followUser, unfollowUser, blockUser, unblockUser } from '../services/bluesky/social';
+import { useSocialStore } from '../store/socialStore';
+import { ConfirmModal } from '../components/common/ConfirmModal';
 import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { useTheme } from '../hooks/useTheme';
 
@@ -55,6 +58,8 @@ export function HomeScreen(): React.JSX.Element {
   const { t: tt } = useTranslation('tutorial');
   const { colors, isDark } = useTheme();
   const profile = useAuthProfile();
+  const user = useAuthUser();
+  const { setFollowing, setBlocking } = useSocialStore();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('following');
@@ -215,6 +220,14 @@ export function HomeScreen(): React.JSX.Element {
   const [replyTarget, setReplyTarget] = useState<ReplyToInfo | null>(null);
   const [quoteTarget, setQuoteTarget] = useState<QuoteToInfo | null>(null);
 
+  // Block confirmation modal state
+  const [blockConfirm, setBlockConfirm] = useState<{
+    visible: boolean;
+    did: string;
+    handle: string;
+    blockUri?: string;
+  }>({ visible: false, did: '', handle: '' });
+
   /**
    * Handle end reached for infinite scroll
    */
@@ -363,6 +376,101 @@ export function HomeScreen(): React.JSX.Element {
   );
 
   /**
+   * Handle follow/unfollow press from PostCard avatar tap
+   */
+  const handleFollowPress = useCallback(
+    async (did: string, shouldFollow: boolean, followUri?: string) => {
+      // Optimistic update first ('optimistic' is truthy → shows following state)
+      setFollowing(did, shouldFollow ? 'optimistic' : null);
+
+      try {
+        if (shouldFollow) {
+          const result = await followUser(did);
+          if (result.success) {
+            setFollowing(did, result.data.uri);
+          } else {
+            // Revert
+            setFollowing(did, followUri ?? null);
+            if (__DEV__) {
+              console.error('Failed to follow user:', result.error);
+            }
+          }
+        } else {
+          if (!followUri) return;
+          const result = await unfollowUser(followUri);
+          if (!result.success) {
+            // Revert
+            setFollowing(did, followUri);
+            if (__DEV__) {
+              console.error('Failed to unfollow user:', result.error);
+            }
+          }
+        }
+      } catch (error) {
+        setFollowing(did, followUri ?? null);
+        if (__DEV__) {
+          console.error('Follow operation failed:', error);
+        }
+      }
+    },
+    [setFollowing]
+  );
+
+  /**
+   * Handle block/unblock press from PostCard avatar tap.
+   * Blocking shows ConfirmModal first. Unblocking is immediate with optimistic update.
+   */
+  const handleBlockPress = useCallback(
+    (did: string, handle: string, shouldBlock: boolean, blockUri?: string) => {
+      if (shouldBlock) {
+        setBlockConfirm({ visible: true, did, handle, blockUri });
+      } else {
+        // Unblock: optimistic update then API call
+        setBlocking(did, null);
+        if (blockUri) {
+          unblockUser(blockUri).then((result) => {
+            if (!result.success) {
+              setBlocking(did, blockUri);
+              if (__DEV__) {
+                console.error('Failed to unblock user:', result.error);
+              }
+            }
+          });
+        }
+      }
+    },
+    [setBlocking]
+  );
+
+  /**
+   * Execute block after user confirms via ConfirmModal
+   */
+  const handleBlockConfirm = useCallback(async () => {
+    const { did, blockUri } = blockConfirm;
+    setBlockConfirm((prev) => ({ ...prev, visible: false }));
+
+    // Optimistic update
+    setBlocking(did, 'optimistic');
+
+    try {
+      const result = await blockUser(did);
+      if (result.success) {
+        setBlocking(did, result.data.uri);
+      } else {
+        setBlocking(did, blockUri ?? null);
+        if (__DEV__) {
+          console.error('Failed to block user:', result.error);
+        }
+      }
+    } catch (error) {
+      setBlocking(did, blockUri ?? null);
+      if (__DEV__) {
+        console.error('Block operation failed:', error);
+      }
+    }
+  }, [blockConfirm, setBlocking]);
+
+  /**
    * Handle quote press
    */
   const handleQuotePress = useCallback((post: TimelinePost) => {
@@ -443,12 +551,15 @@ export function HomeScreen(): React.JSX.Element {
           onReplyPress={handleReplyPress}
           onRepostPress={handleRepostPress}
           onQuotePress={handleQuotePress}
+          onFollowPress={handleFollowPress}
+          onBlockPress={handleBlockPress}
+          currentUserDid={user?.did}
           clearSelection={shouldClearSelection}
           onLayoutElements={index === 0 ? handlePostLayoutElements : undefined}
         />
       );
     },
-    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
+    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleFollowPress, handleBlockPress, user?.did, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
   );
 
   /**
@@ -718,6 +829,26 @@ export function HomeScreen(): React.JSX.Element {
         postText={wordPopup.postText}
         onClose={closeWordPopup}
         onAddToWordList={handleAddWord}
+      />
+
+      {/* Block confirmation modal */}
+      <ConfirmModal
+        visible={blockConfirm.visible}
+        title={t('blockConfirmTitle')}
+        message={t('blockConfirmMessage', { handle: blockConfirm.handle })}
+        buttons={[
+          {
+            text: t('postCancel'),
+            style: 'cancel',
+            onPress: () => setBlockConfirm((prev) => ({ ...prev, visible: false })),
+          },
+          {
+            text: t('blockConfirm'),
+            style: 'destructive',
+            onPress: handleBlockConfirm,
+          },
+        ]}
+        onClose={() => setBlockConfirm((prev) => ({ ...prev, visible: false }))}
       />
 
       {/* Tutorial Tooltip */}

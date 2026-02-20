@@ -25,6 +25,7 @@ import { formatRelativeTime } from '../services/bluesky/feed';
 import { splitIntoSentences } from '../utils/validators';
 import { tokenizeJapanese, isMeaningfulToken } from '../utils/japaneseTokenizer';
 import { useTheme } from '../hooks/useTheme';
+import { useSocialStore, resolveFollowState, resolveBlockState } from '../store/socialStore';
 
 /**
  * PostCard props interface
@@ -38,6 +39,9 @@ interface PostCardProps {
   onReplyPress?: (post: TimelinePost) => void;
   onRepostPress?: (post: TimelinePost, isReposted: boolean) => void;
   onQuotePress?: (post: TimelinePost) => void;
+  onFollowPress?: (did: string, shouldFollow: boolean, followUri?: string) => void;
+  onBlockPress?: (did: string, handle: string, shouldBlock: boolean, blockUri?: string) => void;
+  currentUserDid?: string;
   clearSelection?: boolean;
   onLayoutElements?: (elements: {
     bookIcon?: { x: number; y: number; width: number; height: number };
@@ -484,8 +488,11 @@ function PostCardComponent({
   onReplyPress,
   onRepostPress,
   onQuotePress,
+  onFollowPress,
+  onBlockPress,
+  currentUserDid,
   clearSelection,
-  onLayoutElements
+  onLayoutElements,
 }: PostCardProps): React.JSX.Element {
   const { t, i18n } = useTranslation(['home', 'common']);
   const { colors, isDark } = useTheme();
@@ -508,6 +515,14 @@ function PostCardComponent({
   const [isReposted, setIsReposted] = useState(!!post.viewer?.repost);
   const [repostCount, setRepostCount] = useState(post.repostCount ?? 0);
   const [isRepostLoading, setIsRepostLoading] = useState(false);
+
+  // Social state: follow/block (store override takes priority over post.author.viewer)
+  const userStates = useSocialStore((s) => s.userStates);
+  const isOwnPost = post.author.did === currentUserDid;
+  const effectiveFollowingUri = resolveFollowState(userStates, post.author.did, post.author.viewer?.following);
+  const effectiveBlockingUri = resolveBlockState(userStates, post.author.did, post.author.viewer?.blocking);
+  const isFollowing = !!effectiveFollowingUri;
+  const isBlocking = !!effectiveBlockingUri;
 
   // Image viewer state
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -882,6 +897,75 @@ function PostCardComponent({
       Alert.alert(t('home:repostActionTitle'), undefined, buttons);
     }
   }, [onRepostPress, onQuotePress, post, isReposted, handleRepostToggle, t]);
+
+  /**
+   * Handle avatar press - show follow/block action sheet
+   */
+  const handleAvatarPress = useCallback(() => {
+    if (isOwnPost || (!onFollowPress && !onBlockPress)) return;
+
+    metricButtonPressed.current = true;
+
+    const handle = post.author.handle;
+
+    if (Platform.OS === 'ios') {
+      const options: string[] = [];
+      const actions: (() => void)[] = [];
+
+      if (onFollowPress) {
+        options.push(isFollowing ? t('home:unfollow') : t('home:follow'));
+        actions.push(() => onFollowPress(post.author.did, !isFollowing, effectiveFollowingUri));
+      }
+      if (onBlockPress) {
+        options.push(isBlocking ? t('home:unblock') : t('home:block'));
+        actions.push(() => onBlockPress(post.author.did, handle, !isBlocking, effectiveBlockingUri));
+      }
+      options.push(t('home:postCancel'));
+
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: options.length - 1,
+          title: t('home:userActionTitle', { handle }),
+        },
+        (buttonIndex) => {
+          if (buttonIndex < actions.length) {
+            actions[buttonIndex]();
+          }
+        }
+      );
+    } else {
+      const buttons: Array<{ text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }> = [];
+
+      if (onFollowPress) {
+        buttons.push({
+          text: isFollowing ? t('home:unfollow') : t('home:follow'),
+          onPress: () => onFollowPress(post.author.did, !isFollowing, effectiveFollowingUri),
+        });
+      }
+      if (onBlockPress) {
+        buttons.push({
+          text: isBlocking ? t('home:unblock') : t('home:block'),
+          style: isBlocking ? undefined : 'destructive',
+          onPress: () => onBlockPress(post.author.did, handle, !isBlocking, effectiveBlockingUri),
+        });
+      }
+      buttons.push({ text: t('home:postCancel'), style: 'cancel' });
+
+      Alert.alert(t('home:userActionTitle', { handle }), undefined, buttons);
+    }
+  }, [
+    isOwnPost,
+    onFollowPress,
+    onBlockPress,
+    post.author.did,
+    post.author.handle,
+    isFollowing,
+    isBlocking,
+    effectiveFollowingUri,
+    effectiveBlockingUri,
+    t,
+  ]);
 
   /**
    * Memoize parsed tokens to avoid re-parsing on every render
@@ -1276,11 +1360,22 @@ function PostCardComponent({
     >
       <View style={styles.postLayout}>
         {/* Avatar column */}
-        <Image
-          source={{ uri: imageError ? DEFAULT_AVATAR : (post.author.avatar || DEFAULT_AVATAR) }}
-          style={styles.avatar}
-          onError={handleImageError}
-        />
+        <Pressable
+          onPress={!isOwnPost ? handleAvatarPress : undefined}
+          disabled={isOwnPost || (!onFollowPress && !onBlockPress)}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          accessible={!isOwnPost && (!!onFollowPress || !!onBlockPress)}
+          accessibilityLabel={
+            !isOwnPost ? t('home:userActionTitle', { handle: post.author.handle }) : undefined
+          }
+          accessibilityRole={!isOwnPost ? 'button' : undefined}
+        >
+          <Image
+            source={{ uri: imageError ? DEFAULT_AVATAR : (post.author.avatar || DEFAULT_AVATAR) }}
+            style={styles.avatar}
+            onError={handleImageError}
+          />
+        </Pressable>
 
         {/* Content column */}
         <View style={styles.contentColumn} ref={contentColumnRef}>

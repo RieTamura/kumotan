@@ -143,6 +143,14 @@ export interface RichTextFacet {
 }
 
 /**
+ * Viewer relationship state for a post author
+ */
+export interface AuthorViewer {
+  following?: string; // URI of the follow record if this author is followed by the viewer
+  blocking?: string;  // URI of the block record if this author is blocked by the viewer
+}
+
+/**
  * Simplified post for display in the app
  */
 export interface TimelinePost {
@@ -151,9 +159,11 @@ export interface TimelinePost {
   text: string;
   facets?: RichTextFacet[];
   author: {
+    did: string;
     handle: string;
     displayName: string;
     avatar?: string;
+    viewer?: AuthorViewer;
   };
   createdAt: string;
   likeCount?: number;

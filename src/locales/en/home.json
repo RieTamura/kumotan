@@ -86,5 +86,13 @@
   "quotePost": "Quote post",
   "repostActionTitle": "Repost",
   "replyDisabled": "Replies are disabled for this post",
-  "quoteDisabled": "Quoting is disabled for this post"
+  "quoteDisabled": "Quoting is disabled for this post",
+  "follow": "Follow",
+  "unfollow": "Unfollow",
+  "block": "Block",
+  "unblock": "Unblock",
+  "userActionTitle": "Actions for @{{handle}}",
+  "blockConfirmTitle": "Confirm Block",
+  "blockConfirmMessage": "Block @{{handle}}?",
+  "blockConfirm": "Block"
 }

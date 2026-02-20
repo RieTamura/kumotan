@@ -289,6 +289,60 @@ export function extractPostEmbed(raw: unknown): PostEmbed | undefined {
 }
 
 /**
+ * Map a raw AT Protocol feed item to a TimelinePost.
+ * Shared between getTimeline and getAuthorFeed to eliminate duplication.
+ */
+function mapPostItem(item: { post: any }): TimelinePost {
+  const embed = extractPostEmbed(item.post.embed);
+  const rawEmbed = item.post.embed as { $type?: string } | undefined;
+  const viewer = item.post.viewer as { like?: string; repost?: string } | undefined;
+  const threadgate = item.post.threadgate as { uri?: string; record?: Record<string, unknown> } | undefined;
+  const replyRestriction = getReplyRestriction(threadgate);
+  const rawLabels = item.post.labels as Array<{ val: string }> | undefined;
+  const labels = rawLabels && rawLabels.length > 0
+    ? rawLabels.map((l) => ({ val: l.val }))
+    : undefined;
+  const authorViewer = item.post.author.viewer as { following?: string; blocking?: string } | undefined;
+
+  if (__DEV__) {
+    const postText = (item.post.record as { text?: string })?.text ?? '';
+    if (postText.includes('ラベル')) {
+      console.log('[Feed Debug]', {
+        text: postText.substring(0, 50),
+        rawLabels: JSON.stringify(item.post.labels),
+        hasEmbed: !!item.post.embed,
+        embedType: rawEmbed?.$type,
+        rawEmbed: JSON.stringify(item.post.embed)?.substring(0, 500),
+      });
+    }
+  }
+
+  return {
+    uri: item.post.uri,
+    cid: item.post.cid,
+    text: (item.post.record as { text?: string })?.text ?? '',
+    facets: (item.post.record as { facets?: unknown[] })?.facets as any,
+    author: {
+      did: item.post.author.did,
+      handle: item.post.author.handle,
+      displayName: item.post.author.displayName ?? item.post.author.handle,
+      avatar: item.post.author.avatar,
+      viewer: authorViewer
+        ? { following: authorViewer.following, blocking: authorViewer.blocking }
+        : undefined,
+    },
+    createdAt: (item.post.record as { createdAt?: string })?.createdAt ?? '',
+    likeCount: item.post.likeCount,
+    repostCount: item.post.repostCount,
+    replyCount: item.post.replyCount,
+    embed,
+    viewer: viewer ? { like: viewer.like, repost: viewer.repost } : undefined,
+    replyRestriction: replyRestriction !== 'none' ? replyRestriction : undefined,
+    labels,
+  };
+}
+
+/**
  * Fetch timeline posts from Bluesky
  */
 export async function getTimeline(
@@ -316,58 +370,7 @@ export async function getTimeline(
     });
 
     // Map response to our TimelinePost type
-    const posts: TimelinePost[] = response.data.feed.map((item) => {
-      // Extract embed information if present
-      const embed = extractPostEmbed(item.post.embed);
-      const rawEmbed = item.post.embed as { $type?: string } | undefined;
-
-      // Extract viewer state
-      const viewer = item.post.viewer as { like?: string; repost?: string } | undefined;
-
-      // Extract threadgate info for reply restriction icon
-      const threadgate = item.post.threadgate as { uri?: string; record?: Record<string, unknown> } | undefined;
-      const replyRestriction = getReplyRestriction(threadgate);
-
-      // Extract content labels (self-labels and service labels)
-      const rawLabels = item.post.labels as Array<{ val: string }> | undefined;
-      const labels = rawLabels && rawLabels.length > 0
-        ? rawLabels.map((l) => ({ val: l.val }))
-        : undefined;
-
-      // Debug: log raw data for posts containing label-related text
-      if (__DEV__) {
-        const postText = (item.post.record as { text?: string })?.text ?? '';
-        if (postText.includes('ラベル')) {
-          console.log('[Feed Debug Timeline]', {
-            text: postText.substring(0, 50),
-            rawLabels: JSON.stringify(item.post.labels),
-            hasEmbed: !!item.post.embed,
-            embedType: rawEmbed?.$type,
-            rawEmbed: JSON.stringify(item.post.embed)?.substring(0, 500),
-          });
-        }
-      }
-
-      return {
-        uri: item.post.uri,
-        cid: item.post.cid,
-        text: (item.post.record as { text?: string })?.text ?? '',
-        facets: (item.post.record as { facets?: unknown[] })?.facets as any,
-        author: {
-          handle: item.post.author.handle,
-          displayName: item.post.author.displayName ?? item.post.author.handle,
-          avatar: item.post.author.avatar,
-        },
-        createdAt: (item.post.record as { createdAt?: string })?.createdAt ?? '',
-        likeCount: item.post.likeCount,
-        repostCount: item.post.repostCount,
-        replyCount: item.post.replyCount,
-        embed,
-        viewer: viewer ? { like: viewer.like, repost: viewer.repost } : undefined,
-        replyRestriction: replyRestriction !== 'none' ? replyRestriction : undefined,
-        labels,
-      };
-    });
+    const posts: TimelinePost[] = response.data.feed.map(mapPostItem);
 
     // Remove duplicates based on URI (just in case API returns duplicates)
     const uniquePosts = posts.filter((post, index, self) =>
@@ -976,58 +979,7 @@ export async function getAuthorFeed(
     });
 
     // Map response to our TimelinePost type
-    const posts: TimelinePost[] = response.data.feed.map((item) => {
-      // Extract embed information if present
-      const embed = extractPostEmbed(item.post.embed);
-      const rawEmbed = item.post.embed as { $type?: string } | undefined;
-
-      // Extract viewer state
-      const viewer = item.post.viewer as { like?: string; repost?: string } | undefined;
-
-      // Extract threadgate info for reply restriction icon
-      const threadgate = item.post.threadgate as { uri?: string; record?: Record<string, unknown> } | undefined;
-      const replyRestriction = getReplyRestriction(threadgate);
-
-      // Extract content labels (self-labels and service labels)
-      const rawLabels = item.post.labels as Array<{ val: string }> | undefined;
-      const labels = rawLabels && rawLabels.length > 0
-        ? rawLabels.map((l) => ({ val: l.val }))
-        : undefined;
-
-      // Debug: log raw data for posts containing label-related text
-      if (__DEV__) {
-        const postText = (item.post.record as { text?: string })?.text ?? '';
-        if (postText.includes('ラベル')) {
-          console.log('[Feed Debug AuthorFeed]', {
-            text: postText.substring(0, 50),
-            rawLabels: JSON.stringify(item.post.labels),
-            hasEmbed: !!item.post.embed,
-            embedType: rawEmbed?.$type,
-            rawEmbed: JSON.stringify(item.post.embed)?.substring(0, 500),
-          });
-        }
-      }
-
-      return {
-        uri: item.post.uri,
-        cid: item.post.cid,
-        text: (item.post.record as { text?: string })?.text ?? '',
-        facets: (item.post.record as { facets?: unknown[] })?.facets as any,
-        author: {
-          handle: item.post.author.handle,
-          displayName: item.post.author.displayName ?? item.post.author.handle,
-          avatar: item.post.author.avatar,
-        },
-        createdAt: (item.post.record as { createdAt?: string })?.createdAt ?? '',
-        likeCount: item.post.likeCount,
-        repostCount: item.post.repostCount,
-        replyCount: item.post.replyCount,
-        embed,
-        viewer: viewer ? { like: viewer.like, repost: viewer.repost } : undefined,
-        replyRestriction: replyRestriction !== 'none' ? replyRestriction : undefined,
-        labels,
-      };
-    });
+    const posts: TimelinePost[] = response.data.feed.map(mapPostItem);
 
     // Remove duplicates based on URI
     const uniquePosts = posts.filter((post, index, self) =>

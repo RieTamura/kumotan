@@ -86,5 +86,13 @@
   "quotePost": "引用リポスト",
   "repostActionTitle": "リポスト",
   "replyDisabled": "この投稿には返信できません",
-  "quoteDisabled": "この投稿は引用できません"
+  "quoteDisabled": "この投稿は引用できません",
+  "follow": "フォローする",
+  "unfollow": "フォロー解除",
+  "block": "ブロックする",
+  "unblock": "ブロック解除",
+  "userActionTitle": "@{{handle}}さんへのアクション",
+  "blockConfirmTitle": "ブロックの確認",
+  "blockConfirmMessage": "@{{handle}}さんをブロックしますか？",
+  "blockConfirm": "ブロックする"
 }
