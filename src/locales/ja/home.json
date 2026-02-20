@@ -94,5 +94,6 @@
   "userActionTitle": "@{{handle}}さんへのアクション",
   "blockConfirmTitle": "ブロックの確認",
   "blockConfirmMessage": "@{{handle}}さんをブロックしますか？",
-  "blockConfirm": "ブロックする"
+  "blockConfirm": "ブロックする",
+  "profilePreviewLoadError": "プロフィールの読み込みに失敗しました"
 }

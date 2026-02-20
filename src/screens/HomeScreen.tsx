@@ -43,6 +43,7 @@ import { likePost, unlikePost, repostPost, unrepostPost } from '../services/blue
 import { followUser, unfollowUser, blockUser, unblockUser } from '../services/bluesky/social';
 import { useSocialStore } from '../store/socialStore';
 import { ConfirmModal } from '../components/common/ConfirmModal';
+import { ProfilePreviewModal } from '../components/ProfilePreviewModal';
 import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { useTheme } from '../hooks/useTheme';
 
@@ -239,6 +240,12 @@ export function HomeScreen(): React.JSX.Element {
     handle: string;
     blockUri?: string;
   }>({ visible: false, did: '', handle: '' });
+
+  // Profile preview modal state
+  const [profilePreview, setProfilePreview] = useState<{
+    visible: boolean;
+    author: TimelinePost['author'] | null;
+  }>({ visible: false, author: null });
 
   /**
    * Handle end reached for infinite scroll
@@ -501,6 +508,13 @@ export function HomeScreen(): React.JSX.Element {
   }, []);
 
   /**
+   * Handle avatar press - open profile preview modal
+   */
+  const handleAvatarPress = useCallback((author: TimelinePost['author']) => {
+    setProfilePreview({ visible: true, author });
+  }, []);
+
+  /**
    * Handle first post elements layout for tutorial
    */
   const handlePostLayoutElements = useCallback((elements: any) => {
@@ -563,15 +577,14 @@ export function HomeScreen(): React.JSX.Element {
           onReplyPress={handleReplyPress}
           onRepostPress={handleRepostPress}
           onQuotePress={handleQuotePress}
-          onFollowPress={handleFollowPress}
-          onBlockPress={handleBlockPress}
+          onAvatarPress={handleAvatarPress}
           currentUserDid={user?.did}
           clearSelection={shouldClearSelection}
           onLayoutElements={index === 0 ? handlePostLayoutElements : undefined}
         />
       );
     },
-    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleFollowPress, handleBlockPress, user?.did, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
+    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user?.did, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
   );
 
   /**
@@ -861,6 +874,16 @@ export function HomeScreen(): React.JSX.Element {
           },
         ]}
         onClose={() => setBlockConfirm((prev) => ({ ...prev, visible: false }))}
+      />
+
+      {/* Profile preview modal */}
+      <ProfilePreviewModal
+        visible={profilePreview.visible}
+        author={profilePreview.author}
+        currentUserDid={user?.did}
+        onClose={() => setProfilePreview((prev) => ({ ...prev, visible: false }))}
+        onFollowPress={handleFollowPress}
+        onBlockPress={handleBlockPress}
       />
 
       {/* Tutorial Tooltip */}

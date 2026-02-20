@@ -94,5 +94,6 @@
   "userActionTitle": "Actions for @{{handle}}",
   "blockConfirmTitle": "Confirm Block",
   "blockConfirmMessage": "Block @{{handle}}?",
-  "blockConfirm": "Block"
+  "blockConfirm": "Block",
+  "profilePreviewLoadError": "Failed to load profile"
 }

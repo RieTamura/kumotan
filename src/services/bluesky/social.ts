@@ -7,6 +7,7 @@
 import { Result } from '../../types/result';
 import { AppError, ErrorCode, mapToAppError } from '../../utils/errors';
 import { getAgent, hasActiveSession, refreshSession, getCurrentDid } from './auth';
+import { BlueskyProfile } from '../../types/bluesky';
 
 /**
  * Minimal rate limiter for social graph operations.
@@ -182,5 +183,41 @@ export async function unblockUser(
       console.error('Failed to unblock user:', error);
     }
     return { success: false, error: mapToAppError(error, 'ブロック解除') };
+  }
+}
+
+/**
+ * Fetch a user's public profile by DID or handle.
+ */
+export async function getUserProfile(
+  actor: string
+): Promise<Result<BlueskyProfile, AppError>> {
+  try {
+    const session = await ensureSession();
+    if (!session.success) return session;
+
+    const agent = getAgent();
+    const response = await agent.getProfile({ actor });
+    const data = response.data;
+
+    return {
+      success: true,
+      data: {
+        did: data.did,
+        handle: data.handle,
+        displayName: data.displayName,
+        description: data.description,
+        avatar: data.avatar,
+        banner: data.banner,
+        followersCount: data.followersCount,
+        followsCount: data.followsCount,
+        postsCount: data.postsCount,
+      },
+    };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to get user profile:', error);
+    }
+    return { success: false, error: mapToAppError(error, 'プロフィール取得') };
   }
 }
