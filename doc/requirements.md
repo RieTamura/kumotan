@@ -331,6 +331,13 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 - カスタムフィード対応
 
 ### Phase 5: コミュニティ機能
+
+- **Bluesky ソーシャル通知（プッシュ通知）** ← 次フェーズ候補
+  - いいねされたとき
+  - 返信が来たとき
+  - メンション・リポスト・フォローされたとき
+  - アーキテクチャ：Cloudflare Workers（Cron 5分ポーリング）+ Expo Push Notification Service
+  - 詳細は「通知機能アーキテクチャ」セクションを参照
 - 学習リマインダー通知（プッシュ通知）
 - 友達との学習進捗比較
 - 共有単語帳（パブリック単語帳）
