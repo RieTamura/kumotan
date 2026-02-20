@@ -113,9 +113,73 @@ https://bsky.app/profile/did:plc:abc123/post/xyz789
   - **投稿リンク**: ${post_url || 'なし'}
   ```
 
+### 3.5. バグ報告時のデバッグログ自動添付（エラー監視のオプトイン実装）
+
+`type='bug'` のフィードバック送信時に、デバッグログとデバイス情報を自動で添付する。
+ユーザーが「バグを報告する」ボタンを能動的に押す必要があるため、**完全にオプトイン**となる。
+Sentry / Firebase 等の外部クラッシュレポートツールは不要で、プライバシー申告への追加影響もない。
+
+#### 追加フィールド（`bug` タイプ専用）
+
+| フィールド | 説明 | データソース |
+|-----------|------|------------|
+| `logs` | 直近200件のデバッグログ（全文） | `logger.ts` の `getLogsAsString()` |
+| `app_version` | アプリバージョン | `APP_INFO.VERSION` |
+| `os_version` | OS バージョン | `Platform.Version` |
+| `platform` | `ios` / `android` | `Platform.OS` |
+
+#### 送信ペイロード（`bug` タイプ）
+
+```json
+{
+  "type": "bug",
+  "title": "ログインできない",
+  "description": "1. アプリを起動する 2. ログインボタンを押す ...",
+  "comment": "昨日まで使えていました",
+  "app_version": "1.0.0",
+  "platform": "ios",
+  "os_version": "18.2",
+  "logs": "[2026-02-20T10:00:00.000Z] [ERROR] [OAuth] Token refresh failed\n..."
+}
+```
+
+#### UI上の表示
+
+- フォームの説明文に「送信時にデバッグログ（直近の動作記録）が自動添付されます」と記載する。
+- ログの内容に個人情報が含まれないことをプライバシーポリシーと整合させる。
+
+#### 実装対象ファイルと変更内容
+
+##### 1. FeedbackModal（`src/components/FeedbackModal.tsx`）
+
+- `getLogsAsString` を `logger.ts` からインポート。
+- `APP_INFO` を `constants/config.ts` からインポート。
+- `handleSend` 内で `type === 'bug'` 時のみログ・デバイス情報をペイロードに追加。
+
+##### 2. GAS
+
+- `bug` タイプの `client_payload` に `logs`, `app_version`, `os_version`, `platform` を追加。
+- スプレッドシートに「バージョン」「プラットフォーム」列を追加（ログは長いためIssueのみに掲載）。
+
+##### 3. GitHub Actions（`.github/workflows/feedback-integration.yml`）
+
+- `bug` タイプのIssue本文にデバイス情報・デバッグログセクションを以下の形式で追加する。
+
+  ```text
+  ## デバイス情報
+  - **アプリバージョン**: 1.0.0
+  - **プラットフォーム**: iOS 18.2
+
+  ## デバッグログ
+  \`\`\`
+  [ログ全文]
+  \`\`\`
+  ```
+
 ## 4. セキュリティ
 - GitHub PAT は GAS 側で安全に保持。
 - アプリ側は公開された外部リポジトリへの直接的な書き込み権限を持たない。
+- デバッグログには認証トークン等の機密情報をログ出力しないこと（`logger.ts` の運用ルール）。
 
 ## 5. ステップ・バイ・ステップの作業予定
 
@@ -124,12 +188,16 @@ https://bsky.app/profile/did:plc:abc123/post/xyz789
 3.  **[Frontend]** `FeedbackModal`に`partOfSpeech`, `postUrl` propsを追加し、送信ペイロードに含める。
 4.  **[Frontend]** `WordPopup`から`FeedbackModal`へ品詞・投稿リンクを受け渡す。
 5.  **[Frontend]** `postUri`（AT Protocol）→ Bluesky URL変換ユーティリティを作成。
-6.  **[GAS]** `type`列の追加と、GitHub Actionsへのペイロード拡張。
-7.  **[GAS]** スプレッドシートに「品詞」「投稿リンク」列を追加し、`client_payload`に含める。
-8.  **[GitHub Actions]** `type`に基づくラベル付与と、タイトルの動的生成の実装。
-9.  **[GitHub Actions]** Issue本文に品詞・投稿リンクを表示。
-10. **[Test]** 各種報告（バグ、提案、検索不具合）が適切なラベルでIssue化されることを確認。
-11. **[Test]** `word_search`フィードバックに品詞・投稿リンクが含まれることを確認。
+6.  **[Frontend]** `FeedbackModal` の `bug` タイプ送信時に `getLogsAsString()` でログを添付、デバイス情報を追加。 ✅。
+7.  **[GAS]** `type`列の追加と、GitHub Actionsへのペイロード拡張。 ✅。
+8.  **[GAS]** スプレッドシートに「品詞」「投稿リンク」列を追加し、`client_payload`に含める。 ✅。
+9.  **[GAS]** `bug` タイプの `client_payload` に `logs`, `app_version`, `os_version`, `platform` を追加。スプレッドシートにJ列（アプリバージョン）・K列（OS/プラットフォーム）を追加。 ✅。
+10. **[GitHub Actions]** `type`に基づくラベル付与と、タイトルの動的生成の実装。
+11. **[GitHub Actions]** Issue本文に品詞・投稿リンクを表示。
+12. **[GitHub Actions]** `bug` タイプのIssue本文にデバイス情報・デバッグログセクションを追加。
+13. **[Test]** 各種報告（バグ、提案、検索不具合）が適切なラベルでIssue化されることを確認。
+14. **[Test]** `word_search`フィードバックに品詞・投稿リンクが含まれることを確認。
+15. **[Test]** `bug` フィードバックにデバッグログ・デバイス情報が含まれることを確認。
 
 ## 6. 備考
 
@@ -137,3 +205,5 @@ https://bsky.app/profile/did:plc:abc123/post/xyz789
 - 既存の「検索不具合報告（全工程完了）」をベースに拡張するため、迅速な導入が可能。
 - `partOfSpeech`と`postUrl`は`word_search`タイプ専用。`bug` / `feature`タイプでは送信しない。
 - 投稿リンクにより、Issueレビュー時に「どの文脈で検索したか」を即座に確認できる。
+- `logs`, `app_version`, `os_version`, `platform` は `bug` タイプ専用。他のタイプでは送信しない。
+- ユーザーが能動的に「バグを報告する」を押す必要があるため、オプトインとして成立する。Sentry等の外部ツール不要。

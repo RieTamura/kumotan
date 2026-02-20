@@ -16,7 +16,8 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { useTheme } from '../hooks/useTheme';
 import { Input } from './common/Input';
 import { Button } from './common/Button';
-import { API } from '../constants/config';
+import { API, APP_INFO } from '../constants/config';
+import { getLogsAsString } from '../utils/logger';
 
 export type FeedbackType = 'word_search' | 'bug' | 'feature';
 
@@ -49,7 +50,7 @@ export function FeedbackModal({ visible, type = 'word_search', word: initialWord
       case 'bug':
         return {
           title: t('feedback.types.bug'),
-          description: t('feedback.descriptions.bug'),
+          description: t('feedback.descriptions.bugWithLogs'),
           subjectLabel: t('feedback.labels.bugTitle'),
           subjectPlaceholder: '例: ログインできない、画面が真っ白になる',
           descLabel: t('feedback.labels.reproSteps'),
@@ -90,6 +91,15 @@ export function FeedbackModal({ visible, type = 'word_search', word: initialWord
 
     setIsSending(true);
     try {
+      const bugExtras = type === 'bug'
+        ? {
+            logs: await getLogsAsString(),
+            app_version: APP_INFO.VERSION,
+            platform: Platform.OS,
+            os_version: String(Platform.Version),
+          }
+        : {};
+
       const response = await fetch(API.FEEDBACK.GAS_URL, {
         method: 'POST',
         headers: {
@@ -104,6 +114,7 @@ export function FeedbackModal({ visible, type = 'word_search', word: initialWord
           comment,
           part_of_speech: partOfSpeech || '',
           post_url: postUrl || '',
+          ...bugExtras,
         }),
       });
 

@@ -675,12 +675,12 @@ export function HomeScreen(): React.JSX.Element {
       {/* Floating Action Buttons */}
       {showScrollToTop && (
         <Pressable
-          style={[styles.scrollToTopButton, styles.scrollToTopPressable, { backgroundColor: colors.primary }]}
+          style={[styles.scrollToTopButton, styles.scrollToTopPressable, { backgroundColor: colors.backgroundTertiary }]}
           onPress={scrollToTop}
           accessibilityLabel={t('scrollToTop')}
           accessibilityRole="button"
         >
-          <ArrowUp size={24} color="#FFF" />
+          <ArrowUp size={24} color={colors.primary} />
         </Pressable>
       )}
 
@@ -895,7 +895,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

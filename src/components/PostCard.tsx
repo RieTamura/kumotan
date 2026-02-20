@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
 import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink, AlertTriangle } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { TimelinePost, RichTextFacet } from '../types/bluesky';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
@@ -778,6 +779,13 @@ function PostCardComponent({
   const handleLikePress = useCallback(() => {
     metricButtonPressed.current = true;
     if (isLikeLoading || !onLikePress) return;
+
+    // Haptic feedback
+    if (!isLiked) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
 
     // Optimistic update
     setIsLikeLoading(true);

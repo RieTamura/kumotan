@@ -134,11 +134,12 @@
 
 ### 9. エラー監視の検討
 - **現状**: Sentry等のクラッシュ報告ツール未導入（プライバシー方針として意図的）
-- **代替**: ローカルログ（`src/utils/logger.ts`）は存在、デバッグログ画面も実装済み
-- [ ] リリース後のバグ発見方法を決定
-  - 辞書フィードバック機能活用
+- **対応**:「バグを報告する」フォームをオプトイン型エラー監視として活用する方針に決定
+- **詳細**: `doc/feedback-feature-implementation-plan.md` セクション3.5参照
+- [x] リリース後のバグ発見方法を決定
+  - 「バグを報告する」送信時にデバッグログ（`logger.ts`）を自動添付 → GAS → GitHub Issue（フロントエンド・GAS実装済み）
+  - GitHub Actions側への `logs` / `app_version` / `platform` / `os_version` 対応は別途実施
   - ユーザーからのフィードバック収集（GitHub Issues、Blueskyアカウント）
-  - デバッグログのシェア機能活用
 
 ### 10. `APP_INFO.VERSION` の二重管理解消
 - **ファイル**: `src/constants/config.ts` と `app.json`

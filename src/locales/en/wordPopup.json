@@ -94,6 +94,7 @@
     "descriptions": {
       "word_search": "Please let us know if the search result was unexpected or incorrect.",
       "bug": "If you found a bug in the app, please let us know the details.",
+      "bugWithLogs": "If you found a bug in the app, please let us know the details. Debug logs (recent activity records) will be automatically attached when you submit. No personal information is included.",
       "feature": "If you have an idea for a new feature, we'd love to hear it!"
     }
   },
