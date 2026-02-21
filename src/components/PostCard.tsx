@@ -1045,6 +1045,15 @@ function PostCardComponent({
   }, [post.embed?.images]);
 
   /**
+   * Prepare ALT texts for the image viewer footer
+   */
+  const imageViewerAlts = useMemo(() => {
+    const images = post.embed?.images;
+    if (!images || images.length === 0) return [];
+    return images.map((image) => image.alt);
+  }, [post.embed?.images]);
+
+  /**
    * Render NSFW content warning overlay
    */
   const renderNsfwOverlay = () => (
@@ -1097,6 +1106,7 @@ function PostCardComponent({
             source={{ uri: image.thumb }}
             style={styles.singleImage}
             resizeMode="cover"
+            accessibilityLabel={image.alt}
           />
           {image.alt ? (
             <View style={[styles.altBadge, { backgroundColor: colors.overlay }]}>
@@ -1131,6 +1141,7 @@ function PostCardComponent({
                 source={{ uri: image.thumb }}
                 style={styles.gridImage}
                 resizeMode="cover"
+                accessibilityLabel={image.alt}
               />
               {image.alt ? (
                 <View style={[styles.altBadge, { backgroundColor: colors.overlay }]}>
@@ -1169,6 +1180,7 @@ function PostCardComponent({
               source={{ uri: image.thumb }}
               style={styles.gridImage}
               resizeMode="cover"
+              accessibilityLabel={image.alt}
             />
             {image.alt ? (
               <View style={[styles.altBadge, { backgroundColor: colors.overlay }]}>
@@ -1427,6 +1439,15 @@ function PostCardComponent({
             </Pressable>
           </View>
         )}
+        FooterComponent={({ imageIndex }) => {
+          const alt = imageViewerAlts[imageIndex];
+          if (!alt) return null;
+          return (
+            <View style={styles.imageViewerFooter}>
+              <Text style={styles.imageViewerAltText}>{alt}</Text>
+            </View>
+          );
+        }}
       />
     </Pressable>
   );
@@ -1644,6 +1665,17 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: BorderRadius.full,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  imageViewerFooter: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingBottom: Spacing.xl,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  imageViewerAltText: {
+    color: '#fff',
+    fontSize: FontSizes.sm,
+    lineHeight: 18,
   },
   // External embed styles (link card)
   externalEmbedContainer: {

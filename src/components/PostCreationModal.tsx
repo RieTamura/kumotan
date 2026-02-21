@@ -112,6 +112,7 @@ export function PostCreationModal({
     setReplySettings,
     addImage,
     removeImage,
+    updateImageAlt,
     setSelfLabels,
     submitPost,
     reset,
@@ -120,6 +121,18 @@ export function PostCreationModal({
 
   const [showReplySettings, setShowReplySettings] = useState(false);
   const [showContentLabels, setShowContentLabels] = useState(false);
+  const [focusedImageIndex, setFocusedImageIndex] = useState(0);
+
+  /**
+   * Keep focusedImageIndex in bounds when images are removed
+   */
+  useEffect(() => {
+    if (images.length === 0) {
+      setFocusedImageIndex(0);
+    } else if (focusedImageIndex >= images.length) {
+      setFocusedImageIndex(images.length - 1);
+    }
+  }, [images.length, focusedImageIndex]);
 
   /**
    * Get display label for current reply settings
@@ -340,21 +353,46 @@ export function PostCreationModal({
               <View style={styles.imagePreviewSection}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imagePreviewScroll}>
                   {images.map((img, index) => (
-                    <View key={img.uri} style={styles.imagePreviewContainer}>
-                      <Image source={{ uri: img.uri }} style={styles.imagePreviewThumb} />
-                      <Pressable
-                        style={styles.imageRemoveButton}
-                        onPress={() => removeImage(index)}
-                        disabled={isPosting}
-                      >
-                        <X size={14} color="#FFFFFF" />
-                      </Pressable>
-                    </View>
+                    <Pressable
+                      key={img.uri}
+                      style={styles.imagePreviewItem}
+                      onPress={() => setFocusedImageIndex(index)}
+                    >
+                      <View style={[
+                        styles.imagePreviewContainer,
+                        index === focusedImageIndex && { borderWidth: 2, borderColor: colors.primary, borderRadius: 8 },
+                      ]}>
+                        <Image source={{ uri: img.uri }} style={styles.imagePreviewThumb} />
+                        <Pressable
+                          style={styles.imageRemoveButton}
+                          onPress={() => removeImage(index)}
+                          disabled={isPosting}
+                        >
+                          <X size={14} color="#FFFFFF" />
+                        </Pressable>
+                        {img.alt ? (
+                          <View style={styles.altBadge}>
+                            <Text style={styles.altBadgeText}>ALT</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    </Pressable>
                   ))}
                 </ScrollView>
                 <Text style={[styles.imageCount, { color: colors.textSecondary }]}>
                   {images.length}/4
                 </Text>
+                {/* Full-width ALT text input for focused image */}
+                <TextInput
+                  style={[styles.altTextInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}
+                  placeholder="ALTテキスト（画像の説明）"
+                  placeholderTextColor={colors.textTertiary}
+                  value={images[focusedImageIndex]?.alt ?? ''}
+                  onChangeText={(text) => updateImageAlt(focusedImageIndex, text)}
+                  editable={!isPosting}
+                  maxLength={1000}
+                  multiline
+                />
               </View>
             )}
 
@@ -615,6 +653,9 @@ const styles = StyleSheet.create({
   imagePreviewScroll: {
     gap: 8,
   },
+  imagePreviewItem: {
+    alignItems: 'center',
+  },
   imagePreviewContainer: {
     position: 'relative',
   },
@@ -622,6 +663,29 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 8,
+  },
+  altTextInput: {
+    marginTop: 8,
+    fontSize: 13,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    minHeight: 36,
+  },
+  altBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  altBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
   imageRemoveButton: {
     position: 'absolute',

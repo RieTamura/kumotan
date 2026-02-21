@@ -97,6 +97,7 @@ interface UsePostCreationReturn {
   setReplySettings: (settings: PostReplySettings) => void;
   addImage: (image: PostImageAttachment) => void;
   removeImage: (index: number) => void;
+  updateImageAlt: (index: number, alt: string) => void;
   setSelfLabels: (labels: string[]) => void;
   submitPost: () => Promise<boolean>;
   reset: () => void;
@@ -277,6 +278,19 @@ export function usePostCreation(
   }, []);
 
   /**
+   * Update the ALT text of an image attachment by index.
+   */
+  const updateImageAlt = useCallback((index: number, alt: string) => {
+    setState((prev) => {
+      const newImages = [...prev.images];
+      if (newImages[index]) {
+        newImages[index] = { ...newImages[index], alt };
+      }
+      return { ...prev, images: newImages };
+    });
+  }, []);
+
+  /**
    * Remove an image attachment by index.
    * If all images are removed, selfLabels are automatically reset.
    */
@@ -430,6 +444,7 @@ export function usePostCreation(
     setReplySettings,
     addImage,
     removeImage,
+    updateImageAlt,
     setSelfLabels,
     submitPost,
     reset,
