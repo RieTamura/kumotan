@@ -5960,3 +5960,101 @@ const getCharacterCounterStyle = useCallback(() => {
 - `StyleSheet.create`で定義した静的スタイルには`color`プロパティを省略するとデフォルト（黒）になり、ダークモードに対応できない
 - テーマ対応が必要なコンポーネントでは、すべてのテキスト要素に`colors.text`や`colors.textSecondary`を適用しているか確認する
 - 警告・エラー状態のスタイルだけでなく、通常状態のスタイルもテーマ対応を忘れずに行う
+
+---
+
+## 33. バグ報告フィードバックがGitHub Issueに作成されない問題
+
+### 発生日
+2026年2月21日
+
+### 症状
+- アプリからバグ報告を送信すると「送信に失敗しました」エラーが表示される
+- スプレッドシートにはデータが記録されている（H列が「Pending」のまま）
+- 機能提案（feature）や検索不具合（word_search）は正常に GitHub Issue が作成される
+- バグ報告（bug）のみ GitHub Actions ワークフローが実行されない
+
+### 調査過程
+
+1. **GAS 実行ログの確認** - 「実行数」タブで `doPost` が「完了」と表示されていることを確認。スプレッドシート保存（`appendRow`）は `triggerGitHubAction` より前に実行されるため、GAS が例外を catch して `{ status: 'error' }` を返してもスプレッドシートには記録される。
+
+2. **診断ログの追加** - `muteHttpExceptions: true` と `console.log` を GAS に追加して再送信。
+
+3. **エラーの特定** - ターミナルログに以下が表示された：
+   ```
+   ERROR Feedback send error: [Error: Error: GitHub dispatch failed: 422
+   {"message":"Invalid request.\n\nNo more than 10 properties are allowed;
+   11 were supplied.","status":"422"}]
+   ```
+
+### 原因
+GitHub の `repository_dispatch` API は `client_payload` のプロパティ数が**最大10個**に制限されている。
+
+bug タイプのとき `bugPayload`（`logs`, `app_version`, `platform`, `os_version`）が追加され、共通の7フィールドと合わせて **11プロパティ** になっていた。
+
+| フィールド | 値 |
+|---|---|
+| 共通（7個）| `type`, `word`, `expectation`, `comment`, `part_of_speech`, `post_url`, `row_index` |
+| bug 追加（4個）| `logs`, `app_version`, `platform`, `os_version` |
+| 合計 | 11個 → 上限超過 |
+
+機能提案・検索不具合は `bugPayload` がなく7個なので成功していた。
+
+### 副次的問題
+ワークフロー側で `logs`・`app_version`・`platform` を destructuring していなかったため、bug タイプの GitHub Issue に環境情報・デバッグログが含まれていなかった。
+
+### 解決策
+
+**GAS の修正（`triggerGitHubAction` 関数）：**
+- `platform` と `os_version` を1フィールドに統合してプロパティ数を10に削減
+- `truncateLogs` 関数を追加してログを直近100件に切り詰め（ペイロード肥大化防止）
+- `muteHttpExceptions: true` を追加して GitHub API エラーの詳細をキャッチ可能に
+
+```javascript
+// platform + os_version を統合（11→10プロパティ）
+const bugPayload = type === 'bug'
+  ? {
+      logs: truncateLogs(data.logs || '', 100),
+      app_version: data.app_version || '',
+      platform: `${data.platform || ''} ${data.os_version || ''}`.trim(),
+    }
+  : {};
+
+// ログトリム関数
+function truncateLogs(logsStr, maxEntries) {
+  if (!logsStr) return '';
+  const entries = logsStr.split('\n\n');
+  if (entries.length <= maxEntries) return logsStr;
+  return `[前略...最新${maxEntries}件を表示]\n\n` + entries.slice(-maxEntries).join('\n\n');
+}
+```
+
+**GitHub Actions ワークフローの修正（`.github/workflows/feedback-integration.yml`）：**
+- `client_payload` の destructuring に `logs`, `app_version`, `platform` を追加
+- bug タイプの Issue 本文にアプリバージョン・プラットフォーム・デバッグログセクションを追加
+
+```javascript
+const { type, word, expectation, comment, part_of_speech, post_url,
+        row_index, logs, app_version, platform } = context.payload.client_payload;
+
+if (type === 'bug') {
+  bodyLines.push(`- **アプリバージョン**: ${app_version || '不明'}`);
+  bodyLines.push(`- **プラットフォーム**: ${platform || '不明'}`);
+  if (logs) {
+    bodyLines.push('### デバッグログ');
+    bodyLines.push('```');
+    bodyLines.push(logs);
+    bodyLines.push('```');
+  }
+}
+```
+
+### 関連ファイル
+- GAS スクリプト（Google Apps Script エディタ上で管理）
+- `.github/workflows/feedback-integration.yml` - GitHub Actions ワークフロー
+
+### 教訓
+- GitHub `repository_dispatch` の `client_payload` は **最大10プロパティ** という制限がある（公式ドキュメントに記載）
+- GAS の `doPost` は try-catch 構造のため、内部で例外が発生しても実行ログは「完了」と表示される。H列が「Pending」のまま = `triggerGitHubAction` が失敗している
+- bug タイプのみ失敗する場合、bug 専用フィールドの追加によるプロパティ数超過を疑う
+- 同じ種類のフィードバック（bug/feature/word_search）で成否が分かれる場合、タイプ別に追加されるフィールドの差分を確認する
