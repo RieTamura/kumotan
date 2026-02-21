@@ -1,26 +1,11 @@
 import { useCallback, useEffect } from 'react';
-import { Alert, Linking, Platform, type AlertButton } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useTranslation } from 'react-i18next';
 import { useNotificationStore } from '../store/notificationStore';
 
 const QUIZ_REMINDER_ID = 'kumotan-quiz-reminder';
 const WORD_REMINDER_ID = 'kumotan-word-reminder';
-
-// Preset time options shown in the time picker Alert
-const TIME_PRESETS: { hour: number; minute: number }[] = [
-  { hour: 6, minute: 0 },
-  { hour: 7, minute: 0 },
-  { hour: 8, minute: 0 },
-  { hour: 9, minute: 0 },
-  { hour: 10, minute: 0 },
-  { hour: 12, minute: 0 },
-  { hour: 18, minute: 0 },
-  { hour: 19, minute: 0 },
-  { hour: 20, minute: 0 },
-  { hour: 21, minute: 0 },
-  { hour: 22, minute: 0 },
-];
 
 async function requestPermissionIfNeeded(): Promise<boolean> {
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -61,7 +46,6 @@ export function useNotifications() {
     reminderMinute,
     setQuizReminderEnabled,
     setWordReminderEnabled,
-    setReminderTime,
   } = useNotificationStore();
 
   // Sync scheduled notifications whenever relevant state changes
@@ -141,19 +125,8 @@ export function useNotifications() {
     [setWordReminderEnabled, showPermissionDeniedAlert]
   );
 
-  const handleSelectTime = useCallback(() => {
-    const buttons: AlertButton[] = TIME_PRESETS.map(({ hour, minute }) => {
-      const label = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      return { text: label, onPress: () => setReminderTime(hour, minute) };
-    });
-    buttons.push({ text: tc('buttons.cancel'), style: 'cancel' });
-
-    Alert.alert(t('notifications.reminderTime'), undefined, buttons);
-  }, [setReminderTime, t, tc]);
-
   return {
     handleToggleQuizReminder,
     handleToggleWordReminder,
-    handleSelectTime,
   };
 }

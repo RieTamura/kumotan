@@ -46,6 +46,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useSettingsStore } from '../store/settingsStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { useNotifications } from '../hooks/useNotifications';
+import { TimePickerModal } from '../components/TimePickerModal';
 
 /**
  * Settings item component props
@@ -159,8 +160,10 @@ export function SettingsScreen(): React.JSX.Element {
     wordReminderEnabled,
     reminderHour,
     reminderMinute,
+    setReminderTime,
   } = useNotificationStore();
-  const { handleToggleQuizReminder, handleToggleWordReminder, handleSelectTime } = useNotifications();
+  const { handleToggleQuizReminder, handleToggleWordReminder } = useNotifications();
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -549,7 +552,7 @@ export function SettingsScreen(): React.JSX.Element {
             <SettingsItem
               title={t('notifications.reminderTime')}
               subtitle={`${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`}
-              onPress={handleSelectTime}
+              onPress={() => setTimePickerVisible(true)}
             />
           )}
         </SettingsSection>
@@ -839,6 +842,18 @@ export function SettingsScreen(): React.JSX.Element {
           </View>
         </View>
       </ScrollView>
+
+      {/* Time Picker Modal */}
+      <TimePickerModal
+        visible={timePickerVisible}
+        initialHour={reminderHour}
+        initialMinute={reminderMinute}
+        onConfirm={(hour, minute) => {
+          setReminderTime(hour, minute);
+          setTimePickerVisible(false);
+        }}
+        onCancel={() => setTimePickerVisible(false)}
+      />
 
       {/* Feedback Modal */}
       <FeedbackModal
