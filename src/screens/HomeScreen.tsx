@@ -39,7 +39,7 @@ import { IndexTabs, TabType } from '../components/IndexTabs';
 import { ProfileView } from '../components/ProfileView';
 import { TimelinePost } from '../types/bluesky';
 import { useAuthProfile, useAuthUser } from '../store/authStore';
-import { likePost, unlikePost, repostPost, unrepostPost } from '../services/bluesky/feed';
+import { likePost, unlikePost, repostPost, unrepostPost, deletePost } from '../services/bluesky/feed';
 import { followUser, unfollowUser, blockUser, unblockUser } from '../services/bluesky/social';
 import { useSocialStore } from '../store/socialStore';
 import { ConfirmModal } from '../components/common/ConfirmModal';
@@ -221,7 +221,10 @@ export function HomeScreen(): React.JSX.Element {
   const [replyTarget, setReplyTarget] = useState<ReplyToInfo | null>(null);
   const [quoteTarget, setQuoteTarget] = useState<QuoteToInfo | null>(null);
 
-  // Filter out blocked users' posts immediately from the current feed.
+  // Deleted post URIs for immediate removal from feed
+  const [deletedUris, setDeletedUris] = useState<Set<string>>(new Set());
+
+  // Filter out blocked users' posts and deleted posts immediately from the current feed.
   // Unfollowed users' posts disappear on next refresh (no immediate removal).
   const posts = useMemo(() => {
     const blockedDids = new Set(
@@ -229,9 +232,10 @@ export function HomeScreen(): React.JSX.Element {
         .filter(([_, s]) => s.blocking != null)
         .map(([did]) => did)
     );
-    if (blockedDids.size === 0) return rawPosts;
-    return rawPosts.filter((p) => !blockedDids.has(p.author.did));
-  }, [rawPosts, userStates]);
+    return rawPosts.filter(
+      (p) => !blockedDids.has(p.author.did) && !deletedUris.has(p.uri)
+    );
+  }, [rawPosts, userStates, deletedUris]);
 
   // Block confirmation modal state
   const [blockConfirm, setBlockConfirm] = useState<{
@@ -240,6 +244,12 @@ export function HomeScreen(): React.JSX.Element {
     handle: string;
     blockUri?: string;
   }>({ visible: false, did: '', handle: '' });
+
+  // Delete confirmation modal state
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    visible: boolean;
+    post: TimelinePost | null;
+  }>({ visible: false, post: null });
 
   // Profile preview modal state
   const [profilePreview, setProfilePreview] = useState<{
@@ -515,6 +525,39 @@ export function HomeScreen(): React.JSX.Element {
   }, []);
 
   /**
+   * Handle delete press - show confirmation modal
+   */
+  const handleDeletePress = useCallback((post: TimelinePost) => {
+    setDeleteConfirm({ visible: true, post });
+  }, []);
+
+  /**
+   * Execute delete after user confirms via ConfirmModal
+   */
+  const handleDeleteConfirm = useCallback(async () => {
+    const post = deleteConfirm.post;
+    if (!post) return;
+
+    setDeleteConfirm((prev) => ({ ...prev, visible: false }));
+
+    // Optimistic: remove from feed immediately
+    setDeletedUris((prev) => new Set(prev).add(post.uri));
+
+    const result = await deletePost(post.uri);
+    if (!result.success) {
+      // Revert on failure
+      setDeletedUris((prev) => {
+        const next = new Set(prev);
+        next.delete(post.uri);
+        return next;
+      });
+      if (__DEV__) {
+        console.error('Failed to delete post:', result.error);
+      }
+    }
+  }, [deleteConfirm.post]);
+
+  /**
    * Handle first post elements layout for tutorial
    */
   const handlePostLayoutElements = useCallback((elements: any) => {
@@ -578,13 +621,14 @@ export function HomeScreen(): React.JSX.Element {
           onRepostPress={handleRepostPress}
           onQuotePress={handleQuotePress}
           onAvatarPress={handleAvatarPress}
+          onDeletePress={handleDeletePress}
           currentUserDid={user?.did}
           clearSelection={shouldClearSelection}
           onLayoutElements={index === 0 ? handlePostLayoutElements : undefined}
         />
       );
     },
-    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user?.did, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
+    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, handleDeletePress, user?.did, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
   );
 
   /**
@@ -874,6 +918,26 @@ export function HomeScreen(): React.JSX.Element {
           },
         ]}
         onClose={() => setBlockConfirm((prev) => ({ ...prev, visible: false }))}
+      />
+
+      {/* Delete post confirmation modal */}
+      <ConfirmModal
+        visible={deleteConfirm.visible}
+        title={t('deletePostTitle', '投稿を削除')}
+        message={t('deletePostMessage', 'この投稿を削除しますか？この操作は取り消せません。')}
+        buttons={[
+          {
+            text: t('postCancel'),
+            style: 'cancel',
+            onPress: () => setDeleteConfirm((prev) => ({ ...prev, visible: false })),
+          },
+          {
+            text: t('deletePostConfirm', '削除'),
+            style: 'destructive',
+            onPress: handleDeleteConfirm,
+          },
+        ]}
+        onClose={() => setDeleteConfirm((prev) => ({ ...prev, visible: false }))}
       />
 
       {/* Profile preview modal */}

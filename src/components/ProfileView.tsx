@@ -3,7 +3,7 @@
  * Displays the logged-in user's Bluesky profile with their posts
  */
 
-import React, { memo, useEffect, useCallback, useMemo } from 'react';
+import React, { memo, useEffect, useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -20,15 +20,16 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { useWordRegistration } from '../hooks/useWordRegistration';
-import { useAuthStore, useAuthProfile, useIsProfileLoading } from '../store/authStore';
+import { useAuthStore, useAuthProfile, useIsProfileLoading, useAuthUser } from '../store/authStore';
 import { useAuthorFeed } from '../hooks/useAuthorFeed';
 import { Loading } from './common/Loading';
 import { PostCard } from './PostCard';
 import { WordPopup } from './WordPopup';
+import { ConfirmModal } from './common/ConfirmModal';
 import { Spacing, FontSizes } from '../constants/colors';
 import { TimelinePost } from '../types/bluesky';
 import type { RootStackParamList } from '../navigation/AppNavigator';
-import { likePost, unlikePost } from '../services/bluesky/feed';
+import { likePost, unlikePost, deletePost } from '../services/bluesky/feed';
 import { tokenizeRichText } from '../utils/richText';
 
 interface ProfileViewProps {
@@ -47,9 +48,19 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
   const { t } = useTranslation('home');
   const { colors } = useTheme();
   const profile = useAuthProfile();
+  const user = useAuthUser();
   const isProfileLoading = useIsProfileLoading();
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const fetchProfile = useAuthStore((state) => state.fetchProfile);
+
+  // Delete confirmation modal state
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    visible: boolean;
+    post: TimelinePost | null;
+  }>({ visible: false, post: null });
+
+  // Deleted post URIs for immediate removal from feed
+  const [deletedUris, setDeletedUris] = useState<Set<string>>(new Set());
 
   // Word registration hook
   const {
@@ -62,7 +73,7 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
 
   // Author feed hook
   const {
-    posts,
+    posts: rawPosts,
     isLoading: isFeedLoading,
     isRefreshing,
     isLoadingMore,
@@ -70,6 +81,11 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
     refresh: refreshFeed,
     loadMore,
   } = useAuthorFeed();
+
+  const posts = useMemo(
+    () => rawPosts.filter((p) => !deletedUris.has(p.uri)),
+    [rawPosts, deletedUris]
+  );
 
   const descriptionTokens = useMemo(
     () => tokenizeRichText(profile?.description ?? ''),
@@ -136,6 +152,39 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
       loadMore();
     }
   }, [isLoadingMore, hasMore, loadMore]);
+
+  /**
+   * Handle delete press - show confirmation modal
+   */
+  const handleDeletePress = useCallback((post: TimelinePost) => {
+    setDeleteConfirm({ visible: true, post });
+  }, []);
+
+  /**
+   * Execute delete after user confirms via ConfirmModal
+   */
+  const handleDeleteConfirm = useCallback(async () => {
+    const post = deleteConfirm.post;
+    if (!post) return;
+
+    setDeleteConfirm((prev) => ({ ...prev, visible: false }));
+
+    // Optimistic: remove from feed immediately
+    setDeletedUris((prev) => new Set(prev).add(post.uri));
+
+    const result = await deletePost(post.uri);
+    if (!result.success) {
+      // Revert on failure
+      setDeletedUris((prev) => {
+        const next = new Set(prev);
+        next.delete(post.uri);
+        return next;
+      });
+      if (__DEV__) {
+        console.error('Failed to delete post:', result.error);
+      }
+    }
+  }, [deleteConfirm.post]);
 
   const openExternalUrl = useCallback(async (url: string) => {
     try {
@@ -316,11 +365,13 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
           onQuotePress={onQuotePress}
           onWordSelect={handleWordSelect}
           onSentenceSelect={handleSentenceSelect}
+          onDeletePress={handleDeletePress}
+          currentUserDid={user?.did}
           clearSelection={shouldClearSelection}
         />
       );
     },
-    [handlePostPress, handleLikePress, onReplyPress, onRepostPress, onQuotePress, handleWordSelect, handleSentenceSelect, wordPopup.visible, wordPopup.postUri]
+    [handlePostPress, handleLikePress, onReplyPress, onRepostPress, onQuotePress, handleWordSelect, handleSentenceSelect, handleDeletePress, user?.did, wordPopup.visible, wordPopup.postUri]
   );
 
   /**
@@ -418,6 +469,26 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
         postText={wordPopup.postText}
         onClose={closeWordPopup}
         onAddToWordList={handleAddWord}
+      />
+
+      {/* Delete post confirmation modal */}
+      <ConfirmModal
+        visible={deleteConfirm.visible}
+        title={t('deletePostTitle', '投稿を削除')}
+        message={t('deletePostMessage', 'この投稿を削除しますか？この操作は取り消せません。')}
+        buttons={[
+          {
+            text: t('postCancel'),
+            style: 'cancel',
+            onPress: () => setDeleteConfirm((prev) => ({ ...prev, visible: false })),
+          },
+          {
+            text: t('deletePostConfirm', '削除'),
+            style: 'destructive',
+            onPress: handleDeleteConfirm,
+          },
+        ]}
+        onClose={() => setDeleteConfirm((prev) => ({ ...prev, visible: false }))}
       />
     </View>
   );

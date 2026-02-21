@@ -16,7 +16,7 @@ import {
   Alert,
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
-import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink, AlertTriangle } from 'lucide-react-native';
+import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink, AlertTriangle, Trash2 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { TimelinePost, RichTextFacet } from '../types/bluesky';
@@ -39,6 +39,7 @@ interface PostCardProps {
   onRepostPress?: (post: TimelinePost, isReposted: boolean) => void;
   onQuotePress?: (post: TimelinePost) => void;
   onAvatarPress?: (author: TimelinePost['author']) => void;
+  onDeletePress?: (post: TimelinePost) => void;
   currentUserDid?: string;
   clearSelection?: boolean;
   onLayoutElements?: (elements: {
@@ -487,6 +488,7 @@ function PostCardComponent({
   onRepostPress,
   onQuotePress,
   onAvatarPress,
+  onDeletePress,
   currentUserDid,
   clearSelection,
   onLayoutElements,
@@ -1413,6 +1415,18 @@ function PostCardComponent({
                 <BookSearch size={16} color={Colors.textSecondary} />
               </Pressable>
             )}
+            {isOwnPost && onDeletePress && (
+              <Pressable
+                style={styles.deleteButton}
+                onPress={() => onDeletePress(post)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessible={true}
+                accessibilityLabel={t('home:deletePost', '投稿を削除')}
+                accessibilityRole="button"
+              >
+                <Trash2 size={16} color={colors.error} />
+              </Pressable>
+            )}
           </View>
         </View>
       </View>
@@ -1559,6 +1573,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.xs,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.xs,
+    marginLeft: 'auto',
   },
   // Image styles
   singleImageContainer: {

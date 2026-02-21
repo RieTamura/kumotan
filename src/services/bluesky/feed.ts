@@ -932,6 +932,50 @@ export async function unrepostPost(
 }
 
 /**
+ * Delete a post on Bluesky
+ */
+export async function deletePost(
+  uri: string
+): Promise<Result<boolean, AppError>> {
+  try {
+    const agent = getAgent();
+
+    if (!hasActiveSession()) {
+      const refreshResult = await refreshSession();
+      if (!refreshResult.success) {
+        return { success: false, error: refreshResult.error };
+      }
+    }
+
+    await rateLimiter.throttle();
+
+    const rkey = extractRkey(uri);
+    const repo = extractDid(uri);
+
+    await agent.api.com.atproto.repo.deleteRecord({
+      repo,
+      collection: 'app.bsky.feed.post',
+      rkey,
+    });
+
+    if (__DEV__) {
+      console.log('Post deleted successfully:', uri);
+    }
+
+    return { success: true, data: true };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to delete post:', error);
+    }
+
+    return {
+      success: false,
+      error: mapToAppError(error, '投稿の削除'),
+    };
+  }
+}
+
+/**
  * Get remaining API requests
  */
 export function getRemainingRequests(): number {
