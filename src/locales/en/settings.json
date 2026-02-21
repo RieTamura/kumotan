@@ -2,6 +2,7 @@
   "header": "Settings",
   "sections": {
     "account": "Account",
+    "notifications": "Study Reminders",
     "general": "General",
     "apiTranslation": "API & Translation",
     "dictionary": "Dictionary Data",
@@ -100,6 +101,18 @@
     "resetConfirmTitle": "Reset Tutorial",
     "resetConfirmMessage": "The tutorial will be shown again when you restart the app. Are you sure?",
     "resetSuccess": "Tutorial has been reset. It will appear on next launch."
+  },
+  "notifications": {
+    "quizReminder": "Quiz Reminder",
+    "quizReminderSubtitle": "Daily reminder to take a quiz",
+    "quizReminderBody": "Time for today's quiz!",
+    "wordReminder": "Word Reminder",
+    "wordReminderSubtitle": "Daily reminder to review words",
+    "wordReminderBody": "Let's review today's words!",
+    "reminderTime": "Reminder Time",
+    "permissionDeniedTitle": "Notifications Not Allowed",
+    "permissionDeniedMessage": "Please enable notifications for くもたん in the Settings app",
+    "openSettings": "Open Settings"
   },
   "version": "Version {{version}}",
   "linkError": "Could not open link.",

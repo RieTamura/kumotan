@@ -44,6 +44,8 @@ import { GithubIcon } from '../components/common/GithubIcon';
 import { useTutorial } from '../hooks/useTutorial';
 import { useTheme } from '../hooks/useTheme';
 import { useSettingsStore } from '../store/settingsStore';
+import { useNotificationStore } from '../store/notificationStore';
+import { useNotifications } from '../hooks/useNotifications';
 
 /**
  * Settings item component props
@@ -152,6 +154,13 @@ export function SettingsScreen(): React.JSX.Element {
     translateSentenceToEnglish, setTranslateSentenceToEnglish,
     translateDefinitionInEnglishSentence, setTranslateDefinitionInEnglishSentence,
   } = useSettingsStore();
+  const {
+    quizReminderEnabled,
+    wordReminderEnabled,
+    reminderHour,
+    reminderMinute,
+  } = useNotificationStore();
+  const { handleToggleQuizReminder, handleToggleWordReminder, handleSelectTime } = useNotifications();
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -502,6 +511,49 @@ export function SettingsScreen(): React.JSX.Element {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Notifications Section (Study Reminders) */}
+        <SettingsSection title={t('sections.notifications')}>
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
+                {t('notifications.quizReminder')}
+              </Text>
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+                {t('notifications.quizReminderSubtitle')}
+              </Text>
+            </View>
+            <Switch
+              value={quizReminderEnabled}
+              onValueChange={handleToggleQuizReminder}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.card}
+            />
+          </View>
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
+                {t('notifications.wordReminder')}
+              </Text>
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+                {t('notifications.wordReminderSubtitle')}
+              </Text>
+            </View>
+            <Switch
+              value={wordReminderEnabled}
+              onValueChange={handleToggleWordReminder}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.card}
+            />
+          </View>
+          {(quizReminderEnabled || wordReminderEnabled) && (
+            <SettingsItem
+              title={t('notifications.reminderTime')}
+              subtitle={`${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`}
+              onPress={handleSelectTime}
+            />
+          )}
+        </SettingsSection>
+
         {/* General Section (Language + Appearance) */}
         <SettingsSection title={t('sections.general')}>
           <SettingsItem

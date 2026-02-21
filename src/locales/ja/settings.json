@@ -2,6 +2,7 @@
   "header": "設定",
   "sections": {
     "account": "アカウント",
+    "notifications": "学習リマインダー",
     "general": "一般",
     "apiTranslation": "API・翻訳",
     "dictionary": "辞書データ",
@@ -100,6 +101,18 @@
     "resetConfirmTitle": "チュートリアルをリセット",
     "resetConfirmMessage": "アプリを再起動すると、チュートリアルが再度表示されます。よろしいですか？",
     "resetSuccess": "チュートリアルをリセットしました。次回起動時に表示されます。"
+  },
+  "notifications": {
+    "quizReminder": "クイズリマインダー",
+    "quizReminderSubtitle": "毎日クイズの時間をお知らせ",
+    "quizReminderBody": "今日のクイズをやりましょう！",
+    "wordReminder": "単語リマインダー",
+    "wordReminderSubtitle": "毎日単語学習の時間をお知らせ",
+    "wordReminderBody": "今日の単語を確認しましょう！",
+    "reminderTime": "通知時刻",
+    "permissionDeniedTitle": "通知が許可されていません",
+    "permissionDeniedMessage": "設定アプリからくもたんの通知を許可してください",
+    "openSettings": "設定を開く"
   },
   "version": "バージョン {{version}}",
   "linkError": "リンクを開けませんでした。",
