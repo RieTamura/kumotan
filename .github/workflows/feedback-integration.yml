@@ -17,7 +17,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { type, word, expectation, comment, part_of_speech, post_url, row_index } = context.payload.client_payload;
+            const { type, word, expectation, comment, part_of_speech, post_url, row_index, logs, app_version, platform } = context.payload.client_payload;
 
             // タイプに応じたタイトル接頭辞
             const prefixes = {
@@ -43,6 +43,19 @@ jobs:
             }
 
             bodyLines.push(`- **コメント**: ${comment || 'なし'}`);
+
+            // bugタイプの場合は環境情報・デバッグログを追加
+            if (type === 'bug') {
+              bodyLines.push(`- **アプリバージョン**: ${app_version || '不明'}`);
+              bodyLines.push(`- **プラットフォーム**: ${platform || '不明'}`);
+              if (logs) {
+                bodyLines.push('');
+                bodyLines.push('### デバッグログ');
+                bodyLines.push('```');
+                bodyLines.push(logs);
+                bodyLines.push('```');
+              }
+            }
 
             // word_searchタイプの場合はレビューチェックリストを追加
             if (type === 'word_search') {
