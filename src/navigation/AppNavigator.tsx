@@ -5,13 +5,13 @@
  */
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
-import { View, StyleSheet, TouchableOpacity, Animated, Easing, Image } from 'react-native';
-import { Home, BookOpen, HelpCircle, BarChart3, Settings } from 'lucide-react-native';
+import { View, StyleSheet, TouchableOpacity, Pressable, Animated, Easing, Image } from 'react-native';
+import { Home, BookOpen, HelpCircle, BarChart3, Settings, ChevronLeft } from 'lucide-react-native';
 import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -70,6 +70,24 @@ export type MainTabParamList = {
 
 // Create navigators
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+/**
+ * Flat back button for header navigation (icon only, no background)
+ */
+function FlatBackButton({ tintColor }: { tintColor?: string }): React.JSX.Element {
+  const navigation = useNavigation();
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={() => navigation.goBack()}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      accessibilityLabel="戻る"
+      style={{ backgroundColor: 'transparent' }}
+    >
+      <ChevronLeft size={24} color={tintColor ?? colors.text} />
+    </Pressable>
+  );
+}
 
 /**
  * Tab configuration
@@ -233,14 +251,10 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.apiKeySetup'),
-              headerBackTitle: t('common:buttons.back'),
               headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
           />
           <Stack.Screen
@@ -249,14 +263,10 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.license'),
-              headerBackTitle: t('common:buttons.back'),
               headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
           />
           <Stack.Screen
@@ -267,14 +277,10 @@ function RootNavigator(): React.JSX.Element {
               headerTitle: route.params.type === 'terms'
                 ? t('headers.termsOfService')
                 : t('headers.privacyPolicy'),
-              headerBackTitle: t('common:buttons.back'),
               headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             })}
           />
           <Stack.Screen
@@ -283,14 +289,10 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.debugLogs'),
-              headerBackTitle: t('common:buttons.back'),
               headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
           />
           <Stack.Screen
@@ -299,14 +301,10 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.tips'),
-              headerBackTitle: t('common:buttons.back'),
               headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
           />
           <Stack.Screen
@@ -315,14 +313,10 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.thread'),
-              headerBackTitle: t('common:buttons.back'),
               headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
           />
           <Stack.Screen
@@ -331,14 +325,10 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.dictionarySetup'),
-              headerBackTitle: t('common:buttons.back'),
               headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
           />
           <Stack.Screen
@@ -362,14 +352,9 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.quizResult'),
-              headerBackTitle: t('common:buttons.back'),
               headerTintColor: colors.primary,
-              headerStyle: {
-                backgroundColor: colors.background,
-              },
-              headerTitleStyle: {
-                color: colors.text,
-              },
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
               headerLeft: () => null,
             }}
           />
