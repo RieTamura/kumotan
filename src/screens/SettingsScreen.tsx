@@ -14,7 +14,6 @@ import {
   Linking,
   Image,
   Share,
-  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -44,9 +43,6 @@ import { GithubIcon } from '../components/common/GithubIcon';
 import { useTutorial } from '../hooks/useTutorial';
 import { useTheme } from '../hooks/useTheme';
 import { useSettingsStore } from '../store/settingsStore';
-import { useNotificationStore } from '../store/notificationStore';
-import { useNotifications } from '../hooks/useNotifications';
-import { TimePickerModal } from '../components/TimePickerModal';
 
 /**
  * Settings item component props
@@ -155,15 +151,6 @@ export function SettingsScreen(): React.JSX.Element {
     translateSentenceToEnglish, setTranslateSentenceToEnglish,
     translateDefinitionInEnglishSentence, setTranslateDefinitionInEnglishSentence,
   } = useSettingsStore();
-  const {
-    quizReminderEnabled,
-    wordReminderEnabled,
-    reminderHour,
-    reminderMinute,
-    setReminderTime,
-  } = useNotificationStore();
-  const { handleToggleQuizReminder, handleToggleWordReminder } = useNotifications();
-  const [timePickerVisible, setTimePickerVisible] = useState(false);
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -514,47 +501,13 @@ export function SettingsScreen(): React.JSX.Element {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Notifications Section (Study Reminders) */}
+        {/* Notifications Section */}
         <SettingsSection title={t('sections.notifications')}>
-          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
-            <View style={styles.settingsItemContent}>
-              <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
-                {t('notifications.quizReminder')}
-              </Text>
-              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
-                {t('notifications.quizReminderSubtitle')}
-              </Text>
-            </View>
-            <Switch
-              value={quizReminderEnabled}
-              onValueChange={handleToggleQuizReminder}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.card}
-            />
-          </View>
-          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
-            <View style={styles.settingsItemContent}>
-              <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
-                {t('notifications.wordReminder')}
-              </Text>
-              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
-                {t('notifications.wordReminderSubtitle')}
-              </Text>
-            </View>
-            <Switch
-              value={wordReminderEnabled}
-              onValueChange={handleToggleWordReminder}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.card}
-            />
-          </View>
-          {(quizReminderEnabled || wordReminderEnabled) && (
-            <SettingsItem
-              title={t('notifications.reminderTime')}
-              subtitle={`${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`}
-              onPress={() => setTimePickerVisible(true)}
-            />
-          )}
+          <SettingsItem
+            title={t('notifications.settingsTitle')}
+            subtitle={t('notifications.settingsSubtitle')}
+            onPress={() => navigation.navigate('NotificationSettings')}
+          />
         </SettingsSection>
 
         {/* General Section (Language + Appearance) */}
@@ -842,18 +795,6 @@ export function SettingsScreen(): React.JSX.Element {
           </View>
         </View>
       </ScrollView>
-
-      {/* Time Picker Modal */}
-      <TimePickerModal
-        visible={timePickerVisible}
-        initialHour={reminderHour}
-        initialMinute={reminderMinute}
-        onConfirm={(hour, minute) => {
-          setReminderTime(hour, minute);
-          setTimePickerVisible(false);
-        }}
-        onCancel={() => setTimePickerVisible(false)}
-      />
 
       {/* Feedback Modal */}
       <FeedbackModal

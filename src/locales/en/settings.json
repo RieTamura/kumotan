@@ -103,6 +103,8 @@
     "resetSuccess": "Tutorial has been reset. It will appear on next launch."
   },
   "notifications": {
+    "settingsTitle": "Notification Settings",
+    "settingsSubtitle": "Bluesky notifications & study reminders",
     "quizReminder": "Quiz Reminder",
     "quizReminderSubtitle": "Daily reminder to take a quiz",
     "quizReminderBody": "Time for today's quiz!",
@@ -112,7 +114,20 @@
     "reminderTime": "Reminder Time",
     "permissionDeniedTitle": "Notifications Not Allowed",
     "permissionDeniedMessage": "Please enable notifications for くもたん in the Settings app",
-    "openSettings": "Open Settings"
+    "openSettings": "Open Settings",
+    "bluesky": {
+      "sectionTitle": "Bluesky Notifications",
+      "enable": "Receive Notifications",
+      "enableSubtitle": "Get push notifications for likes, replies, and more",
+      "like": "Likes",
+      "reply": "Replies",
+      "mention": "Mentions",
+      "repost": "Reposts",
+      "follow": "Follows",
+      "errorTitle": "Failed to Register Notifications",
+      "errorNotLoggedIn": "Please log in to Bluesky before enabling notifications",
+      "errorRegistrationFailed": "Failed to register with the server. Please try again later"
+    }
   },
   "version": "Version {{version}}",
   "linkError": "Could not open link.",

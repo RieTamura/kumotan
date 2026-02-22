@@ -37,6 +37,7 @@ import { QuizScreen } from '../screens/QuizScreen';
 import { QuizResultScreen } from '../screens/QuizResultScreen';
 import { QuizSettings, QuizResult } from '../types/quiz';
 import { LegalDocumentScreen } from '../screens/LegalDocumentScreen';
+import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
 
 /**
  * Stack Navigator Types
@@ -55,6 +56,7 @@ export type RootStackParamList = {
   QuizSetup: undefined;
   Quiz: { settings: QuizSettings };
   QuizResult: { result: QuizResult };
+  NotificationSettings: undefined;
 };
 
 /**
@@ -356,6 +358,18 @@ function RootNavigator(): React.JSX.Element {
               headerStyle: { backgroundColor: colors.background },
               headerTitleStyle: { color: colors.text },
               headerLeft: () => null,
+            }}
+          />
+          <Stack.Screen
+            name="NotificationSettings"
+            component={NotificationSettingsScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.notificationSettings'),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
           />
         </Stack.Group>

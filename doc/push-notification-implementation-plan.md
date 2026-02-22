@@ -1,6 +1,7 @@
 # プッシュ通知実装計画書
 
 **作成日**: 2026-02-20
+**改訂日**: 2026-02-22
 **対象バージョン**: v1.1.0（リリース前実装）
 
 ---
@@ -9,38 +10,54 @@
 
 Bluesky のソーシャルアクション（いいね・返信・メンション・リポスト・フォロー）をプッシュ通知で受け取る機能を実装する。
 
-### 採用アーキテクチャ
+### 採用アーキテクチャ（最終版）
 
 ```
 [くもたん アプリ]
-    │ 起動時に Expo Push Token を POST
+    │ 起動時に DID + Expo Push Token を POST
     ▼
-[Hono on Cloudflare Workers]
-    ├── POST /register    ← トークンを KV に保存
-    └── scheduled（5分おき）← listNotifications をポーリング
-            │ 新着あり
-            ▼
-    Expo Push Notification Service（EPNS）
-            │
-            ▼
-    [iOS プッシュ通知]
+[Hono on Railway（Node.js 常時起動）]
+    ├── POST /register      ← DID＋トークンを JSON ファイルに保存
+    ├── DELETE /register/:did
+    └── GET /health
+    │
+    │ 起動時に永続 WebSocket 接続（auto-reconnect 付き）
+    ▼
+wss://jetstream2.us-east.bsky.network/subscribe
+    ?wantedCollections=app.bsky.feed.like
+    &wantedCollections=app.bsky.feed.post
+    &wantedCollections=app.bsky.feed.repost
+    &wantedCollections=app.bsky.graph.follow
+（認証不要・コレクション種別でフィルタリング）
+    │ イベント受信 → 登録ユーザーに該当するか照合
+    ▼
+[Expo Push Notification Service（EPNS）]
+    │
+    ▼
+[iOS プッシュ通知]
 ```
 
-### 選定理由
+### 方式選定
 
 | 選択肢 | 採用 | 理由 |
 |---|---|---|
-| Jetstream WebSocket | ✗ | 永続接続が Workers 向きでない、個人アプリには過剰 |
+| `listNotifications` ポーリング（原案） | ✗ | ユーザーの App Password をサーバーに保存する必要があり漏洩リスクがある |
+| Jetstream + Cloudflare Workers Cron | ✗ | `wantedDids` はイベントの発信者フィルタリングであり受信者には使えない。Cron は最大30秒のため常時接続不可 |
+| Jetstream + Fly.io 常時接続 | ✗ | 技術的に適合するが新規登録に有効な無料枠がない（$7〜8/月） |
+| **Jetstream + Railway 常時接続** | **✓** | 無料枠あり（クレカ不要）・Dockerfile そのまま使える・コスト予測が容易 |
+| Firehose フル購読（Graysky 方式） | ✗ | 全イベントを購読するため帯域・処理コストが過大。個人アプリには過剰 |
 | アプリ内ポーリング（expo-background-fetch） | ✗ | iOS のバックグラウンド制限により信頼性が低い |
-| **Cloudflare Workers Cron ポーリング** | **✓** | 無料枠で完結・実装がシンプル・信頼性が高い |
 
-### 無料枠の試算（1ユーザー）
+> **設計の核心**: Jetstream の `wantedDids` は「そのDIDが作成したイベント」のフィルタリングであり、「そのDIDへの通知」には使えない。よって `wantedCollections` で通知種別を絞り、全イベントを受け取ってサーバー側で登録ユーザーへの該当を照合する。これには**永続的な WebSocket 接続**が必須。
 
-| 項目 | 1日 | 無料枠/日 |
-|---|---|---|
-| Worker 実行回数 | 288回 | 100,000回 |
-| KV 読み取り | 288回 | 100,000回 |
-| KV 書き込み（新着時のみ更新） | 数〜数十回 | 1,000回 |
+### Railway プラン・コスト
+
+| プラン | 月額 | クレカ | 特徴 |
+|---|---|---|---|
+| **Free** | $0（試用$5クレジット後は$1/月） | **不要** | 0.5 vCPU / 0.5GB RAM / 0.5GB ストレージ |
+| Hobby | $5（$5クレジット込み） | 必要 | 48 vCPU / 48GB RAM / 5GB ストレージ |
+
+くもたんの通知サーバー（Node.js、〜80MB RAM、JSONファイル数KB）は **Free プランで十分**。
 
 ---
 
@@ -52,167 +69,169 @@ Bluesky のソーシャルアクション（いいね・返信・メンション
 
 ```
 src/
-  hooks/
-    useNotifications.ts       ← 通知許可・トークン取得・登録ロジック
   services/
     notifications/
-      pushToken.ts            ← Workers へのトークン登録 API クライアント
+      pushToken.ts            ← Railway へのトークン登録 API クライアント
   screens/
-    NotificationSettingsScreen.tsx  ← 通知設定 ON/OFF 画面
+    NotificationSettingsScreen.tsx  ← 通知設定画面（Bluesky 通知＋リマインダー統合）
 ```
 
 **変更ファイル**
 
 ```
-src/store/settingsStore.ts          ← 通知設定の状態追加
-src/screens/SettingsScreen.tsx      ← 「通知設定」メニューへのリンク追加
-src/navigation/                     ← NotificationSettingsScreen のルート追加
-app.json                            ← expo-notifications プラグイン追加
+src/store/notificationStore.ts     ← Bluesky 通知設定フィールドを追加
+src/hooks/useNotifications.ts      ← Bluesky push 登録・解除ロジックを追加
+src/screens/SettingsScreen.tsx     ← 通知セクションを NotificationSettingsScreen リンクに置き換え
+src/navigation/AppNavigator.tsx    ← NotificationSettingsScreen のルート追加
+src/constants/config.ts            ← NOTIFICATIONS_WORKER_URL を追加
+app.json                           ← NSUserNotificationsUsageDescription を更新
 ```
 
-### 2-2. バックエンド（Hono + Cloudflare Workers）
+### 2-2. バックエンド（Hono + Node.js on Railway）
 
-**別リポジトリとして管理**（例：`kumotan-notifications`）
+**別ディレクトリとして管理**（`c:/Users/kapa3/kumotan-notifications/`）
 
 ```
 kumotan-notifications/
   src/
-    index.ts         ← Hono アプリ本体・エントリポイント
-    polling.ts       ← listNotifications ポーリングロジック
+    index.ts         ← Hono アプリ本体・エントリポイント・サーバー起動
+    jetstream.ts     ← Jetstream WebSocket 常時接続・イベント処理
     push.ts          ← Expo Push Notification Service 送信
+    storage.ts       ← JSON ファイル永続化（登録ユーザー管理）
     types.ts         ← 型定義
-  wrangler.toml      ← Cloudflare Workers 設定
+  railway.toml       ← Railway デプロイ設定
+  Dockerfile         ← コンテナ定義（node:22-alpine）
+  .dockerignore
   package.json
+  tsconfig.json
 ```
 
 ---
 
 ## 3. 実装詳細
 
-### 3-1. Cloudflare Workers（Hono）
+### 3-1. バックエンド（Railway）
 
-#### KV スキーマ
+#### ストレージスキーマ（JSON ファイル）
 
-```
-キー: "token:{did}"
-値:   {
-        expoPushToken: string,   // ExponentPushToken[xxx]
-        notificationsEnabled: boolean,
-        seenAt: string,          // 最終確認日時（ISO 8601）
-        registeredAt: string,
-      }
-```
-
-#### POST /register エンドポイント
-
-```typescript
-// src/index.ts
-import { Hono } from 'hono'
-
-type Bindings = {
-  NOTIFICATION_KV: KVNamespace
-  BLUESKY_API_URL: string
-}
-
-const app = new Hono<{ Bindings: Bindings }>()
-
-app.post('/register', async (c) => {
-  const { did, expoPushToken, enabled } = await c.req.json()
-  // バリデーション・KV 保存
-  await c.env.NOTIFICATION_KV.put(`token:${did}`, JSON.stringify({
-    expoPushToken,
-    notificationsEnabled: enabled,
-    seenAt: new Date().toISOString(),
-    registeredAt: new Date().toISOString(),
-  }))
-  return c.json({ ok: true })
-})
-
-export default {
-  fetch: app.fetch,
-  async scheduled(event: ScheduledEvent, env: Bindings) {
-    await pollNotifications(env)
-  },
-}
-```
-
-#### Cron ポーリングロジック
-
-```typescript
-// src/polling.ts
-// 1. KV から全ユーザーのトークンを取得
-// 2. 各ユーザーの DID で listNotifications を呼ぶ
-//    （seenAt 以降の新着のみ取得）
-// 3. 新着があれば Expo Push API に送信
-// 4. seenAt を更新（新着があった場合のみ KV 書き込み）
-```
-
-#### 対応通知タイプ
-
-| Bluesky reason | 通知タイトル |
-|---|---|
-| `like` | 「いいねされました」 |
-| `reply` | 「返信が届きました」 |
-| `mention` | 「メンションされました」 |
-| `repost` | 「リポストされました」 |
-| `follow` | 「フォローされました」 |
-
-#### wrangler.toml
-
-```toml
-name = "kumotan-notifications"
-main = "src/index.ts"
-compatibility_date = "2025-01-01"
-
-kv_namespaces = [
-  { binding = "NOTIFICATION_KV", id = "<KV_NAMESPACE_ID>" }
-]
-
-[triggers]
-crons = ["*/5 * * * *"]
-```
-
----
-
-### 3-2. くもたん アプリ側
-
-#### expo-notifications 設定（app.json）
+`/data/tokens.json` に保存（Railway volume にマウント）：
 
 ```json
 {
-  "plugins": [
-    ["expo-notifications", {
-      "icon": "./assets/notification-icon.png",
-      "color": "#1DA1F2",
-      "sounds": []
-    }]
-  ],
-  "ios": {
-    "infoPlist": {
-      "NSUserNotificationsUsageDescription":
-        "Bluesky のいいねや返信をお知らせするために通知を使用します。"
+  "users": {
+    "did:plc:xxxx": {
+      "expoPushToken": "ExponentPushToken[...]",
+      "notifyOnLike": true,
+      "notifyOnReply": true,
+      "notifyOnMention": true,
+      "notifyOnRepost": true,
+      "notifyOnFollow": true,
+      "registeredAt": "2026-02-22T00:00:00.000Z"
     }
   }
 }
 ```
 
-#### useNotifications フック
+#### API エンドポイント
 
 ```typescript
-// src/hooks/useNotifications.ts
-// - 通知許可リクエスト
-// - Expo Push Token 取得
-// - Workers /register へ POST
-// - 通知受信時のフォアグラウンド処理
+// src/index.ts
+POST   /register        ← { did, expoPushToken, settings } を upsert
+DELETE /register/:did   ← 登録解除
+GET    /health          ← ヘルスチェック（{ ok: true, users: N }）
 ```
 
-#### settingsStore への追加
+#### Jetstream 接続ロジック（概要）
+
+```
+起動時:
+  1. /data/tokens.json を読み込む
+  2. startJetstreamSubscription() を呼ぶ
+
+startJetstreamSubscription():
+  wss://jetstream2.us-east.bsky.network/subscribe
+    ?wantedCollections=app.bsky.feed.like
+    &wantedCollections=app.bsky.feed.post
+    &wantedCollections=app.bsky.feed.repost
+    &wantedCollections=app.bsky.graph.follow
+  に接続 → メッセージ受信ループ
+  切断時: 5秒後に再接続（auto-reconnect）
+
+processEvent(event):
+  1. イベントの種別（like / post / repost / follow）を判定
+  2. ターゲット DID（通知を受け取るべきユーザー）を抽出
+     - like / repost: record.subject.uri の DID 部分
+     - follow:        record.subject（DID 直接）
+     - post（reply）: record.reply.parent.uri の DID 部分
+     - post（mention）: record.facets から app.bsky.richtext.facet#mention を抽出
+  3. targetDid が登録ユーザーか照合
+  4. 自己アクション（did === targetDid）はスキップ
+  5. ユーザーの preference フラグを確認
+  6. bsky.app API でアクション実行者のプロフィール名を取得（10分キャッシュ）
+  7. EPNS に Push 送信
+  8. DeviceNotRegistered エラー時は自動的に登録解除
+```
+
+#### 対応通知タイプ
+
+| Jetstream collection | 通知タイトル |
+|---|---|
+| `app.bsky.feed.like` | 「○○さんがいいねしました」 |
+| `app.bsky.feed.post`（reply） | 「○○さんから返信が届きました」 |
+| `app.bsky.feed.post`（mention） | 「○○さんにメンションされました」 |
+| `app.bsky.feed.repost` | 「○○さんがリポストしました」 |
+| `app.bsky.graph.follow` | 「○○さんにフォローされました」 |
+
+#### railway.toml
+
+```toml
+[build]
+builder = "DOCKERFILE"
+
+[deploy]
+startCommand = "npx tsx src/index.ts"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+```
+
+#### 環境変数（Railway dashboard で設定）
+
+| 変数名 | 値 | 説明 |
+|---|---|---|
+| `PORT` | `3000` | サーバーポート |
+| `DATA_DIR` | `/data` | JSON ファイル保存ディレクトリ |
+
+---
+
+### 3-2. くもたん アプリ側
+
+#### app.json の変更
+
+```json
+{
+  "ios": {
+    "infoPlist": {
+      "NSUserNotificationsUsageDescription":
+        "クイズ・単語学習のリマインダーと、Bluesky のいいねや返信などのプッシュ通知に使用します。"
+    }
+  }
+}
+```
+
+> `expo-notifications` は既にインストール済み・app.json 設定済みのため、追加インストールおよび dev クライアント再ビルドは不要。
+
+#### notificationStore への追加
 
 ```typescript
-interface SettingsState {
-  // 既存...
-  notificationsEnabled: boolean
-  setNotificationsEnabled: (value: boolean) => void
+// src/store/notificationStore.ts に追加
+interface NotificationState {
+  // 既存（リマインダー設定）...
+
+  // 追加（Bluesky ソーシャル通知）
+  blueskyNotificationsEnabled: boolean
+  setBlueskyNotificationsEnabled: (value: boolean) => void
   notifyOnLike: boolean
   setNotifyOnLike: (value: boolean) => void
   notifyOnReply: boolean
@@ -226,6 +245,51 @@ interface SettingsState {
 }
 ```
 
+#### pushToken.ts（新規）
+
+```typescript
+// src/services/notifications/pushToken.ts
+import { NOTIFICATIONS_WORKER_URL } from '@/constants/config'
+
+export async function registerPushToken(
+  did: string,
+  expoPushToken: string,
+  settings: BlueskyNotificationSettings
+): Promise<void> {
+  await fetch(`${NOTIFICATIONS_WORKER_URL}/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ did, expoPushToken, settings }),
+  })
+}
+
+export async function unregisterPushToken(did: string): Promise<void> {
+  await fetch(`${NOTIFICATIONS_WORKER_URL}/register/${encodeURIComponent(did)}`, {
+    method: 'DELETE',
+  })
+}
+```
+
+#### NotificationSettingsScreen（新規）
+
+SettingsScreen から通知設定を切り出し、Bluesky ソーシャル通知設定を追加した統合画面。
+
+```
+[Bluesky 通知]
+  通知を受け取る       [Switch]  ← blueskyNotificationsEnabled
+  ─ ON 時のみ表示 ─
+  いいね               [Switch]
+  返信                 [Switch]
+  メンション           [Switch]
+  リポスト             [Switch]
+  フォロー             [Switch]
+
+[リマインダー]        （SettingsScreen から移動）
+  クイズリマインダー   [Switch]
+  単語リマインダー     [Switch]
+  通知時刻             [Time Picker]
+```
+
 ---
 
 ## 4. プライバシー対応（必須）
@@ -235,9 +299,10 @@ interface SettingsState {
 **追記内容**：
 
 - 第2条「収集する情報」に「プッシュ通知トークン」セクションを追加
-  - Expo Push Token（デバイス識別子）を運営者管理サーバー（Cloudflare Workers）に送信・保存することを明記
+  - Expo Push Token（デバイス識別子）を運営者管理サーバー（Railway）に送信・保存することを明記
+  - Bluesky DID（公開識別子）を通知フィルタリングのために保存することを明記
 - 第3条「情報の利用目的」に「通知の送信」を追記
-- 外部サービスに「Expo Push Notification Service」「Cloudflare Workers」を追加
+- 外部サービスに「Expo Push Notification Service」「Railway」「Bluesky Jetstream」を追加
 
 **現状からの変化点**：
 
@@ -255,69 +320,75 @@ interface SettingsState {
 
 | 外部サービス | 送信データ | 目的 |
 |---|---|---|
-| Cloudflare Workers（運営者管理） | Bluesky DID、Expo Push Token | プッシュ通知の管理 |
+| Railway（運営者管理） | Bluesky DID、Expo Push Token | プッシュ通知の管理 |
 | Expo Push Notification Service | Expo Push Token、通知内容 | iOS プッシュ通知の配信 |
+| Bluesky Jetstream（公式） | なし（受信のみ） | イベント取得 |
 
 ---
 
 ## 5. 実装ステップ
 
-### Phase 1：バックエンド（Cloudflare Workers）
+### Phase 1：バックエンド（Railway）
 
-1. [ ] Cloudflare アカウント設定・Wrangler インストール
-2. [ ] `kumotan-notifications` リポジトリ作成
-3. [ ] Hono プロジェクト初期化
-4. [ ] Workers KV ネームスペース作成
-5. [ ] `POST /register` エンドポイント実装
-6. [ ] Cron ポーリングロジック実装（`listNotifications` 呼び出し）
-7. [ ] Expo Push API 送信実装
-8. [ ] Cloudflare Workers へデプロイ・動作確認
+1. [x] `kumotan-notifications/` ディレクトリ作成・Hono + Node.js プロジェクト初期化
+2. [x] `src/types.ts` 型定義
+3. [x] `src/storage.ts` JSON ファイル永続化（登録ユーザー管理）
+4. [x] `src/push.ts` Expo Push API 送信 + プロフィール名キャッシュ
+5. [x] `src/jetstream.ts` Jetstream 常時接続・イベント処理
+6. [x] `src/index.ts` Hono エントリポイント（POST /register, DELETE /register/:did, GET /health）
+7. [x] `Dockerfile` 作成
+8. [x] Railway アカウント作成・プロジェクト作成（ユーザー作業）
+9. [x] `fly.toml` を削除し `railway.toml` を追加
+10. [x] Railway volume を作成し `/data` にマウント
+11. [x] Railway へデプロイ・動作確認
 
 ### Phase 2：アプリ側（くもたん）
 
-9. [ ] `expo-notifications` インストール・app.json 設定
-10. [ ] devクライアント再ビルド（`eas build --profile production-dev --platform ios`）
-11. [ ] `useNotifications.ts` フック作成
-12. [ ] `pushToken.ts` サービス作成（Workers 登録 API クライアント）
-13. [ ] `settingsStore.ts` に通知設定を追加
-14. [ ] `NotificationSettingsScreen.tsx` 作成
-15. [ ] `SettingsScreen.tsx` に通知設定メニュー追加
-16. [ ] ナビゲーション追加
+12. [x] `src/constants/config.ts` に `NOTIFICATIONS_WORKER_URL` を追加
+13. [x] `src/store/notificationStore.ts` に Bluesky 通知フィールドを追加
+14. [x] `src/services/notifications/pushToken.ts` を新規作成
+15. [x] `src/hooks/useNotifications.ts` に Bluesky push 登録ロジックを追加
+16. [x] `src/screens/NotificationSettingsScreen.tsx` を新規作成
+17. [x] `src/screens/SettingsScreen.tsx` の通知セクションをリンクに置き換え
+18. [x] `src/navigation/AppNavigator.tsx` にルートを追加
+19. [x] `app.json` の `NSUserNotificationsUsageDescription` を更新
+20. [x] `NOTIFICATIONS_WORKER_URL` を Railway デプロイ URL に更新
 
 ### Phase 3：プライバシー対応
 
-17. [ ] `doc/privacy-policy.md` 更新
-18. [ ] `doc/app-store/privacy-declaration.md` 更新
-19. [ ] GitHub Pages のプライバシーポリシー HTML 更新
+21. [ ] `doc/privacy-policy.md` 更新
+22. [ ] `doc/app-store/privacy-declaration.md` 更新
+23. [ ] GitHub Pages のプライバシーポリシー HTML 更新
 
 ### Phase 4：テスト・リリース
 
-20. [ ] バックエンド単体テスト（通知ポーリング・送信）
-21. [ ] アプリ実機テスト（通知許可フロー・受信確認）
-22. [ ] 通知を拒否した場合の動作確認（アプリが正常動作すること）
-23. [ ] App Store Connect プライバシー申告更新
-24. [ ] TestFlight 配信・動作確認
+24. [ ] バックエンド単体テスト（Jetstream 接続・イベント処理・Push 送信）
+25. [ ] アプリ実機テスト（通知許可フロー・受信確認）
+26. [ ] 通知を拒否した場合の動作確認（アプリが正常動作すること）
+27. [ ] App Store Connect プライバシー申告更新
+28. [ ] TestFlight 配信・動作確認
 
 ---
 
 ## 6. 工数見積もり
 
-| フェーズ | 工数目安 |
-|---|---|
-| Phase 1（バックエンド） | 6.5〜9.5 時間 |
-| Phase 2（アプリ側） | 5〜7 時間 |
-| Phase 3（プライバシー対応） | 1〜2 時間 |
-| Phase 4（テスト・リリース） | 2〜3 時間 |
-| **合計** | **14.5〜21.5 時間** |
+| フェーズ | 工数 | 状態 |
+|---|---|---|
+| Phase 1（バックエンド実装） | 7〜10h | **完了** |
+| Phase 2（アプリ側） | 4〜5.5h | **完了** |
+| Phase 3（プライバシー対応） | 1〜2h | 未着手 |
+| Phase 4（テスト・リリース） | 2〜3h | 未着手 |
+| **合計** | **14〜20.5h** | |
 
 ---
 
-## 7. 既知の制限・注意事項
+## 7. 注意事項・既知の制限
 
-- **Expo Push Token の失効**：アプリ再インストール時にトークンが変わる。失効トークンは EPNS からエラーが返るため、そのタイミングで KV から削除する処理を実装する
-- **ユーザー増加時の KV 書き込み上限**：無料枠は 1,000 書き込み/日。3〜4 ユーザーが上限。ユーザー増加時は Cloudflare Workers 有料プラン（$5/月）に移行する
-- **Bluesky API の認証**：`listNotifications` はユーザーの認証トークンが必要。Workers 側でユーザーのトークンを管理する必要はなく、公開情報（DID ベース）での通知判定方法を検討する（または別途 App Password を使用する）
-- **devクライアント再ビルド**：`expo-notifications` はネイティブモジュールを含むため、インストール後に EAS ビルドの再実行が必要
+- **Expo Push Token の失効**：アプリ再インストール時にトークンが変わる。EPNS からの `DeviceNotRegistered` エラー時に JSON から自動削除する処理を実装済み
+- **Jetstream イベントの取りこぼし**：切断〜再接続の間（数秒）のイベントは取りこぼす。`cursor`（`time_us`）による再接続からの取得は未実装。個人アプリとして許容範囲と判断
+- **Jetstream エンドポイントの変更リスク**：`jetstream2.us-east.bsky.network` は現時点での公式 URL。`src/jetstream.ts` の定数として管理し変更に備える
+- **dev クライアント再ビルド不要**：`expo-notifications` は既導入済みのため、EAS ビルドの再実行は不要
+- **Railway Free プランのスリープ**：Free プランは一定時間リクエストがないとスリープする可能性がある。Jetstream の WebSocket 接続が切れた場合の auto-reconnect で対応。スリープが問題になる場合は Hobby プラン（$5/月）に移行
 
 ---
 
@@ -327,6 +398,6 @@ interface SettingsState {
 
 | ユーザー数 | 対応 |
 |---|---|
-| 1〜3人 | Cloudflare Workers 無料枠で対応 |
-| 4人以上 | Cloudflare Workers 有料プラン（$5/月）に移行 |
-| 数百人以上 | Jetstream ベースのリアルタイム通知に移行を検討 |
+| 〜数十人 | Railway Free プランで対応 |
+| 数十〜数百人 | Railway Hobby プラン（$5/月）に移行 |
+| 数百人以上 | Firehose フル購読 + 専用サーバーへの移行を検討 |

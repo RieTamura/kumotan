@@ -16,6 +16,7 @@ const zustandStorage = {
 };
 
 interface NotificationState {
+  // Study reminders (existing)
   quizReminderEnabled: boolean;
   setQuizReminderEnabled: (value: boolean) => void;
   wordReminderEnabled: boolean;
@@ -23,11 +24,26 @@ interface NotificationState {
   reminderHour: number;
   reminderMinute: number;
   setReminderTime: (hour: number, minute: number) => void;
+
+  // Bluesky social push notifications
+  blueskyNotificationsEnabled: boolean;
+  setBlueskyNotificationsEnabled: (value: boolean) => void;
+  notifyOnLike: boolean;
+  setNotifyOnLike: (value: boolean) => void;
+  notifyOnReply: boolean;
+  setNotifyOnReply: (value: boolean) => void;
+  notifyOnMention: boolean;
+  setNotifyOnMention: (value: boolean) => void;
+  notifyOnRepost: boolean;
+  setNotifyOnRepost: (value: boolean) => void;
+  notifyOnFollow: boolean;
+  setNotifyOnFollow: (value: boolean) => void;
 }
 
 export const useNotificationStore = create<NotificationState>()(
   persist(
     (set) => ({
+      // Study reminders
       quizReminderEnabled: false,
       setQuizReminderEnabled: (value) => set({ quizReminderEnabled: value }),
       wordReminderEnabled: false,
@@ -35,6 +51,20 @@ export const useNotificationStore = create<NotificationState>()(
       reminderHour: 9,
       reminderMinute: 0,
       setReminderTime: (hour, minute) => set({ reminderHour: hour, reminderMinute: minute }),
+
+      // Bluesky social push notifications
+      blueskyNotificationsEnabled: false,
+      setBlueskyNotificationsEnabled: (value) => set({ blueskyNotificationsEnabled: value }),
+      notifyOnLike: true,
+      setNotifyOnLike: (value) => set({ notifyOnLike: value }),
+      notifyOnReply: true,
+      setNotifyOnReply: (value) => set({ notifyOnReply: value }),
+      notifyOnMention: true,
+      setNotifyOnMention: (value) => set({ notifyOnMention: value }),
+      notifyOnRepost: true,
+      setNotifyOnRepost: (value) => set({ notifyOnRepost: value }),
+      notifyOnFollow: true,
+      setNotifyOnFollow: (value) => set({ notifyOnFollow: value }),
     }),
     {
       name: 'notification-storage',

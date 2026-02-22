@@ -23,7 +23,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "学習進捗の画像を保存・シェアするために写真ライブラリへのアクセスが必要です。",
         "NSCameraUsageDescription": "投稿に添付する写真を撮影するためにカメラへのアクセスが必要です。",
-        "NSUserNotificationsUsageDescription": "クイズや単語学習のリマインダー通知に使用します。"
+        "NSUserNotificationsUsageDescription": "クイズ・単語学習のリマインダーと、Blueskyのいいねや返信などのプッシュ通知に使用します。"
       }
     },
     "android": {

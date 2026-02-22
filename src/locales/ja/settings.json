@@ -103,6 +103,8 @@
     "resetSuccess": "チュートリアルをリセットしました。次回起動時に表示されます。"
   },
   "notifications": {
+    "settingsTitle": "通知設定",
+    "settingsSubtitle": "Bluesky通知・学習リマインダー",
     "quizReminder": "クイズリマインダー",
     "quizReminderSubtitle": "毎日クイズの時間をお知らせ",
     "quizReminderBody": "今日のクイズをやりましょう！",
@@ -112,7 +114,20 @@
     "reminderTime": "通知時刻",
     "permissionDeniedTitle": "通知が許可されていません",
     "permissionDeniedMessage": "設定アプリからくもたんの通知を許可してください",
-    "openSettings": "設定を開く"
+    "openSettings": "設定を開く",
+    "bluesky": {
+      "sectionTitle": "Bluesky通知",
+      "enable": "通知を受け取る",
+      "enableSubtitle": "いいね・返信などをプッシュ通知でお知らせ",
+      "like": "いいね",
+      "reply": "返信",
+      "mention": "メンション",
+      "repost": "リポスト",
+      "follow": "フォロー",
+      "errorTitle": "通知の登録に失敗しました",
+      "errorNotLoggedIn": "Blueskyにログインしてから設定してください",
+      "errorRegistrationFailed": "サーバーへの登録に失敗しました。しばらくしてから再試行してください"
+    }
   },
   "version": "バージョン {{version}}",
   "linkError": "リンクを開けませんでした。",

@@ -3,6 +3,13 @@
  */
 
 /**
+ * Notification server URL (Railway)
+ */
+export const NOTIFICATIONS_WORKER_URL =
+  (process.env.EXPO_PUBLIC_NOTIFICATIONS_URL as string | undefined) ??
+  'https://kumotan-notifications-production.up.railway.app';
+
+/**
  * API endpoints
  */
 export const API = {
