@@ -1,7 +1,8 @@
 # App Store プライバシー宣言ガイド
 
 **作成日**: 2026-02-19
-**対象バージョン**: v1.0.0
+**改訂日**: 2026-02-22
+**対象バージョン**: v1.1.0
 
 App Store Connect の「App Privacy」セクションへの入力内容をまとめたドキュメント。
 
@@ -30,11 +31,19 @@ App Store Connect では「収集するデータの種類」を選択し、各�
 | データ | 具体的な内容 |
 |--------|-------------|
 | ユーザーID | Bluesky DID（`did:plc:...`）、Bluesky ハンドル |
+| デバイスID | Expo Push Token（プッシュ通知配信用トークン） |
 
+**ユーザーID**
 - **使用目的**: 認証（App Functionality）
 - **ユーザーIDと紐づく**: Yes
 - **トラッキング**: No
 - **補足**: Bluesky OAuth 認証で取得。デバイスの SecureStore（iOS Keychain）に保存。
+
+**デバイスID（Expo Push Token）**
+- **使用目的**: App Functionality（プッシュ通知の送信）
+- **ユーザーIDと紐づく**: Yes（Bluesky DIDと紐づけて運営者サーバーに保存）
+- **トラッキング**: No
+- **補足**: プッシュ通知を有効にした場合のみ取得・送信。無効にすると削除される。
 
 ---
 
@@ -105,6 +114,9 @@ App Store Connect では「収集するデータの種類」を選択し、各�
 | Yahoo! JAPAN Text Analysis API | 日本語テキスト | ユーザー自身の Client ID | 形態素解析・ふりがな |
 | GitHub Pages（rietamura.github.io） | なし（GETリクエストのみ） | なし | JMdict辞書データ配信 |
 | Google Apps Script | フィードバックテキスト | なし | フィードバック収集 |
+| Railway（運営者管理サーバー） | Bluesky DID・Expo Push Token・通知設定 | なし | プッシュ通知の管理 |
+| Expo Push Notification Service | Expo Push Token・通知タイトル/本文 | なし | iOSプッシュ通知の配信 |
+| Bluesky Jetstream（公式） | なし（受信のみ） | なし | Blueskyイベント取得 |
 
 ---
 
@@ -114,7 +126,7 @@ App Store Connect では「収集するデータの種類」を選択し、各�
 2. 「プライバシー慣行を管理する」をクリック
 3. **「このアプリはユーザーをトラッキングしません」** を選択
 4. 収集するデータの種類で以下を選択：
-   - ✅ 識別子
+   - ✅ 識別子（ユーザーID・デバイスID）
    - ✅ ユーザーコンテンツ
    - ✅ 検索履歴
    - ✅ その他のデータ
