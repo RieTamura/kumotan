@@ -138,9 +138,21 @@
             <li><strong>DeepL API</strong>: 翻訳対象のテキスト（ユーザーがAPIキーを設定した場合のみ）</li>
             <li><strong>Yahoo! JAPAN テキスト解析API</strong>: 解析対象の日本語テキスト（ユーザーがClient IDを設定した場合のみ）</li>
             <li><strong>Free Dictionary API</strong>: 検索する英単語</li>
+            <li><strong>Railway（運営者管理サーバー）</strong>: Bluesky DID、Expo Push Token、通知設定（プッシュ通知を有効にした場合のみ）</li>
+            <li><strong>Expo Push Notification Service</strong>: Expo Push Token、通知タイトル・本文（プッシュ通知送信時）</li>
+            <li><strong>Bluesky Jetstream（公式）</strong>: 送信なし（イベント受信のみ）</li>
         </ul>
 
-        <h3>5. フィードバック情報</h3>
+        <h3>5. プッシュ通知トークン</h3>
+        <p>ユーザーがプッシュ通知を有効にした場合、以下の情報が運営者管理サーバー（Railway）に送信・保存されます。</p>
+        <ul>
+            <li>Expo Push Token（デバイス識別子。Expo Push Notificationサービスが発行する通知配信用トークン）</li>
+            <li>Bluesky DID（通知の宛先を特定するための公開識別子）</li>
+            <li>通知種別の設定（いいね・返信・メンション・リポスト・フォローの各ON/OFF）</li>
+        </ul>
+        <p>これらの情報はプッシュ通知の送信目的にのみ使用し、それ以外の目的には使用しません。プッシュ通知を無効にした場合、または本アプリをアンインストールした場合は、サーバーから削除されます。</p>
+
+        <h3>6. フィードバック情報</h3>
         <p>ユーザーがアプリ内のフィードバック機能を利用した場合、以下の情報が送信されます。</p>
         <ul>
             <li>フィードバックの種類（バグ報告、機能要望、辞書修正等）</li>
@@ -157,6 +169,7 @@
             <li>辞書検索、翻訳、テキスト解析等の学習支援機能を提供するため</li>
             <li>ユーザーからのフィードバックに対応し、本アプリを改善するため</li>
             <li>本アプリの不具合の修正および機能改善のため</li>
+            <li>プッシュ通知（Blueskyのソーシャルアクション通知・学習リマインダー）の送信のため</li>
         </ol>
 
         <h2>第4条（個人情報の第三者提供）</h2>
@@ -204,6 +217,10 @@
                     <td>カメラ</td>
                     <td>投稿に添付する写真を撮影するため</td>
                 </tr>
+                <tr>
+                    <td>通知</td>
+                    <td>Blueskyのソーシャルアクション通知および学習リマインダーを受信するため</td>
+                </tr>
             </tbody>
         </table>
         <p>これらの権限は、ユーザーが該当する機能を利用する際にのみ求められ、許可しなくても本アプリの基本機能は利用できます。</p>
@@ -233,7 +250,7 @@
         <strong>お問い合わせ:</strong> <a href="https://github.com/RieTamura/kumotan/issues" target="_blank">GitHub Issues</a></p>
 
         <div class="footer">
-            <p><strong>最終更新日:</strong> 2026年2月12日</p>
+            <p><strong>最終更新日:</strong> 2026年2月22日</p>
         </div>
     </div>
 </body>
