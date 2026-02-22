@@ -356,9 +356,9 @@ SettingsScreen から通知設定を切り出し、Bluesky ソーシャル通知
 
 ### Phase 3：プライバシー対応
 
-21. [ ] `doc/privacy-policy.md` 更新
-22. [ ] `doc/app-store/privacy-declaration.md` 更新
-23. [ ] GitHub Pages のプライバシーポリシー HTML 更新
+21. [x] `doc/privacy-policy.md` 更新
+22. [x] `doc/app-store/privacy-declaration.md` 更新
+23. [x] GitHub Pages のプライバシーポリシー HTML 更新（`docs/privacy-policy.html`）
 
 ### Phase 4：テスト・リリース
 
@@ -376,7 +376,7 @@ SettingsScreen から通知設定を切り出し、Bluesky ソーシャル通知
 |---|---|---|
 | Phase 1（バックエンド実装） | 7〜10h | **完了** |
 | Phase 2（アプリ側） | 4〜5.5h | **完了** |
-| Phase 3（プライバシー対応） | 1〜2h | 未着手 |
+| Phase 3（プライバシー対応） | 1〜2h | **完了** |
 | Phase 4（テスト・リリース） | 2〜3h | 未着手 |
 | **合計** | **14〜20.5h** | |
 
