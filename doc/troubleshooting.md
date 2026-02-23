@@ -6058,3 +6058,88 @@ if (type === 'bug') {
 - GAS の `doPost` は try-catch 構造のため、内部で例外が発生しても実行ログは「完了」と表示される。H列が「Pending」のまま = `triggerGitHubAction` が失敗している
 - bug タイプのみ失敗する場合、bug 専用フィールドの追加によるプロパティ数超過を疑う
 - 同じ種類のフィードバック（bug/feature/word_search）で成否が分かれる場合、タイプ別に追加されるフィールドの差分を確認する
+
+---
+
+## 34. 投稿内のリンクが途中から文字列になったり、全文がリンクになる問題
+
+### 発生日
+
+2026年2月23日
+
+### 症状
+
+- 投稿に絵文字が含まれる場合、リンク・メンション・ハッシュタグの位置がずれて途中から文字列になる
+- 稀に投稿文全体がリンクとして青色表示になる
+
+### 原因
+
+`src/components/PostCard.tsx` の `parseTextWithFacets()` 関数に2つのバグがあった。
+
+#### Bug 1: サロゲートペア（絵文字）のバイト計算誤り（264-269行目）
+
+Bluesky の facet（リンク等の装飾情報）はUTF-8バイトオフセットで位置を指定する。これをJavaScript文字列のcharacter indexに変換する際、`for` ループでUTF-16コードユニット単位に反復していた。
+
+絵文字（U+1F3AC 🎬 など、U+FFFFより大きいコードポイント）はJavaScriptではサロゲートペア（2コードユニット）で表現される。`for` ループでは絵文字を2つの半端な文字に分割し、それぞれを `TextEncoder().encode()` に渡すため、単体サロゲートが正しいUTF-8（4バイト）ではなく置換文字（3バイト×2=6バイト）として計算されてしまう。
+
+結果として、絵文字1つにつきバイト位置が2ずつずれ、それ以降のリンクが文字列上の誤った位置で抽出された。
+
+#### Bug 2: バイト位置が見つからない場合の危険なフォールバック（278-279行目）
+
+```typescript
+// 修正前
+const charStart = byteToCharMap.get(facet.index.byteStart) ?? 0;
+const charEnd = byteToCharMap.get(facet.index.byteEnd) ?? text.length;
+```
+
+Bug 1 でバイト位置がずれると `byteToCharMap.get()` が `undefined` を返す。フォールバックが `0`（先頭）と `text.length`（末尾）のため、リンク範囲が投稿全文になってしまっていた。
+
+### 解決策
+
+#### Bug 1の修正: `for` ループを `for...of` に変更
+
+`for...of` はUnicodeコードポイント単位で反復するため、絵文字を1文字として正しく処理できる。
+
+```typescript
+// 修正前
+for (let charPos = 0; charPos < text.length; charPos++) {
+  byteToCharMap.set(bytePos, charPos);
+  const char = text[charPos];
+  bytePos += new TextEncoder().encode(char).length;
+}
+
+// 修正後
+let charPos = 0;
+for (const char of text) {  // for...of はサロゲートペアを1文字として扱う
+  byteToCharMap.set(bytePos, charPos);
+  bytePos += new TextEncoder().encode(char).length;
+  charPos += char.length;   // 絵文字は2、通常文字は1
+}
+```
+
+#### Bug 2の修正: 不正なfacetはスキップ
+
+```typescript
+// 修正前
+const charStart = byteToCharMap.get(facet.index.byteStart) ?? 0;
+const charEnd = byteToCharMap.get(facet.index.byteEnd) ?? text.length;
+
+// 修正後
+const charStart = byteToCharMap.get(facet.index.byteStart);
+const charEnd = byteToCharMap.get(facet.index.byteEnd);
+if (charStart === undefined || charEnd === undefined) continue; // 不正facetをスキップ
+```
+
+### 未対応の既知問題 (Bug 3)
+
+リンクfacetの実際のURL（`feature.uri`）がトークンに保存されず破棄されている。`handleUrlPress(token.text)` で表示テキストをURLとして使用するため、表示テキストとURLが異なるリンク（例：「こちら」→ `https://example.com`）は正しく開けない。`TextToken` インターフェースに `url?: string` フィールドを追加して `feature.uri` を保持する必要がある。通常はBlueskyの投稿テキスト中にURLが直接書かれるため実害はほぼないが、将来的に対応が必要。
+
+### 関連ファイル
+
+- `src/components/PostCard.tsx` - `parseTextWithFacets()` 関数（264-280行目）
+
+### 教訓
+
+- JavaScriptの `for` ループはUTF-16コードユニット単位で反復するため、絵文字（サロゲートペア）を扱う場合は `for...of` を使用する
+- Bluesky AT Protocolのfacetはバイトオフセット（UTF-8）で位置指定するため、JavaScript文字列のcharacter indexへの変換は絵文字に注意が必要
+- フォールバック値には安全な値（`0` や `text.length` など範囲外を示す可能性がある値）を避け、エラー時はスキップする防御的な実装にする

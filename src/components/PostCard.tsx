@@ -257,15 +257,14 @@ function parseTextWithFacets(text: string, facets?: RichTextFacet[]): TextToken[
   let index = 0;
 
   // Convert byte positions to character positions
-  const textBytes = new TextEncoder().encode(text);
+  // for...of iterates Unicode code points (handles surrogate pairs / emoji correctly)
   const byteToCharMap = new Map<number, number>();
   let bytePos = 0;
-  
-  for (let charPos = 0; charPos < text.length; charPos++) {
+  let charPos = 0;
+  for (const char of text) {
     byteToCharMap.set(bytePos, charPos);
-    const char = text[charPos];
-    const charBytes = new TextEncoder().encode(char);
-    bytePos += charBytes.length;
+    bytePos += new TextEncoder().encode(char).length;
+    charPos += char.length; // 2 for surrogate pairs, 1 otherwise
   }
   byteToCharMap.set(bytePos, text.length); // Map end position
 
@@ -275,8 +274,10 @@ function parseTextWithFacets(text: string, facets?: RichTextFacet[]): TextToken[
   let currentPos = 0;
 
   for (const facet of sortedFacets) {
-    const charStart = byteToCharMap.get(facet.index.byteStart) ?? 0;
-    const charEnd = byteToCharMap.get(facet.index.byteEnd) ?? text.length;
+    const charStart = byteToCharMap.get(facet.index.byteStart);
+    const charEnd = byteToCharMap.get(facet.index.byteEnd);
+    // Skip facets with invalid byte offsets to avoid wrong link ranges
+    if (charStart === undefined || charEnd === undefined) continue;
 
     // Process text before this facet
     if (charStart > currentPos) {
