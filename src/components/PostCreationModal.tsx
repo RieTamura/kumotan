@@ -18,6 +18,7 @@ import {
   Dimensions,
   Image,
   ActionSheetIOS,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -106,6 +107,8 @@ export function PostCreationModal({
     images,
     canAddImage,
     selfLabels,
+    linkPreview,
+    isLoadingLinkPreview,
     setText,
     addHashtag,
     removeHashtag,
@@ -114,6 +117,7 @@ export function PostCreationModal({
     removeImage,
     updateImageAlt,
     setSelfLabels,
+    clearLinkPreview,
     submitPost,
     reset,
     clearError,
@@ -347,6 +351,41 @@ export function PostCreationModal({
                 maxLength={MAX_CHARACTERS + 50}
               />
             </View>
+
+            {/* Link Preview Card */}
+            {isLoadingLinkPreview && images.length === 0 && (
+              <View style={[styles.linkPreviewContainer, styles.linkPreviewLoadingContainer, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.linkPreviewLoadingText, { color: colors.textSecondary }]}>
+                  {t('linkPreviewLoading')}
+                </Text>
+              </View>
+            )}
+            {!isLoadingLinkPreview && linkPreview && images.length === 0 && (
+              <View style={[styles.linkPreviewContainer, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
+                <Pressable style={styles.linkPreviewDismiss} onPress={clearLinkPreview} disabled={isPosting}>
+                  <X size={14} color={colors.textSecondary} />
+                </Pressable>
+                {linkPreview.thumb ? (
+                  <Image source={{ uri: linkPreview.thumb }} style={styles.linkPreviewThumb} resizeMode="cover" />
+                ) : null}
+                <View style={styles.linkPreviewBody}>
+                  <Text style={[styles.linkPreviewDomain, { color: colors.textTertiary }]} numberOfLines={1}>
+                    {(() => { try { return new URL(linkPreview.uri).hostname; } catch { return linkPreview.uri; } })()}
+                  </Text>
+                  {linkPreview.title ? (
+                    <Text style={[styles.linkPreviewTitle, { color: colors.text }]} numberOfLines={2}>
+                      {linkPreview.title}
+                    </Text>
+                  ) : null}
+                  {linkPreview.description ? (
+                    <Text style={[styles.linkPreviewDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+                      {linkPreview.description}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            )}
 
             {/* Image Preview */}
             {images.length > 0 && (
@@ -747,6 +786,51 @@ const styles = StyleSheet.create({
   quotePreviewText: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  linkPreviewContainer: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  linkPreviewLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  linkPreviewLoadingText: {
+    fontSize: 12,
+    marginLeft: 8,
+  },
+  linkPreviewDismiss: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    zIndex: 1,
+    padding: 4,
+  },
+  linkPreviewThumb: {
+    width: '100%',
+    height: 120,
+  },
+  linkPreviewBody: {
+    padding: 10,
+    paddingRight: 28,
+  },
+  linkPreviewDomain: {
+    fontSize: 11,
+    marginBottom: 2,
+  },
+  linkPreviewTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  linkPreviewDescription: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 });
 

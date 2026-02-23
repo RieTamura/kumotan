@@ -3,9 +3,10 @@
  * Manages state and logic for creating Bluesky posts
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createPost, PostReplySettings, DEFAULT_REPLY_SETTINGS, PostImageAttachment, buildImageEmbed } from '../services/bluesky/feed';
+import { fetchLinkPreview, buildExternalEmbed, LinkPreviewData } from '../services/linkPreview';
 import { ReplyRef } from '../types/bluesky';
 import { AppError } from '../utils/errors';
 
@@ -89,6 +90,8 @@ interface UsePostCreationReturn {
   images: PostImageAttachment[];
   canAddImage: boolean;
   selfLabels: string[];
+  linkPreview: LinkPreviewData | null;
+  isLoadingLinkPreview: boolean;
 
   // Actions
   setText: (text: string) => void;
@@ -99,6 +102,7 @@ interface UsePostCreationReturn {
   removeImage: (index: number) => void;
   updateImageAlt: (index: number, alt: string) => void;
   setSelfLabels: (labels: string[]) => void;
+  clearLinkPreview: () => void;
   submitPost: () => Promise<boolean>;
   reset: () => void;
   clearError: () => void;
@@ -123,6 +127,9 @@ const initialState: PostCreationState = {
  * @param initialText - Optional initial text to pre-fill the post
  * @param initialImages - Optional initial images to pre-attach (e.g., from share flow)
  */
+const URL_REGEX = /https?:\/\/[^\s<>"]+/;
+const LINK_PREVIEW_DEBOUNCE_MS = 800;
+
 export function usePostCreation(
   initialText?: string,
   initialImages?: PostImageAttachment[],
@@ -131,6 +138,10 @@ export function usePostCreation(
 ): UsePostCreationReturn {
   const [state, setState] = useState<PostCreationState>(initialState);
   const [hashtagHistory, setHashtagHistory] = useState<string[]>(DEFAULT_HASHTAGS);
+  const [linkPreview, setLinkPreviewState] = useState<LinkPreviewData | null>(null);
+  const [isLoadingLinkPreview, setIsLoadingLinkPreview] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFetchedUrl = useRef<string | null>(null);
 
   /**
    * Set initial text when provided (e.g., from share flow)
@@ -226,10 +237,51 @@ export function usePostCreation(
   }, [state.text, characterCount]);
 
   /**
+   * Fetch link preview for the first URL found in text (debounced)
+   */
+  const triggerLinkPreviewFetch = useCallback((text: string) => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    const match = URL_REGEX.exec(text);
+    if (!match) {
+      lastFetchedUrl.current = null;
+      setLinkPreviewState(null);
+      setIsLoadingLinkPreview(false);
+      return;
+    }
+
+    const url = match[0];
+    if (url === lastFetchedUrl.current) return;
+
+    setIsLoadingLinkPreview(true);
+    debounceTimer.current = setTimeout(async () => {
+      lastFetchedUrl.current = url;
+      const preview = await fetchLinkPreview(url);
+      setLinkPreviewState(preview);
+      setIsLoadingLinkPreview(false);
+    }, LINK_PREVIEW_DEBOUNCE_MS);
+  }, []);
+
+  /**
    * Set the post text
    */
   const setText = useCallback((text: string) => {
     setState((prev) => ({ ...prev, text, error: null }));
+    triggerLinkPreviewFetch(text);
+  }, [triggerLinkPreviewFetch]);
+
+  /**
+   * Clear the link preview (user dismissed it)
+   */
+  const clearLinkPreview = useCallback(() => {
+    lastFetchedUrl.current = null;
+    setLinkPreviewState(null);
+    setIsLoadingLinkPreview(false);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
   }, []);
 
   /**
@@ -356,7 +408,27 @@ export function usePostCreation(
       embed = embedResult.data;
     }
 
-    // Build quote embed if quoting a post
+    // Build external link embed if a link preview is attached (images take priority)
+    if (!embed && linkPreview) {
+      const externalResult = await buildExternalEmbed(linkPreview);
+      if (externalResult.success) {
+        if (quoteTo) {
+          // Combine quote + external via recordWithMedia
+          embed = {
+            $type: 'app.bsky.embed.recordWithMedia',
+            record: {
+              $type: 'app.bsky.embed.record',
+              record: { uri: quoteTo.uri, cid: quoteTo.cid },
+            },
+            media: externalResult.data,
+          };
+        } else {
+          embed = externalResult.data;
+        }
+      }
+    }
+
+    // Build quote embed if quoting a post (and no embed set yet)
     if (quoteTo && !embed) {
       embed = {
         $type: 'app.bsky.embed.record',
@@ -406,13 +478,19 @@ export function usePostCreation(
       }));
       return false;
     }
-  }, [isValid, state.isPosting, state.hashtags, state.replySettings, state.images, state.selfLabels, buildPostText, extractHashtagsFromText, saveHashtagsToHistory]);
+  }, [isValid, state.isPosting, state.hashtags, state.replySettings, state.images, state.selfLabels, linkPreview, buildPostText, extractHashtagsFromText, saveHashtagsToHistory]);
 
   /**
    * Reset the state to initial values
    */
   const reset = useCallback(() => {
     setState(initialState);
+    setLinkPreviewState(null);
+    setIsLoadingLinkPreview(false);
+    lastFetchedUrl.current = null;
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
   }, []);
 
   /**
@@ -436,6 +514,8 @@ export function usePostCreation(
     images: state.images,
     canAddImage,
     selfLabels: state.selfLabels,
+    linkPreview,
+    isLoadingLinkPreview,
 
     // Actions
     setText,
@@ -446,6 +526,7 @@ export function usePostCreation(
     removeImage,
     updateImageAlt,
     setSelfLabels,
+    clearLinkPreview,
     submitPost,
     reset,
     clearError,

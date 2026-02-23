@@ -9,6 +9,7 @@ import { TimelinePost, PostEmbed, PostImage, ReplyRestriction, ReplyRef } from '
 import { AppError, ErrorCode, mapToAppError } from '../../utils/errors';
 import { PAGINATION } from '../../constants/config';
 import { getAgent, refreshSession, hasActiveSession } from './auth';
+import { compressImageIfNeeded } from '../../utils/imageCompression';
 
 /**
  * Reply permission rule types for threadgate
@@ -606,7 +607,28 @@ export async function buildImageEmbed(
     for (const img of images) {
       await rateLimiter.throttle();
 
-      const base64 = await FileSystem.readAsStringAsync(img.uri, {
+      // Compress image to below 1MB if needed (binary search on JPEG quality)
+      let uploadUri = img.uri;
+      let uploadWidth = img.width;
+      let uploadHeight = img.height;
+      let uploadMimeType = img.mimeType;
+      try {
+        const compressed = await compressImageIfNeeded(img.uri, img.width, img.height);
+        uploadUri = compressed.uri;
+        uploadWidth = compressed.width;
+        uploadHeight = compressed.height;
+        uploadMimeType = compressed.mimeType;
+      } catch {
+        return {
+          success: false,
+          error: new AppError(
+            ErrorCode.VALIDATION_ERROR,
+            '画像の圧縮に失敗しました。別の画像をお試しください。',
+          ),
+        };
+      }
+
+      const base64 = await FileSystem.readAsStringAsync(uploadUri, {
         encoding: 'base64',
       });
 
@@ -616,22 +638,15 @@ export async function buildImageEmbed(
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      if (bytes.length > MAX_IMAGE_SIZE) {
-        return {
-          success: false,
-          error: new AppError(ErrorCode.VALIDATION_ERROR, '画像サイズが1MBを超えています。より小さい画像を使用してください。'),
-        };
-      }
-
       const response = await agent.uploadBlob(bytes, {
-        encoding: img.mimeType,
+        encoding: uploadMimeType,
       });
 
       uploadedImages.push({
         alt: img.alt,
         image: response.data.blob,
-        aspectRatio: img.width > 0 && img.height > 0
-          ? { width: img.width, height: img.height }
+        aspectRatio: uploadWidth > 0 && uploadHeight > 0
+          ? { width: uploadWidth, height: uploadHeight }
           : undefined,
       });
     }

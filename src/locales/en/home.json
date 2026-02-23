@@ -95,5 +95,6 @@
   "blockConfirmTitle": "Confirm Block",
   "blockConfirmMessage": "Block @{{handle}}?",
   "blockConfirm": "Block",
-  "profilePreviewLoadError": "Failed to load profile"
+  "profilePreviewLoadError": "Failed to load profile",
+  "linkPreviewLoading": "Fetching link..."
 }

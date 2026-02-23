@@ -95,5 +95,6 @@
   "blockConfirmTitle": "ブロックの確認",
   "blockConfirmMessage": "@{{handle}}さんをブロックしますか？",
   "blockConfirm": "ブロックする",
-  "profilePreviewLoadError": "プロフィールの読み込みに失敗しました"
+  "profilePreviewLoadError": "プロフィールの読み込みに失敗しました",
+  "linkPreviewLoading": "リンクを取得中..."
 }
