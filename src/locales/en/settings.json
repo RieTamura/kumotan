@@ -4,11 +4,18 @@
     "account": "Account",
     "notifications": "Study Reminders",
     "general": "General",
+    "feed": "Feed",
     "apiTranslation": "API & Translation",
     "dictionary": "Dictionary Data",
     "dataManagement": "Data Management",
     "support": "Support",
     "other": "Other"
+  },
+  "feed": {
+    "customFeed": "Custom Feed",
+    "customFeedNone": "None",
+    "customFeedSelect": "Select Custom Feed",
+    "customFeedLoading": "Loading feeds..."
   },
   "translation": {
     "translateDefinition": "Translate definition to Japanese",

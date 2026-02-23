@@ -365,12 +365,23 @@ const tabs: TabConfig[] = [
 
 ### Phase 2: カスタムフィード実装
 
-- [ ] **[API]** `getCustomFeed` を `feed.ts` に追加
-- [ ] **[API]** `getSavedFeeds` を `feed.ts` に追加
-- [ ] **[Hook]** `useCustomFeed.ts` を作成
-- [ ] **[Hook]** `useCustomFeedSettings.ts` を作成
-- [ ] **[Settings]** 設定画面にカスタムフィード選択 UI を追加
-- [ ] **[Component]** `CustomFeedTab.tsx` を新規作成
-- [ ] **[HomeScreen]** カスタムフィードタブを条件付きで追加
-- [ ] **[i18n]** 多言語ファイルに翻訳キーを追加
-- [ ] **[Test]** フィード未設定・設定済み・削除済みフィードの各ケースを確認
+- [x] **[API]** `getCustomFeed` を `feed.ts` に追加
+- [x] **[API]** `getSavedFeeds` を `feed.ts` に追加
+- [x] **[Hook]** `useCustomFeed.ts` を作成
+- [x] **[Store]** `customFeedStore.ts` を作成（Zustand persistで選択フィードを永続化）
+- [x] **[Hook]** `useCustomFeedSettings.ts` を作成
+- [x] **[Settings]** 設定画面にカスタムフィード選択 UI を追加
+- [x] **[Component]** `CustomFeedTab.tsx` を新規作成
+- [x] **[HomeScreen]** カスタムフィードタブを条件付きで追加
+- [x] **[i18n]** 多言語ファイルに翻訳キーを追加
+- [x] **[Bugfix]** PagerViewへの`null`子要素渡しによるクラッシュを修正（array + filter + `key={tabs.length}`）
+- [x] **[Test]** フィード未設定・設定済み・削除済みフィードの各ケースを動作確認済み
+
+### Phase 2 補足: 実装上の決定事項
+
+| 項目 | 決定内容 |
+| --- | --- |
+| 設定の永続化 | AsyncStorage の直接操作ではなく Zustand `persist` ミドルウェアで管理（`customFeedStore.ts`） |
+| PagerView children | `{condition && <View>}` は `null` を渡してクラッシュするため、array + `.filter(null)` + `key={tabs.length}` の組み合わせで解決 |
+| タブ数変化時の挙動 | `key={tabs.length}` により PagerView を強制 remount。フィード追加・削除時はページ 0（Following）に戻る |
+| フィード削除時のフォールバック | `selectedFeedUri` が null になったとき `activeTab === 'customFeed'` であれば `useEffect` で自動的に Following タブへリセット |

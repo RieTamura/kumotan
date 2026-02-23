@@ -5,6 +5,10 @@
     "following": "Following",
     "profile": "Profile"
   },
+  "customFeed": {
+    "error": "Failed to load feed",
+    "settingsHint": "Please select another feed in Settings"
+  },
   "profile": {
     "loading": "Loading profile...",
     "notFound": "Profile not found",

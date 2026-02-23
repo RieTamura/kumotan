@@ -5,6 +5,10 @@
     "following": "Following",
     "profile": "プロフィール"
   },
+  "customFeed": {
+    "error": "フィードの読み込みに失敗しました",
+    "settingsHint": "設定から別のフィードを選択してください"
+  },
   "profile": {
     "loading": "プロフィールを読み込み中...",
     "notFound": "プロフィールが見つかりません",

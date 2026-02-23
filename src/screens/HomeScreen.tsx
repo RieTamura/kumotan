@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { Spacing, BorderRadius, Shadows } from '../constants/colors';
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useCustomFeedStore } from '../store/customFeedStore';
 import { useTutorial, TutorialStep } from '../hooks/useTutorial';
 import { useWordRegistration } from '../hooks/useWordRegistration';
 import { OfflineBanner } from '../components/OfflineBanner';
@@ -33,6 +34,7 @@ import { PostCreationModal } from '../components/PostCreationModal';
 import { TutorialTooltip } from '../components/Tutorial';
 import { IndexTabs, TabConfig, AvatarTabIcon } from '../components/IndexTabs';
 import { FollowingFeedTab } from '../components/FollowingFeedTab';
+import { CustomFeedTab } from '../components/CustomFeedTab';
 import { ProfileView } from '../components/ProfileView';
 import { TimelinePost } from '../types/bluesky';
 import { useAuthProfile, useAuthUser } from '../store/authStore';
@@ -47,7 +49,7 @@ import { useTheme } from '../hooks/useTheme';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Tab keys valid in HomeScreen
-type HomeTabKey = 'following' | 'profile';
+type HomeTabKey = 'following' | 'customFeed' | 'profile';
 
 /**
  * HomeScreen Component
@@ -66,10 +68,18 @@ export function HomeScreen(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<HomeTabKey>('following');
   const pagerRef = useRef<PagerView>(null);
 
-  // Declarative tab configuration — add new tabs here in Phase 2
-  const tabs = useMemo((): TabConfig[] => [
-    { key: 'following', label: t('tabs.following') },
-    {
+  // Custom feed selection (persisted via Zustand)
+  const { selectedFeedUri, selectedFeedDisplayName } = useCustomFeedStore();
+
+  // Declarative tab configuration — custom feed tab appears when a feed is selected
+  const tabs = useMemo((): TabConfig[] => {
+    const base: TabConfig[] = [
+      { key: 'following', label: t('tabs.following') },
+    ];
+    if (selectedFeedUri && selectedFeedDisplayName) {
+      base.push({ key: 'customFeed', label: selectedFeedDisplayName });
+    }
+    base.push({
       key: 'profile',
       renderContent: (isActive: boolean) => (
         <AvatarTabIcon
@@ -79,17 +89,20 @@ export function HomeScreen(): React.JSX.Element {
           inactiveColor={colors.indexTabText}
         />
       ),
-    },
-  ], [t, profile?.avatar, colors.indexTabTextActive, colors.indexTabText]);
+    });
+    return base;
+  }, [t, selectedFeedUri, selectedFeedDisplayName, profile?.avatar, colors.indexTabTextActive, colors.indexTabText]);
 
-  // Per-tab FlatList refs (add new refs when adding tabs in Phase 2)
+  // Per-tab FlatList refs
   const followingListRef = useRef<FlatList<TimelinePost> | null>(null);
+  const customFeedListRef = useRef<FlatList<TimelinePost> | null>(null);
   const profileListRef = useRef<FlatList<TimelinePost> | null>(null);
 
   const getListRef = useCallback(
     (key: string): React.RefObject<FlatList<TimelinePost> | null> | null => {
       const map: Record<string, React.RefObject<FlatList<TimelinePost> | null>> = {
         following: followingListRef,
+        customFeed: customFeedListRef,
         profile: profileListRef,
       };
       return map[key] ?? null;
@@ -97,8 +110,8 @@ export function HomeScreen(): React.JSX.Element {
     []
   );
 
-  // Per-tab scroll offset tracking (replaces individual followingScrollOffset / profileScrollOffset)
-  const scrollOffsets = useRef<Record<string, number>>({ following: 0, profile: 0 });
+  // Per-tab scroll offset tracking
+  const scrollOffsets = useRef<Record<string, number>>({ following: 0, customFeed: 0, profile: 0 });
 
   // Scroll-to-top FAB state
   const [showScrollToTop, setShowScrollToTop] = useState(false);
@@ -171,6 +184,18 @@ export function HomeScreen(): React.JSX.Element {
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offsetY = event.nativeEvent.contentOffset.y;
       scrollOffsets.current.following = offsetY;
+      updateScrollToTopVisibility(offsetY > SCROLL_THRESHOLD);
+    },
+    [updateScrollToTopVisibility, SCROLL_THRESHOLD]
+  );
+
+  /**
+   * Handle scroll event for CustomFeed tab
+   */
+  const handleCustomFeedScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      scrollOffsets.current.customFeed = offsetY;
       updateScrollToTopVisibility(offsetY > SCROLL_THRESHOLD);
     },
     [updateScrollToTopVisibility, SCROLL_THRESHOLD]
@@ -596,6 +621,14 @@ export function HomeScreen(): React.JSX.Element {
     }
   }, [isTutorialActive, measureTips]);
 
+  // When the custom feed is removed from settings, fall back to the Following tab
+  useEffect(() => {
+    if (!selectedFeedUri && activeTab === 'customFeed') {
+      setActiveTab('following');
+      pagerRef.current?.setPage(0);
+    }
+  }, [selectedFeedUri, activeTab]);
+
   // Shared IndexTabs / header props
   const indexTabsHeader = (
     <View style={[styles.header, {
@@ -644,53 +677,84 @@ export function HomeScreen(): React.JSX.Element {
 
       {indexTabsHeader}
 
-      {/* Swipeable tab content */}
+      {/* Swipeable tab content.
+          PagerView must never receive null/undefined/false children —
+          accessing .props on them crashes the library.
+          We build a typed array and filter out null before rendering.
+          key={tabs.length} forces a full remount when the page count
+          changes so PagerView is always initialised with the right children. */}
       <PagerView
+        key={tabs.length}
         ref={pagerRef}
         style={styles.tabContent}
         initialPage={0}
         onPageSelected={handlePageSelected}
         overdrag={true}
       >
-        {/* Following tab - page 0 */}
-        <View key="following" style={styles.pageContainer}>
-          <FollowingFeedTab
-            flatListRef={followingListRef}
-            onScroll={handleFollowingScroll}
-            posts={posts}
-            isLoading={isLoading}
-            isRefreshing={isRefreshing}
-            isLoadingMore={isLoadingMore}
-            hasMore={hasMore}
-            isConnected={isConnected}
-            onRefresh={refresh}
-            onLoadMore={loadMore}
-            wordPopupVisible={wordPopup.visible}
-            wordPopupPostUri={wordPopup.postUri}
-            currentUserDid={user?.did}
-            onWordSelect={handleWordSelect}
-            onSentenceSelect={handleSentenceSelect}
-            onPostPress={handlePostPress}
-            onLikePress={handleLikePress}
-            onReplyPress={handleReplyPress}
-            onRepostPress={handleRepostPress}
-            onQuotePress={handleQuotePress}
-            onAvatarPress={handleAvatarPress}
-            onDeletePress={handleDeletePress}
-            onPostLayoutElements={handlePostLayoutElements}
-          />
-        </View>
+        {(
+          [
+            <View key="following" style={styles.pageContainer}>
+              <FollowingFeedTab
+                flatListRef={followingListRef}
+                onScroll={handleFollowingScroll}
+                posts={posts}
+                isLoading={isLoading}
+                isRefreshing={isRefreshing}
+                isLoadingMore={isLoadingMore}
+                hasMore={hasMore}
+                isConnected={isConnected}
+                onRefresh={refresh}
+                onLoadMore={loadMore}
+                wordPopupVisible={wordPopup.visible}
+                wordPopupPostUri={wordPopup.postUri}
+                currentUserDid={user?.did}
+                onWordSelect={handleWordSelect}
+                onSentenceSelect={handleSentenceSelect}
+                onPostPress={handlePostPress}
+                onLikePress={handleLikePress}
+                onReplyPress={handleReplyPress}
+                onRepostPress={handleRepostPress}
+                onQuotePress={handleQuotePress}
+                onAvatarPress={handleAvatarPress}
+                onDeletePress={handleDeletePress}
+                onPostLayoutElements={handlePostLayoutElements}
+              />
+            </View>,
 
-        {/* Profile tab - page 1 */}
-        <View key="profile" style={styles.pageContainer}>
-          <ProfileView
-            flatListRef={profileListRef}
-            onScroll={handleProfileScroll}
-            onReplyPress={handleReplyPress}
-            onRepostPress={handleRepostPress}
-            onQuotePress={handleQuotePress}
-          />
-        </View>
+            selectedFeedUri ? (
+              <View key="customFeed" style={styles.pageContainer}>
+                <CustomFeedTab
+                  feedUri={selectedFeedUri}
+                  flatListRef={customFeedListRef}
+                  onScroll={handleCustomFeedScroll}
+                  wordPopupVisible={wordPopup.visible}
+                  wordPopupPostUri={wordPopup.postUri}
+                  currentUserDid={user?.did}
+                  deletedUris={deletedUris}
+                  onWordSelect={handleWordSelect}
+                  onSentenceSelect={handleSentenceSelect}
+                  onPostPress={handlePostPress}
+                  onLikePress={handleLikePress}
+                  onReplyPress={handleReplyPress}
+                  onRepostPress={handleRepostPress}
+                  onQuotePress={handleQuotePress}
+                  onAvatarPress={handleAvatarPress}
+                  onDeletePress={handleDeletePress}
+                />
+              </View>
+            ) : null,
+
+            <View key="profile" style={styles.pageContainer}>
+              <ProfileView
+                flatListRef={profileListRef}
+                onScroll={handleProfileScroll}
+                onReplyPress={handleReplyPress}
+                onRepostPress={handleRepostPress}
+                onQuotePress={handleQuotePress}
+              />
+            </View>,
+          ] as (React.JSX.Element | null)[]
+        ).filter((page): page is React.JSX.Element => page !== null)}
       </PagerView>
 
       {/* Scroll-to-top FAB */}

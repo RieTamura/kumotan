@@ -998,6 +998,163 @@ export function getRemainingRequests(): number {
 }
 
 /**
+ * Feed generator info for custom feed selection
+ */
+export interface FeedInfo {
+  uri: string;
+  displayName: string;
+  description?: string;
+  avatarUrl?: string;
+}
+
+/**
+ * Fetch posts from a custom feed generator
+ */
+export async function getCustomFeed(
+  feedUri: string,
+  limit: number = PAGINATION.FEED_LIMIT,
+  cursor?: string
+): Promise<Result<{ posts: TimelinePost[]; cursor?: string }, AppError>> {
+  try {
+    const agent = getAgent();
+
+    if (!hasActiveSession()) {
+      const refreshResult = await refreshSession();
+      if (!refreshResult.success) {
+        return { success: false, error: refreshResult.error };
+      }
+    }
+
+    await rateLimiter.throttle();
+
+    const response = await agent.app.bsky.feed.getFeed({
+      feed: feedUri,
+      limit,
+      cursor,
+    });
+
+    const posts: TimelinePost[] = response.data.feed.map(mapPostItem);
+
+    const uniquePosts = posts.filter((post, index, self) =>
+      index === self.findIndex((p) => p.uri === post.uri)
+    );
+
+    if (__DEV__) {
+      console.log(`Fetched ${uniquePosts.length} posts from custom feed`);
+    }
+
+    return {
+      success: true,
+      data: {
+        posts: uniquePosts,
+        cursor: response.data.cursor,
+      },
+    };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to fetch custom feed:', error);
+    }
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (errorMessage.includes('ExpiredToken') || errorMessage.includes('401')) {
+      const refreshResult = await refreshSession();
+      if (refreshResult.success) {
+        return getCustomFeed(feedUri, limit, cursor);
+      }
+      return { success: false, error: refreshResult.error };
+    }
+
+    return {
+      success: false,
+      error: mapToAppError(error, 'カスタムフィードの取得'),
+    };
+  }
+}
+
+/**
+ * Fetch saved (pinned) feed generators from the user's Bluesky preferences
+ */
+export async function getSavedFeeds(): Promise<Result<FeedInfo[], AppError>> {
+  try {
+    const agent = getAgent();
+
+    if (!hasActiveSession()) {
+      const refreshResult = await refreshSession();
+      if (!refreshResult.success) {
+        return { success: false, error: refreshResult.error };
+      }
+    }
+
+    await rateLimiter.throttle();
+
+    const prefsResponse = await agent.app.bsky.actor.getPreferences();
+    const prefs = prefsResponse.data.preferences;
+
+    // Collect pinned feed URIs from both v1 and v2 preference formats
+    const pinnedUris = new Set<string>();
+    for (const pref of prefs) {
+      const p = pref as Record<string, unknown>;
+      if (p.$type === 'app.bsky.actor.defs#savedFeedsPref') {
+        for (const uri of (p.pinned as string[]) ?? []) {
+          if (typeof uri === 'string') pinnedUris.add(uri);
+        }
+      } else if (p.$type === 'app.bsky.actor.defs#savedFeedsPrefV2') {
+        for (const item of (p.items as Array<Record<string, unknown>>) ?? []) {
+          if (item.type === 'feed' && item.pinned && typeof item.value === 'string') {
+            pinnedUris.add(item.value as string);
+          }
+        }
+      }
+    }
+
+    // Keep only feed generator URIs (not lists or timelines)
+    const feedUris = Array.from(pinnedUris).filter((uri) =>
+      uri.includes('app.bsky.feed.generator')
+    );
+
+    if (feedUris.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    await rateLimiter.throttle();
+
+    const feedsResponse = await agent.app.bsky.feed.getFeedGenerators({ feeds: feedUris });
+    const feeds: FeedInfo[] = (feedsResponse.data.feeds as Array<Record<string, unknown>>).map((f) => ({
+      uri: f.uri as string,
+      displayName: (f.displayName as string | undefined) ?? (f.uri as string),
+      description: f.description as string | undefined,
+      avatarUrl: f.avatar as string | undefined,
+    }));
+
+    if (__DEV__) {
+      console.log(`Fetched ${feeds.length} saved feed generators`);
+    }
+
+    return { success: true, data: feeds };
+  } catch (error: unknown) {
+    if (__DEV__) {
+      console.error('Failed to fetch saved feeds:', error);
+    }
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (errorMessage.includes('ExpiredToken') || errorMessage.includes('401')) {
+      const refreshResult = await refreshSession();
+      if (refreshResult.success) {
+        return getSavedFeeds();
+      }
+      return { success: false, error: refreshResult.error };
+    }
+
+    return {
+      success: false,
+      error: mapToAppError(error, 'フィード一覧の取得'),
+    };
+  }
+}
+
+/**
  * Author feed filter type
  */
 export type AuthorFeedFilter =

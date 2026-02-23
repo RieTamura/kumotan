@@ -44,6 +44,7 @@ import { GithubIcon } from '../components/common/GithubIcon';
 import { useTutorial } from '../hooks/useTutorial';
 import { useTheme } from '../hooks/useTheme';
 import { useSettingsStore } from '../store/settingsStore';
+import { useCustomFeedSettings } from '../hooks/useCustomFeedSettings';
 
 /**
  * Settings item component props
@@ -153,6 +154,14 @@ export function SettingsScreen(): React.JSX.Element {
     translateDefinitionInEnglishSentence, setTranslateDefinitionInEnglishSentence,
   } = useSettingsStore();
 
+  const {
+    selectedFeedDisplayName,
+    savedFeeds,
+    isLoading: isLoadingFeeds,
+    selectFeed,
+    refreshSavedFeeds,
+  } = useCustomFeedSettings();
+
   /**
    * Check API key and dictionary status on mount and when screen gains focus
    */
@@ -185,10 +194,11 @@ export function SettingsScreen(): React.JSX.Element {
     const unsubscribe = navigation.addListener('focus', () => {
       checkApiKeys();
       checkDictionary();
+      refreshSavedFeeds();
     });
 
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, refreshSavedFeeds]);
 
   /**
    * Handle language change
@@ -484,6 +494,36 @@ export function SettingsScreen(): React.JSX.Element {
   }, [t, tc]);
 
   /**
+   * Handle custom feed selection
+   */
+  const handleCustomFeedPress = useCallback(() => {
+    if (isLoadingFeeds) {
+      Alert.alert(t('sections.feed'), t('feed.customFeedLoading'), [
+        { text: tc('buttons.ok') },
+      ]);
+      return;
+    }
+
+    const feedButtons = savedFeeds.map((feed) => ({
+      text: feed.displayName,
+      onPress: () => selectFeed(feed.uri, feed.displayName),
+    }));
+
+    Alert.alert(
+      t('feed.customFeedSelect'),
+      undefined,
+      [
+        ...feedButtons,
+        {
+          text: t('feed.customFeedNone'),
+          onPress: () => selectFeed(null, null),
+        },
+        { text: tc('buttons.cancel'), style: 'cancel' as const },
+      ]
+    );
+  }, [isLoadingFeeds, savedFeeds, selectFeed, t, tc]);
+
+  /**
    * Handle feedback modal
    */
   const openFeedback = useCallback((type: FeedbackType) => {
@@ -528,6 +568,16 @@ export function SettingsScreen(): React.JSX.Element {
                   : t('appearance.dark')
             }
             onPress={handleThemeChange}
+          />
+        </SettingsSection>
+
+        {/* Feed Section */}
+        <SettingsSection title={t('sections.feed')}>
+          <SettingsItem
+            title={t('feed.customFeed')}
+            subtitle={selectedFeedDisplayName ?? t('feed.customFeedNone')}
+            onPress={handleCustomFeedPress}
+            disabled={isLoadingFeeds}
           />
         </SettingsSection>
 
