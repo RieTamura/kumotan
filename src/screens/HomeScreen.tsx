@@ -6,10 +6,8 @@
 import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
-  RefreshControl,
   Pressable,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -23,19 +21,18 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
+import { Spacing, BorderRadius, Shadows } from '../constants/colors';
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useTutorial, TutorialStep } from '../hooks/useTutorial';
 import { useWordRegistration } from '../hooks/useWordRegistration';
-import { PostCard } from '../components/PostCard';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { Loading } from '../components/common/Loading';
-import { Button } from '../components/common/Button';
 import { WordPopup } from '../components/WordPopup';
 import { PostCreationModal } from '../components/PostCreationModal';
 import { TutorialTooltip } from '../components/Tutorial';
-import { IndexTabs, TabType } from '../components/IndexTabs';
+import { IndexTabs, TabConfig, AvatarTabIcon } from '../components/IndexTabs';
+import { FollowingFeedTab } from '../components/FollowingFeedTab';
 import { ProfileView } from '../components/ProfileView';
 import { TimelinePost } from '../types/bluesky';
 import { useAuthProfile, useAuthUser } from '../store/authStore';
@@ -47,7 +44,10 @@ import { ProfilePreviewModal } from '../components/ProfilePreviewModal';
 import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { useTheme } from '../hooks/useTheme';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Tab keys valid in HomeScreen
+type HomeTabKey = 'following' | 'profile';
 
 /**
  * HomeScreen Component
@@ -63,53 +63,74 @@ export function HomeScreen(): React.JSX.Element {
   const { setFollowing, setBlocking, userStates } = useSocialStore();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<TabType>('following');
+  const [activeTab, setActiveTab] = useState<HomeTabKey>('following');
   const pagerRef = useRef<PagerView>(null);
 
-  // Tab index mapping
-  const TAB_INDEX_MAP: Record<TabType, number> = { following: 0, profile: 1 };
-  const INDEX_TAB_MAP: TabType[] = ['following', 'profile'];
+  // Declarative tab configuration — add new tabs here in Phase 2
+  const tabs = useMemo((): TabConfig[] => [
+    { key: 'following', label: t('tabs.following') },
+    {
+      key: 'profile',
+      renderContent: (isActive: boolean) => (
+        <AvatarTabIcon
+          isActive={isActive}
+          uri={profile?.avatar}
+          activeColor={colors.indexTabTextActive}
+          inactiveColor={colors.indexTabText}
+        />
+      ),
+    },
+  ], [t, profile?.avatar, colors.indexTabTextActive, colors.indexTabText]);
 
-  // Scroll to top button state (declared early for use in tab change handlers)
-  const flatListRef = useRef<FlatList<TimelinePost>>(null);
-  const profileFlatListRef = useRef<FlatList<TimelinePost>>(null);
+  // Per-tab FlatList refs (add new refs when adding tabs in Phase 2)
+  const followingListRef = useRef<FlatList<TimelinePost> | null>(null);
+  const profileListRef = useRef<FlatList<TimelinePost> | null>(null);
+
+  const getListRef = useCallback(
+    (key: string): React.RefObject<FlatList<TimelinePost> | null> | null => {
+      const map: Record<string, React.RefObject<FlatList<TimelinePost> | null>> = {
+        following: followingListRef,
+        profile: profileListRef,
+      };
+      return map[key] ?? null;
+    },
+    []
+  );
+
+  // Per-tab scroll offset tracking (replaces individual followingScrollOffset / profileScrollOffset)
+  const scrollOffsets = useRef<Record<string, number>>({ following: 0, profile: 0 });
+
+  // Scroll-to-top FAB state
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const scrollToTopOpacity = useRef(new Animated.Value(0)).current;
-  const followingScrollOffset = useRef(0);
-  const profileScrollOffset = useRef(0);
   const SCROLL_THRESHOLD = 500;
 
   /**
-   * Handle tab change from IndexTabs
+   * Update scroll-to-top button visibility with animation
    */
-  const handleTabChange = useCallback((tab: TabType) => {
-    setActiveTab(tab);
-    pagerRef.current?.setPage(TAB_INDEX_MAP[tab]);
-    // Sync scroll-to-top button state for the new tab
-    const offset = tab === 'following'
-      ? followingScrollOffset.current
-      : profileScrollOffset.current;
-    const shouldShow = offset > SCROLL_THRESHOLD;
-    setShowScrollToTop(shouldShow);
-    Animated.timing(scrollToTopOpacity, {
-      toValue: shouldShow ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [scrollToTopOpacity, SCROLL_THRESHOLD]);
+  const updateScrollToTopVisibility = useCallback(
+    (shouldShow: boolean) => {
+      if (shouldShow !== showScrollToTop) {
+        setShowScrollToTop(shouldShow);
+        Animated.timing(scrollToTopOpacity, {
+          toValue: shouldShow ? 1 : 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+    [showScrollToTop, scrollToTopOpacity]
+  );
 
   /**
-   * Handle page change from swipe
+   * Handle tab change from IndexTabs (tap)
    */
-  const handlePageSelected = useCallback((event: PagerViewOnPageSelectedEvent) => {
-    const pageIndex = event.nativeEvent.position;
-    const tab = INDEX_TAB_MAP[pageIndex];
-    if (tab && tab !== activeTab) {
-      setActiveTab(tab);
-      // Sync scroll-to-top button state for the new tab
-      const offset = tab === 'following'
-        ? followingScrollOffset.current
-        : profileScrollOffset.current;
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      setActiveTab(tab as HomeTabKey);
+      const pageIndex = tabs.findIndex((t) => t.key === tab);
+      if (pageIndex >= 0) pagerRef.current?.setPage(pageIndex);
+      const offset = scrollOffsets.current[tab] ?? 0;
       const shouldShow = offset > SCROLL_THRESHOLD;
       setShowScrollToTop(shouldShow);
       Animated.timing(scrollToTopOpacity, {
@@ -117,8 +138,62 @@ export function HomeScreen(): React.JSX.Element {
         duration: 200,
         useNativeDriver: true,
       }).start();
-    }
-  }, [activeTab, scrollToTopOpacity, SCROLL_THRESHOLD]);
+    },
+    [tabs, scrollToTopOpacity, SCROLL_THRESHOLD]
+  );
+
+  /**
+   * Handle page change from swipe
+   */
+  const handlePageSelected = useCallback(
+    (event: PagerViewOnPageSelectedEvent) => {
+      const pageIndex = event.nativeEvent.position;
+      const tab = tabs[pageIndex]?.key;
+      if (tab && tab !== activeTab) {
+        setActiveTab(tab as HomeTabKey);
+        const offset = scrollOffsets.current[tab] ?? 0;
+        const shouldShow = offset > SCROLL_THRESHOLD;
+        setShowScrollToTop(shouldShow);
+        Animated.timing(scrollToTopOpacity, {
+          toValue: shouldShow ? 1 : 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+    [activeTab, tabs, scrollToTopOpacity, SCROLL_THRESHOLD]
+  );
+
+  /**
+   * Handle scroll event for Following tab
+   */
+  const handleFollowingScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      scrollOffsets.current.following = offsetY;
+      updateScrollToTopVisibility(offsetY > SCROLL_THRESHOLD);
+    },
+    [updateScrollToTopVisibility, SCROLL_THRESHOLD]
+  );
+
+  /**
+   * Handle scroll event for Profile tab
+   */
+  const handleProfileScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetY = event.nativeEvent.contentOffset.y;
+      scrollOffsets.current.profile = offsetY;
+      updateScrollToTopVisibility(offsetY > SCROLL_THRESHOLD);
+    },
+    [updateScrollToTopVisibility, SCROLL_THRESHOLD]
+  );
+
+  /**
+   * Scroll to top of the active tab's list
+   */
+  const scrollToTop = useCallback(() => {
+    getListRef(activeTab)?.current?.scrollToOffset({ offset: 0, animated: true });
+  }, [activeTab, getListRef]);
 
   const tipsRef = useRef<View>(null);
   const [tutorialPositions, setTutorialPositions] = useState<{
@@ -197,11 +272,9 @@ export function HomeScreen(): React.JSX.Element {
     isLoading,
     isRefreshing,
     isLoadingMore,
-    error,
     hasMore,
     refresh,
     loadMore,
-    clearError,
   } = useBlueskyFeed();
 
   // Network status
@@ -224,8 +297,7 @@ export function HomeScreen(): React.JSX.Element {
   // Deleted post URIs for immediate removal from feed
   const [deletedUris, setDeletedUris] = useState<Set<string>>(new Set());
 
-  // Filter out blocked users' posts and deleted posts immediately from the current feed.
-  // Unfollowed users' posts disappear on next refresh (no immediate removal).
+  // Filter out blocked users' posts and deleted posts from the current feed.
   const posts = useMemo(() => {
     const blockedDids = new Set(
       Object.entries(userStates)
@@ -258,67 +330,6 @@ export function HomeScreen(): React.JSX.Element {
   }>({ visible: false, author: null });
 
   /**
-   * Handle end reached for infinite scroll
-   */
-  const handleEndReached = useCallback(() => {
-    if (!isLoadingMore && hasMore && isConnected) {
-      loadMore();
-    }
-  }, [isLoadingMore, hasMore, isConnected, loadMore]);
-
-  /**
-   * Update scroll-to-top button visibility with animation
-   */
-  const updateScrollToTopVisibility = useCallback(
-    (shouldShow: boolean) => {
-      if (shouldShow !== showScrollToTop) {
-        setShowScrollToTop(shouldShow);
-        Animated.timing(scrollToTopOpacity, {
-          toValue: shouldShow ? 1 : 0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
-      }
-    },
-    [showScrollToTop, scrollToTopOpacity]
-  );
-
-  /**
-   * Handle scroll event for Following tab
-   */
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
-      followingScrollOffset.current = offsetY;
-      updateScrollToTopVisibility(offsetY > SCROLL_THRESHOLD);
-    },
-    [updateScrollToTopVisibility, SCROLL_THRESHOLD]
-  );
-
-  /**
-   * Handle scroll event for Profile tab
-   */
-  const handleProfileScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
-      profileScrollOffset.current = offsetY;
-      updateScrollToTopVisibility(offsetY > SCROLL_THRESHOLD);
-    },
-    [updateScrollToTopVisibility, SCROLL_THRESHOLD]
-  );
-
-  /**
-   * Scroll to top of the active tab's list
-   */
-  const scrollToTop = useCallback(() => {
-    if (activeTab === 'following') {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    } else {
-      profileFlatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    }
-  }, [activeTab]);
-
-  /**
    * Handle post press - navigate to thread
    */
   const handlePostPress = useCallback(
@@ -335,21 +346,15 @@ export function HomeScreen(): React.JSX.Element {
     async (post: TimelinePost, shouldLike: boolean) => {
       try {
         if (shouldLike) {
-          // Like the post
           const result = await likePost(post.uri, post.cid);
-          if (!result.success) {
-            if (__DEV__) {
-              console.error('Failed to like post:', result.error);
-            }
+          if (!result.success && __DEV__) {
+            console.error('Failed to like post:', result.error);
           }
         } else {
-          // Unlike the post
           if (post.viewer?.like) {
             const result = await unlikePost(post.viewer.like);
-            if (!result.success) {
-              if (__DEV__) {
-                console.error('Failed to unlike post:', result.error);
-              }
+            if (!result.success && __DEV__) {
+              console.error('Failed to unlike post:', result.error);
             }
           }
         }
@@ -409,7 +414,6 @@ export function HomeScreen(): React.JSX.Element {
    */
   const handleFollowPress = useCallback(
     async (did: string, shouldFollow: boolean, followUri?: string) => {
-      // Optimistic update first ('optimistic' is truthy → shows following state)
       setFollowing(did, shouldFollow ? 'optimistic' : null);
 
       try {
@@ -418,7 +422,6 @@ export function HomeScreen(): React.JSX.Element {
           if (result.success) {
             setFollowing(did, result.data.uri);
           } else {
-            // Revert
             setFollowing(did, followUri ?? null);
             if (__DEV__) {
               console.error('Failed to follow user:', result.error);
@@ -428,7 +431,6 @@ export function HomeScreen(): React.JSX.Element {
           if (!followUri) return;
           const result = await unfollowUser(followUri);
           if (!result.success) {
-            // Revert
             setFollowing(did, followUri);
             if (__DEV__) {
               console.error('Failed to unfollow user:', result.error);
@@ -447,14 +449,12 @@ export function HomeScreen(): React.JSX.Element {
 
   /**
    * Handle block/unblock press from PostCard avatar tap.
-   * Blocking shows ConfirmModal first. Unblocking is immediate with optimistic update.
    */
   const handleBlockPress = useCallback(
     (did: string, handle: string, shouldBlock: boolean, blockUri?: string) => {
       if (shouldBlock) {
         setBlockConfirm({ visible: true, did, handle, blockUri });
       } else {
-        // Unblock: optimistic update then API call
         setBlocking(did, null);
         if (blockUri) {
           unblockUser(blockUri).then((result) => {
@@ -478,7 +478,6 @@ export function HomeScreen(): React.JSX.Element {
     const { did, blockUri } = blockConfirm;
     setBlockConfirm((prev) => ({ ...prev, visible: false }));
 
-    // Optimistic update
     setBlocking(did, 'optimistic');
 
     try {
@@ -540,12 +539,10 @@ export function HomeScreen(): React.JSX.Element {
 
     setDeleteConfirm((prev) => ({ ...prev, visible: false }));
 
-    // Optimistic: remove from feed immediately
     setDeletedUris((prev) => new Set(prev).add(post.uri));
 
     const result = await deletePost(post.uri);
     if (!result.success) {
-      // Revert on failure
       setDeletedUris((prev) => {
         const next = new Set(prev);
         next.delete(post.uri);
@@ -574,11 +571,9 @@ export function HomeScreen(): React.JSX.Element {
    */
   const measureTips = useCallback(() => {
     if (tipsRef.current) {
-      // Small delay to ensure layout is stable
       setTimeout(() => {
         tipsRef.current?.measureInWindow((x, y, width, height) => {
           if (x !== 0 || y !== 0) {
-            // Shrink to fit the icon with small margin (remove button padding, keep slight breathing room)
             const inset = Spacing.sm;
             setTutorialPositions(prev => ({
               ...prev,
@@ -595,154 +590,49 @@ export function HomeScreen(): React.JSX.Element {
     }
   }, []);
 
-  // Measure tips button when tutorial becomes active
   useEffect(() => {
     if (isTutorialActive) {
       measureTips();
     }
   }, [isTutorialActive, measureTips]);
 
-  /**
-   * Render individual post item
-   */
-  const renderPost = useCallback(
-    ({ item, index }: { item: TimelinePost, index: number }) => {
-      // Only clear selection for the post that had a word selected
-      // and only when the popup is closed but postUri hasn't been reset yet
-      const shouldClearSelection = !wordPopup.visible && wordPopup.postUri === item.uri && wordPopup.postUri !== '';
-      return (
-        <PostCard
-          post={item}
-          onWordSelect={handleWordSelect}
-          onSentenceSelect={handleSentenceSelect}
-          onPostPress={handlePostPress}
-          onLikePress={handleLikePress}
-          onReplyPress={handleReplyPress}
-          onRepostPress={handleRepostPress}
-          onQuotePress={handleQuotePress}
-          onAvatarPress={handleAvatarPress}
-          onDeletePress={handleDeletePress}
-          currentUserDid={user?.did}
-          clearSelection={shouldClearSelection}
-          onLayoutElements={index === 0 ? handlePostLayoutElements : undefined}
+  // Shared IndexTabs / header props
+  const indexTabsHeader = (
+    <View style={[styles.header, {
+      backgroundColor: 'transparent',
+      borderBottomColor: colors.indexTabBorder,
+    }]}>
+      <View style={styles.headerTabsContainer}>
+        <IndexTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
         />
-      );
-    },
-    [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, handleDeletePress, user?.did, wordPopup.visible, wordPopup.postUri, handlePostLayoutElements]
+      </View>
+      <View style={styles.headerRight}>
+        <Pressable
+          ref={tipsRef}
+          onPress={() => navigation.navigate('Tips')}
+          style={({ pressed }) => [
+            styles.headerIconButton,
+            pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
+          ]}
+          accessible={true}
+          accessibilityLabel={t('tips')}
+          accessibilityHint={t('tipsHint')}
+          accessibilityRole="button"
+        >
+          <Lightbulb size={24} color={colors.primary} />
+        </Pressable>
+      </View>
+    </View>
   );
-
-  /**
-   * Extract key for FlatList
-   */
-  const keyExtractor = useCallback((item: TimelinePost) => item.uri, []);
-
-  /**
-   * Render list header
-   */
-  const renderHeader = useCallback(() => {
-    if (!isConnected) {
-      return null;
-    }
-    return null;
-  }, [isConnected]);
-
-  /**
-   * Render list footer (loading more indicator)
-   */
-  const renderFooter = useCallback(() => {
-    if (!isLoadingMore) return null;
-
-    return (
-      <View style={styles.footerLoader}>
-        <Loading size="small" message={t('loadingMore')} />
-      </View>
-    );
-  }, [isLoadingMore, t]);
-
-  /**
-   * Render empty state
-   */
-  const renderEmpty = useCallback(() => {
-    if (isLoading) return null;
-
-    if (error) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>⚠️</Text>
-          <Text style={styles.emptyTitle}>{t('error')}</Text>
-          <Text style={styles.emptyMessage}>{error.getUserMessage()}</Text>
-          <Button
-            title={t('retry')}
-            onPress={refresh}
-            variant="outline"
-            style={styles.retryButton}
-          />
-        </View>
-      );
-    }
-
-    if (!isConnected) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>☁️</Text>
-          <Text style={styles.emptyTitle}>{t('offline')}</Text>
-          <Text style={styles.emptyMessage}>
-            {t('offlineMessage')}
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>📭</Text>
-        <Text style={styles.emptyTitle}>{t('empty')}</Text>
-        <Text style={styles.emptyMessage}>
-          {t('emptyMessage')}
-        </Text>
-        <Button
-          title={t('refresh')}
-          onPress={refresh}
-          variant="outline"
-          style={styles.retryButton}
-        />
-      </View>
-    );
-  }, [isLoading, error, isConnected, refresh, t]);
-
 
   // Show loading state on initial load (only for Following tab)
   if (isLoading && posts.length === 0 && activeTab === 'following') {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={[styles.header, {
-          backgroundColor: 'transparent',
-          borderBottomColor: colors.indexTabBorder,
-        }]}>
-          <View style={styles.headerTabsContainer}>
-            <IndexTabs
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              avatarUri={profile?.avatar}
-            />
-          </View>
-          <View style={styles.headerRight}>
-            <Pressable
-              ref={tipsRef}
-              onPress={() => navigation.navigate('Tips')}
-              style={({ pressed }) => [
-                styles.headerIconButton,
-                pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
-              ]}
-              accessible={true}
-              accessibilityLabel={t('tips')}
-              accessibilityHint={t('tipsHint')}
-              accessibilityRole="button"
-            >
-              <Lightbulb size={24} color={colors.primary} />
-            </Pressable>
-          </View>
-        </View>
+        {indexTabsHeader}
         <Loading fullScreen message={t('loadingTimeline')} />
       </SafeAreaView>
     );
@@ -752,35 +642,7 @@ export function HomeScreen(): React.JSX.Element {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <OfflineBanner />
 
-      {/* Header with Index Tabs */}
-      <View style={[styles.header, {
-        backgroundColor: 'transparent',
-        borderBottomColor: colors.indexTabBorder,
-      }]}>
-        <View style={styles.headerTabsContainer}>
-          <IndexTabs
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            avatarUri={profile?.avatar}
-          />
-        </View>
-        <View style={styles.headerRight}>
-          <Pressable
-            ref={tipsRef}
-            onPress={() => navigation.navigate('Tips')}
-            style={({ pressed }) => [
-              styles.headerIconButton,
-              pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
-            ]}
-            accessible={true}
-            accessibilityLabel={t('tips')}
-            accessibilityHint={t('tipsHint')}
-            accessibilityRole="button"
-          >
-            <Lightbulb size={24} color={colors.primary} />
-          </Pressable>
-        </View>
-      </View>
+      {indexTabsHeader}
 
       {/* Swipeable tab content */}
       <PagerView
@@ -792,58 +654,37 @@ export function HomeScreen(): React.JSX.Element {
       >
         {/* Following tab - page 0 */}
         <View key="following" style={styles.pageContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={posts}
-            renderItem={renderPost}
-            keyExtractor={keyExtractor}
-            contentContainerStyle={styles.listContent}
-            ListHeaderComponent={renderHeader}
-            ListEmptyComponent={
-              !isLoading ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>{t('feed.empty')}</Text>
-                  <Button
-                    title={t('feed.retry')}
-                    onPress={refresh}
-                    variant="outline"
-                    size="small"
-                    style={{ marginTop: Spacing.md }}
-                  />
-                </View>
-              ) : null
-            }
-            ListFooterComponent={
-              isLoading && !isRefreshing ? (
-                <View style={styles.footerLoader}>
-                  <Loading size="small" />
-                </View>
-              ) : <View style={{ height: 100 }} />
-            }
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={refresh}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-                enabled={isConnected}
-              />
-            }
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.5}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            showsVerticalScrollIndicator={false}
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            windowSize={5}
+          <FollowingFeedTab
+            flatListRef={followingListRef}
+            onScroll={handleFollowingScroll}
+            posts={posts}
+            isLoading={isLoading}
+            isRefreshing={isRefreshing}
+            isLoadingMore={isLoadingMore}
+            hasMore={hasMore}
+            isConnected={isConnected}
+            onRefresh={refresh}
+            onLoadMore={loadMore}
+            wordPopupVisible={wordPopup.visible}
+            wordPopupPostUri={wordPopup.postUri}
+            currentUserDid={user?.did}
+            onWordSelect={handleWordSelect}
+            onSentenceSelect={handleSentenceSelect}
+            onPostPress={handlePostPress}
+            onLikePress={handleLikePress}
+            onReplyPress={handleReplyPress}
+            onRepostPress={handleRepostPress}
+            onQuotePress={handleQuotePress}
+            onAvatarPress={handleAvatarPress}
+            onDeletePress={handleDeletePress}
+            onPostLayoutElements={handlePostLayoutElements}
           />
         </View>
 
         {/* Profile tab - page 1 */}
         <View key="profile" style={styles.pageContainer}>
           <ProfileView
-            flatListRef={profileFlatListRef}
+            flatListRef={profileListRef}
             onScroll={handleProfileScroll}
             onReplyPress={handleReplyPress}
             onRepostPress={handleRepostPress}
@@ -852,7 +693,7 @@ export function HomeScreen(): React.JSX.Element {
         </View>
       </PagerView>
 
-      {/* Floating Action Buttons */}
+      {/* Scroll-to-top FAB */}
       {showScrollToTop && (
         <Pressable
           style={[styles.scrollToTopButton, styles.scrollToTopPressable, { backgroundColor: colors.backgroundTertiary }]}
@@ -864,6 +705,7 @@ export function HomeScreen(): React.JSX.Element {
         </Pressable>
       )}
 
+      {/* Post creation FAB */}
       <Pressable
         style={[styles.fab, { backgroundColor: colors.primary, ...Shadows.lg }]}
         onPress={() => setIsPostModalVisible(true)}
@@ -956,9 +798,9 @@ export function HomeScreen(): React.JSX.Element {
           visible={isTutorialActive}
           title={currentStepData.title}
           description={currentStepData.description}
-          tooltipPosition={{}} // Handled automatically
+          tooltipPosition={{}}
           highlightArea={currentStepData.targetPosition}
-          arrowDirection="up" // Handled automatically
+          arrowDirection="up"
           currentStep={currentStepIndex}
           totalSteps={totalSteps}
           onNext={nextStep}
@@ -976,7 +818,6 @@ export function HomeScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -984,12 +825,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingRight: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
     minHeight: 56,
-  },
-  headerLeft: {
-    flex: 1,
   },
   headerTabsContainer: {
     flex: 1,
@@ -1008,112 +844,6 @@ const styles = StyleSheet.create({
   },
   pageContainer: {
     flex: 1,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  headerSubtitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  tipsButton: {
-    padding: Spacing.sm,
-  },
-  listContent: {
-    flexGrow: 1,
-    paddingVertical: Spacing.sm,
-  },
-  footerLoader: {
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xxl,
-    marginTop: Spacing.xxl,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: Spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-  emptyMessage: {
-    fontSize: FontSizes.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  retryButton: {
-    marginTop: Spacing.lg,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: Colors.overlay,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
-    maxHeight: '80%',
-    ...Shadows.lg,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: Colors.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: Spacing.lg,
-  },
-  modalWord: {
-    fontSize: FontSizes.xxl,
-    fontWeight: '700',
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  modalSection: {
-    marginBottom: Spacing.lg,
-  },
-  modalSectionTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  modalSectionContent: {
-    fontSize: FontSizes.lg,
-    color: Colors.text,
-    lineHeight: 24,
-  },
-  modalApiNote: {
-    fontSize: FontSizes.sm,
-    color: Colors.textTertiary,
-    marginTop: Spacing.xs,
-    fontStyle: 'italic',
-  },
-  modalButtons: {
-    marginTop: Spacing.lg,
-  },
-  cancelButton: {
-    marginTop: Spacing.sm,
   },
   scrollToTopButton: {
     position: 'absolute',
@@ -1135,7 +865,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     ...Shadows.lg,

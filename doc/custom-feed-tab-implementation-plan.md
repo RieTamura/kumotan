@@ -356,11 +356,11 @@ const tabs: TabConfig[] = [
 
 ### Phase 1: リファクタリング
 
-- [ ] **[IndexTabs]** `TabConfig` 型を定義し、Props を汎用化
-- [ ] **[IndexTabs]** 幅・アニメーションの動的計算に変更
-- [ ] **[Component]** `FollowingFeedTab.tsx` を新規作成（HomeScreen からロジック移動）
-- [ ] **[HomeScreen]** `flatListRefs` をオブジェクト管理に変更
-- [ ] **[HomeScreen]** `tabs: TabConfig[]` の宣言的管理に変更
+- [x] **[IndexTabs]** `TabConfig` 型を定義し、Props を汎用化
+- [x] **[IndexTabs]** タブ数可変に対応（`tabs.map()` による動的レンダリング）
+- [x] **[Component]** `FollowingFeedTab.tsx` を新規作成（HomeScreenからFlatList描画ロジックを移動）
+- [x] **[HomeScreen]** `scrollOffsets` レコードでスクロールオフセットを管理
+- [x] **[HomeScreen]** `tabs: TabConfig[]` の宣言的管理、`getListRef()`でrefを汎用参照
 - [ ] **[Test]** 既存の Following・プロフィールタブが正常動作することを確認
 
 ### Phase 2: カスタムフィード実装

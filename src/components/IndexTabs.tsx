@@ -15,16 +15,24 @@ import Animated, {
   withSpring,
   interpolate,
 } from 'react-native-reanimated';
-import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
 
-export type TabType = 'following' | 'profile';
+/**
+ * Configuration for a single tab.
+ * - Text tabs: provide `label`
+ * - Icon tabs (e.g. avatar): provide `renderContent`
+ */
+export interface TabConfig {
+  key: string;
+  label?: string;
+  renderContent?: (isActive: boolean) => React.ReactNode;
+}
 
 interface IndexTabsProps {
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
-  avatarUri?: string;
+  tabs: TabConfig[];
+  activeTab: string;
+  onTabChange: (key: string) => void;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -35,6 +43,9 @@ const SPRING_CONFIG = {
   stiffness: 150,
   mass: 0.5,
 };
+
+const TAB_HEIGHT = 36;
+const TAB_HEIGHT_ACTIVE = 44;
 
 /**
  * Individual animated tab component
@@ -54,16 +65,13 @@ const AnimatedTab = memo(function AnimatedTab({
   children,
   style,
 }: AnimatedTabProps) {
-  // Animation values
   const scale = useSharedValue(1);
   const activeProgress = useSharedValue(isActive ? 1 : 0);
 
-  // Update active progress when isActive changes
   useEffect(() => {
     activeProgress.value = withSpring(isActive ? 1 : 0, SPRING_CONFIG);
   }, [isActive, activeProgress]);
 
-  // Press animation handlers
   const handlePressIn = useCallback(() => {
     scale.value = withSpring(0.95, SPRING_CONFIG);
   }, [scale]);
@@ -72,7 +80,6 @@ const AnimatedTab = memo(function AnimatedTab({
     scale.value = withSpring(1, SPRING_CONFIG);
   }, [scale]);
 
-  // Animated styles
   const animatedStyle = useAnimatedStyle(() => {
     const height = interpolate(
       activeProgress.value,
@@ -103,33 +110,106 @@ const AnimatedTab = memo(function AnimatedTab({
 });
 
 /**
- * IndexTabs - File index-style tab component with animations
+ * IndexTabs - File index-style tab component with animations.
+ * Accepts a dynamic list of tabs via TabConfig[].
  */
 export const IndexTabs = memo(function IndexTabs({
+  tabs,
   activeTab,
   onTabChange,
-  avatarUri,
 }: IndexTabsProps): React.JSX.Element {
-  const { t } = useTranslation('home');
   const { colors } = useTheme();
 
-  const isFollowingActive = activeTab === 'following';
-  const isProfileActive = activeTab === 'profile';
+  return (
+    <View style={styles.container}>
+      <View style={styles.tabRow}>
+        {tabs.map((tab, index) => {
+          const isActive = tab.key === activeTab;
+          const isLast = index === tabs.length - 1;
 
-  // Avatar size animation
-  const avatarScale = useSharedValue(isProfileActive ? 1 : 0);
+          return (
+            <AnimatedTab
+              key={tab.key}
+              isActive={isActive}
+              onPress={() => onTabChange(tab.key)}
+              accessibilityLabel={tab.label ?? tab.key}
+              style={[
+                styles.tab,
+                tab.renderContent ? styles.iconTab : styles.textTab,
+                !isLast && styles.tabWithMargin,
+                {
+                  backgroundColor: isActive
+                    ? colors.indexTabActive
+                    : colors.indexTabInactive,
+                  borderColor: colors.indexTabBorder,
+                  zIndex: isActive ? 2 : 1,
+                },
+              ]}
+            >
+              {tab.renderContent ? (
+                tab.renderContent(isActive)
+              ) : (
+                <Animated.Text
+                  style={[
+                    styles.tabText,
+                    {
+                      color: isActive
+                        ? colors.indexTabTextActive
+                        : colors.indexTabText,
+                    },
+                    isActive && styles.activeTabText,
+                  ]}
+                >
+                  {tab.label}
+                </Animated.Text>
+              )}
+            </AnimatedTab>
+          );
+        })}
+      </View>
+    </View>
+  );
+});
+
+/**
+ * AvatarTabIcon - Animated avatar for the profile tab.
+ * Pass as `renderContent` in TabConfig.
+ *
+ * @example
+ * { key: 'profile', renderContent: (isActive) => (
+ *   <AvatarTabIcon isActive={isActive} uri={profile?.avatar}
+ *     activeColor={colors.indexTabTextActive}
+ *     inactiveColor={colors.indexTabText} />
+ * )}
+ */
+const AVATAR_SIZE = 24;
+const AVATAR_SIZE_ACTIVE = 30;
+
+export interface AvatarTabIconProps {
+  isActive: boolean;
+  uri?: string;
+  activeColor: string;
+  inactiveColor: string;
+}
+
+export const AvatarTabIcon = memo(function AvatarTabIcon({
+  isActive,
+  uri,
+  activeColor,
+  inactiveColor,
+}: AvatarTabIconProps): React.JSX.Element {
+  const avatarScale = useSharedValue(isActive ? 1 : 0);
 
   useEffect(() => {
-    avatarScale.value = withSpring(isProfileActive ? 1 : 0, SPRING_CONFIG);
-  }, [isProfileActive, avatarScale]);
+    avatarScale.value = withSpring(isActive ? 1 : 0, SPRING_CONFIG);
+  }, [isActive, avatarScale]);
 
-  const avatarAnimatedStyle = useAnimatedStyle(() => {
+  const animatedStyle = useAnimatedStyle(() => {
     const size = interpolate(
       avatarScale.value,
       [0, 1],
       [AVATAR_SIZE, AVATAR_SIZE_ACTIVE]
     );
-
     return {
       width: size,
       height: size,
@@ -137,108 +217,29 @@ export const IndexTabs = memo(function IndexTabs({
     };
   });
 
-  const profileTabAnimatedStyle = useAnimatedStyle(() => {
-    const width = interpolate(
-      avatarScale.value,
-      [0, 1],
-      [TAB_HEIGHT + Spacing.sm * 2, TAB_HEIGHT_ACTIVE + Spacing.sm * 2]
+  if (uri) {
+    return (
+      <Animated.Image
+        source={{ uri }}
+        style={[
+          styles.avatar,
+          animatedStyle,
+          { borderColor: isActive ? activeColor : inactiveColor },
+        ]}
+      />
     );
-
-    return {
-      width,
-    };
-  });
+  }
 
   return (
-    <View style={styles.container}>
-      {/* Tab row */}
-      <View style={styles.tabRow}>
-        {/* Following tab */}
-        <AnimatedTab
-          isActive={isFollowingActive}
-          onPress={() => onTabChange('following')}
-          accessibilityLabel={t('tabs.following')}
-          style={[
-            styles.tab,
-            styles.followingTab,
-            {
-              backgroundColor: isFollowingActive
-                ? colors.indexTabActive
-                : colors.indexTabInactive,
-              borderColor: colors.indexTabBorder,
-              zIndex: isFollowingActive ? 2 : 1,
-            },
-          ]}
-        >
-          <Animated.Text
-            style={[
-              styles.tabText,
-              {
-                color: isFollowingActive
-                  ? colors.indexTabTextActive
-                  : colors.indexTabText,
-              },
-              isFollowingActive && styles.activeTabText,
-            ]}
-          >
-            {t('tabs.following')}
-          </Animated.Text>
-        </AnimatedTab>
-
-        {/* Profile tab (avatar) */}
-        <AnimatedTab
-          isActive={isProfileActive}
-          onPress={() => onTabChange('profile')}
-          accessibilityLabel={t('tabs.profile')}
-          style={[
-            styles.tab,
-            styles.profileTab,
-            profileTabAnimatedStyle,
-            {
-              backgroundColor: isProfileActive
-                ? colors.indexTabActive
-                : colors.indexTabInactive,
-              borderColor: colors.indexTabBorder,
-              zIndex: isProfileActive ? 2 : 1,
-            },
-          ]}
-        >
-          {avatarUri ? (
-            <Animated.Image
-              source={{ uri: avatarUri }}
-              style={[
-                styles.avatar,
-                avatarAnimatedStyle,
-                {
-                  borderColor: isProfileActive
-                    ? colors.indexTabTextActive
-                    : colors.indexTabText,
-                },
-              ]}
-            />
-          ) : (
-            <Animated.View
-              style={[
-                styles.avatarPlaceholder,
-                avatarAnimatedStyle,
-                {
-                  backgroundColor: isProfileActive
-                    ? colors.indexTabTextActive
-                    : colors.indexTabText,
-                },
-              ]}
-            />
-          )}
-        </AnimatedTab>
-      </View>
-    </View>
+    <Animated.View
+      style={[
+        styles.avatarPlaceholder,
+        animatedStyle,
+        { backgroundColor: isActive ? activeColor : inactiveColor },
+      ]}
+    />
   );
 });
-
-const TAB_HEIGHT = 36;
-const TAB_HEIGHT_ACTIVE = 44;
-const AVATAR_SIZE = 24;
-const AVATAR_SIZE_ACTIVE = 30;
 
 const styles = StyleSheet.create({
   container: {
@@ -250,7 +251,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   tab: {
-    paddingHorizontal: Spacing.lg,
     borderTopLeftRadius: BorderRadius.md,
     borderTopRightRadius: BorderRadius.md,
     borderWidth: 1,
@@ -258,11 +258,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  followingTab: {
-    marginRight: Spacing.xs,
+  textTab: {
+    paddingHorizontal: Spacing.lg,
   },
-  profileTab: {
+  iconTab: {
     paddingHorizontal: Spacing.sm,
+  },
+  tabWithMargin: {
+    marginRight: Spacing.xs,
   },
   tabText: {
     fontSize: FontSizes.md,
