@@ -9,6 +9,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Switch,
   Pressable,
   Alert,
   Linking,
