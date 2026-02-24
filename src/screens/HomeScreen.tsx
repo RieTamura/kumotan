@@ -27,6 +27,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useCustomFeedStore } from '../store/customFeedStore';
 import { useTabOrderStore, type HomeTabKey } from '../store/tabOrderStore';
 import { useTutorial, TutorialStep } from '../hooks/useTutorial';
+import { useTutorialTargetStore } from '../store/tutorialTargetStore';
 import { useWordRegistration } from '../hooks/useWordRegistration';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { Loading } from '../components/common/Loading';
@@ -47,7 +48,7 @@ import { ProfilePreviewModal } from '../components/ProfilePreviewModal';
 import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { useTheme } from '../hooks/useTheme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // HomeTabKey is defined in tabOrderStore and re-exported here for local use
 
@@ -231,13 +232,12 @@ export function HomeScreen(): React.JSX.Element {
     getListRef(activeTab)?.current?.scrollToOffset({ offset: 0, animated: true });
   }, [activeTab, getListRef]);
 
-  const tipsRef = useRef<View>(null);
   const [tutorialPositions, setTutorialPositions] = useState<{
-    tips?: { x: number; y: number; width: number; height: number };
     bookIcon?: { x: number; y: number; width: number; height: number };
     firstWord?: { x: number; y: number; width: number; height: number };
     contentColumn?: { x: number; y: number; width: number; height: number };
   }>({});
+  const { settingsTabPosition } = useTutorialTargetStore();
 
   // Tutorial steps configuration
   const tutorialSteps: TutorialStep[] = useMemo(() => [
@@ -269,27 +269,15 @@ export function HomeScreen(): React.JSX.Element {
       id: 'apiSetup',
       title: tt('steps.apiSetup.title'),
       description: tt('steps.apiSetup.description'),
-      targetPosition: tutorialPositions.bookIcon || {
-        x: SCREEN_WIDTH - 60,
-        y: insets.top + 340,
-        width: 44,
-        height: 44,
+      targetPosition: settingsTabPosition || {
+        x: SCREEN_WIDTH * 0.8,
+        y: SCREEN_HEIGHT - 60,
+        width: SCREEN_WIDTH * 0.2,
+        height: 60,
       },
-      arrowDirection: 'up',
+      arrowDirection: 'down',
     },
-    {
-      id: 'tips',
-      title: tt('steps.tips.title'),
-      description: tt('steps.tips.description'),
-      targetPosition: tutorialPositions.tips || {
-        x: SCREEN_WIDTH - 46,
-        y: insets.top + 14,
-        width: 24,
-        height: 24,
-      },
-      arrowDirection: 'up',
-    },
-  ], [tt, insets.top, tutorialPositions]);
+  ], [tt, insets.top, tutorialPositions, settingsTabPosition]);
 
   // Tutorial hook
   const {
@@ -601,36 +589,6 @@ export function HomeScreen(): React.JSX.Element {
       contentColumn: elements.contentColumn,
     }));
   }, []);
-
-  /**
-   * Measure tips button for tutorial
-   */
-  const measureTips = useCallback(() => {
-    if (tipsRef.current) {
-      setTimeout(() => {
-        tipsRef.current?.measureInWindow((x, y, width, height) => {
-          if (x !== 0 || y !== 0) {
-            const inset = Spacing.sm;
-            setTutorialPositions(prev => ({
-              ...prev,
-              tips: {
-                x: x + inset,
-                y: y + inset,
-                width: width - inset * 2,
-                height: height - inset * 2,
-              },
-            }));
-          }
-        });
-      }, 500);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isTutorialActive) {
-      measureTips();
-    }
-  }, [isTutorialActive, measureTips]);
 
   // When the custom feed is removed from settings, fall back to the Following tab
   useEffect(() => {

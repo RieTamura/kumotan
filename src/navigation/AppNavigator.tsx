@@ -15,6 +15,7 @@ import { Home, BookOpen, HelpCircle, BarChart3, Settings, ChevronLeft } from 'lu
 import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useTutorialTargetStore } from '../store/tutorialTargetStore';
 
 import { Colors } from '../constants/colors';
 import { useAuthStore } from '../store/authStore';
@@ -126,6 +127,19 @@ function CustomTabBar({ currentIndex, onTabPress }: CustomTabBarProps): React.JS
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('navigation');
   const { colors } = useTheme();
+  const settingsTabRef = useRef<View>(null);
+  const { setSettingsTabPosition } = useTutorialTargetStore();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      settingsTabRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
+        if (width > 0) {
+          setSettingsTabPosition({ x, y, width, height });
+        }
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [setSettingsTabPosition]);
 
   return (
     <View style={[
@@ -140,10 +154,12 @@ function CustomTabBar({ currentIndex, onTabPress }: CustomTabBarProps): React.JS
         const isActive = currentIndex === index;
         const color = isActive ? colors.tabActive : colors.tabInactive;
         const label = t(`tabs.${tab.labelKey}`);
+        const isSettings = tab.key === 'Settings';
 
         return (
           <TouchableOpacity
             key={tab.key}
+            ref={isSettings ? settingsTabRef : null}
             style={styles.tabItem}
             onPress={() => onTabPress(index)}
             activeOpacity={0.7}
