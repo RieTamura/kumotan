@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Lightbulb, ArrowUp, Plus } from 'lucide-react-native';
+import { ArrowUp, Plus } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -59,7 +59,7 @@ export function HomeScreen(): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('home');
   const { t: tt } = useTranslation('tutorial');
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const profile = useAuthProfile();
   const user = useAuthUser();
   const { setFollowing, setBlocking, userStates } = useSocialStore();
@@ -653,22 +653,7 @@ export function HomeScreen(): React.JSX.Element {
           onTabChange={handleTabChange}
         />
       </View>
-      <View style={styles.headerRight}>
-        <Pressable
-          ref={tipsRef}
-          onPress={() => navigation.navigate('Tips')}
-          style={({ pressed }) => [
-            styles.headerIconButton,
-            pressed && { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' }
-          ]}
-          accessible={true}
-          accessibilityLabel={t('tips')}
-          accessibilityHint={t('tipsHint')}
-          accessibilityRole="button"
-        >
-          <Lightbulb size={24} color={colors.primary} />
-        </Pressable>
-      </View>
+      <View style={styles.headerRight} />
     </View>
   );
 
