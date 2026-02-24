@@ -154,6 +154,10 @@
     "system": "Follow System Settings",
     "selectTheme": "Select Theme"
   },
+  "haptic": {
+    "title": "Vibrate on Like",
+    "subtitle": "Vibrate when tapping the like button"
+  },
   "moderation": {
     "title": "Moderation Settings",
     "subtitle": "Configure in the Bluesky app"

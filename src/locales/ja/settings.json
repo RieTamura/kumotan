@@ -154,6 +154,10 @@
     "system": "システム設定に従う",
     "selectTheme": "テーマを選択"
   },
+  "haptic": {
+    "title": "いいね時の振動",
+    "subtitle": "いいねボタンを押したときに振動する"
+  },
   "moderation": {
     "title": "モデレーション設定",
     "subtitle": "Bluesky公式アプリで設定"

@@ -10,6 +10,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  Switch,
   Alert,
   Linking,
   Image,
@@ -38,6 +39,7 @@ import { useTutorial } from '../hooks/useTutorial';
 import { useTheme } from '../hooks/useTheme';
 import { useCustomFeedSettings } from '../hooks/useCustomFeedSettings';
 import { useTabOrderStore } from '../store/tabOrderStore';
+import { useSettingsStore } from '../store/settingsStore';
 
 /**
  * Settings item component props
@@ -144,6 +146,7 @@ export function SettingsScreen(): React.JSX.Element {
   } = useCustomFeedSettings();
 
   const { tabOrder, moveTab } = useTabOrderStore();
+  const { hapticFeedbackEnabled, setHapticFeedbackEnabled } = useSettingsStore();
 
   /**
    * Check dictionary status on mount and when screen gains focus
@@ -384,6 +387,22 @@ export function SettingsScreen(): React.JSX.Element {
             }
             onPress={handleThemeChange}
           />
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider, borderBottomWidth: 0 }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
+                {t('haptic.title')}
+              </Text>
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+                {t('haptic.subtitle')}
+              </Text>
+            </View>
+            <Switch
+              value={hapticFeedbackEnabled}
+              onValueChange={setHapticFeedbackEnabled}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.card}
+            />
+          </View>
         </SettingsSection>
 
         {/* Feed Section */}

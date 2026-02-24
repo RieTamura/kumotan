@@ -25,6 +25,7 @@ import { formatRelativeTime } from '../services/bluesky/feed';
 import { splitIntoSentences } from '../utils/validators';
 import { tokenizeJapanese, isMeaningfulToken } from '../utils/japaneseTokenizer';
 import { useTheme } from '../hooks/useTheme';
+import { useSettingsStore } from '../store/settingsStore';
 
 /**
  * PostCard props interface
@@ -496,6 +497,7 @@ function PostCardComponent({
 }: PostCardProps): React.JSX.Element {
   const { t, i18n } = useTranslation(['home', 'common']);
   const { colors, isDark } = useTheme();
+  const hapticFeedbackEnabled = useSettingsStore((s) => s.hapticFeedbackEnabled);
   const bookIconRef = React.useRef<View>(null);
   const postTextContainerRef = React.useRef<View>(null);
   const firstWordTextRef = React.useRef<string>('');
@@ -790,10 +792,12 @@ function PostCardComponent({
     if (isLikeLoading || !onLikePress) return;
 
     // Haptic feedback
-    if (!isLiked) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (hapticFeedbackEnabled) {
+      if (!isLiked) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
     }
 
     // Optimistic update
@@ -807,7 +811,7 @@ function PostCardComponent({
 
     // Reset loading state after a short delay
     setTimeout(() => setIsLikeLoading(false), 500);
-  }, [isLiked, isLikeLoading, onLikePress, post]);
+  }, [hapticFeedbackEnabled, isLiked, isLikeLoading, onLikePress, post]);
 
   /**
    * Handle reply button press

@@ -22,6 +22,8 @@ interface SettingsState {
   setTranslateSentenceToEnglish: (value: boolean) => void;
   translateDefinitionInEnglishSentence: boolean;
   setTranslateDefinitionInEnglishSentence: (value: boolean) => void;
+  hapticFeedbackEnabled: boolean;
+  setHapticFeedbackEnabled: (value: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -33,6 +35,8 @@ export const useSettingsStore = create<SettingsState>()(
       setTranslateSentenceToEnglish: (value) => set({ translateSentenceToEnglish: value }),
       translateDefinitionInEnglishSentence: true,
       setTranslateDefinitionInEnglishSentence: (value) => set({ translateDefinitionInEnglishSentence: value }),
+      hapticFeedbackEnabled: true,
+      setHapticFeedbackEnabled: (value) => set({ hapticFeedbackEnabled: value }),
     }),
     {
       name: 'settings-storage',
