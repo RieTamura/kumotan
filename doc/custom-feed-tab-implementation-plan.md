@@ -331,7 +331,132 @@ const tabs: TabConfig[] = [
 
 ---
 
-## 7. 考慮事項
+## 7. Phase 3: タブ UI 改善とタブ並び替え機能
+
+### 7.1. カスタムフィードタブへの × ボタン追加
+
+**ファイル**: `src/components/IndexTabs.tsx`, `src/screens/HomeScreen.tsx`
+
+カスタムフィードタブの右端に × ボタンを表示し、タップでフィード選択を解除（タブを非表示に）できるようにする。
+
+#### TabConfig の拡張
+
+```typescript
+export interface TabConfig {
+  key: string;
+  label?: string;
+  renderContent?: (isActive: boolean) => React.ReactNode;
+  /** 提供された場合、タブ内に × ボタンを表示しタップ時に呼び出す */
+  onRemove?: () => void;
+  rowBreak?: boolean;
+}
+```
+
+#### HomeScreen での設定
+
+```typescript
+const customFeedTab: TabConfig = {
+  key: 'customFeed',
+  label: selectedFeedDisplayName,
+  onRemove: () => selectFeed(null, null), // フィード選択を解除
+};
+```
+
+---
+
+### 7.2. フォルダタブ風の重なりスタイル（階段状タブ）
+
+**ファイル**: `src/components/IndexTabs.tsx`
+
+タブが左側ほど前面に重なるフォルダインデックス風のビジュアルを実現する。
+
+#### 実装詳細
+
+- **margin**: 各タブに `marginRight: -10` を付与し、右タブが左タブに潜り込む
+- **z-index**: 非アクティブタブは `tabs.length - globalIndex`（左ほど大きい値 = 前面）
+- **アクティブタブ**: `tabs.length + 2` で常に最前面
+- **高さ**: アクティブ時 `TAB_HEIGHT_ACTIVE = 44px`、非アクティブ時 `TAB_HEIGHT = 36px`（2段階）
+
+```typescript
+// zIndex 計算
+zIndex: isActive ? tabs.length + 2 : tabs.length - globalIndex
+
+// marginRight（最後のタブ以外に適用）
+tabWithMargin: { marginRight: -10 }
+```
+
+---
+
+### 7.3. 設定画面でのタブ並び替え機能
+
+**新規ファイル**: `src/store/tabOrderStore.ts`
+
+**変更ファイル**: `src/screens/HomeScreen.tsx`, `src/screens/SettingsScreen.tsx`
+
+ユーザーがホーム画面のタブ順（Following / カスタムフィード / プロフィール）を設定画面で変更できるようにする。
+
+#### tabOrderStore.ts
+
+```typescript
+export type HomeTabKey = 'following' | 'customFeed' | 'profile';
+export const DEFAULT_TAB_ORDER: HomeTabKey[] = ['following', 'customFeed', 'profile'];
+
+interface TabOrderState {
+  tabOrder: HomeTabKey[];
+  moveTab: (fromIndex: number, toIndex: number) => void;
+}
+
+export const useTabOrderStore = create<TabOrderState>()(
+  persist(/* Zustand + AsyncStorage */)
+);
+```
+
+#### HomeScreen での tabOrder 活用
+
+```typescript
+const { tabOrder } = useTabOrderStore();
+
+const tabs = useMemo(() => {
+  const allTabs: Partial<Record<HomeTabKey, TabConfig>> = { /* ... */ };
+  return tabOrder
+    .map(key => allTabs[key])
+    .filter((t): t is TabConfig => t !== undefined);
+}, [tabOrder, /* ... */]);
+
+// タブ順変化時に PagerView を再マウント
+<PagerView key={tabs.map(t => t.key).join('-')} ... >
+```
+
+#### 設定画面の UI（↑↓ アイコンボタン）
+
+```
+────────────────────────────
+タブの並び替え
+────────────────────────────
+Following             [↑] [↓]
+Now Playing           [↑] [↓]
+プロフィール          [↑] [↓]
+────────────────────────────
+```
+
+- ↑↓ボタンは32×32pxの角丸ボーダーボックス内に `ChevronUp` / `ChevronDown` アイコン（lucide-react-native）
+- 先頭の↑ボタン・末尾の↓ボタンは無効化（opacity: 0.3）
+- customFeedタブはフィード未設定時も並び替え対象（表示位置のみ制御）
+
+---
+
+### Phase 3 実装上の決定事項
+
+| 項目 | 決定内容 |
+| --- | --- |
+| タブ型定義の共有 | `HomeTabKey` を `tabOrderStore.ts` に移動し、HomeScreen と SettingsScreen が共通 import |
+| PagerView 再マウント | `key={tabs.length}` → `key={tabs.map(t => t.key).join('-')}` に変更（順序変化も検知） |
+| 並び替え UI の選定 | ドラッグ方式（実装コスト高・保守性低）を却下し、↑↓ ボタン方式（Option B）を採用 |
+| フィード未設定時の customFeed 行 | 設定画面の並び替えリストには常に表示。フィード未設定の場合は「表示しない」として説明 |
+
+---
+
+## 8. 考慮事項
 
 ### フィード URI の不整合
 
@@ -385,3 +510,15 @@ const tabs: TabConfig[] = [
 | PagerView children | `{condition && <View>}` は `null` を渡してクラッシュするため、array + `.filter(null)` + `key={tabs.length}` の組み合わせで解決 |
 | タブ数変化時の挙動 | `key={tabs.length}` により PagerView を強制 remount。フィード追加・削除時はページ 0（Following）に戻る |
 | フィード削除時のフォールバック | `selectedFeedUri` が null になったとき `activeTab === 'customFeed'` であれば `useEffect` で自動的に Following タブへリセット |
+
+### Phase 3: タブ UI 改善とタブ並び替え機能
+
+- [x] **[IndexTabs]** `TabConfig` に `onRemove` を追加し、カスタムフィードタブに × ボタンを表示
+- [x] **[IndexTabs]** `TabConfig` に `rowBreak` を追加（将来の2行レイアウト用、現在は未使用）
+- [x] **[IndexTabs]** タブ重なり（staircase）スタイル：`marginRight: -10` + 左優先z-index
+- [x] **[HomeScreen]** `onRemove: () => selectFeed(null, null)` でフィード選択解除
+- [x] **[HomeScreen]** `PagerView key` を `tabs.map(t => t.key).join('-')` に変更（順序変化も検知）
+- [x] **[Store]** `tabOrderStore.ts` を新規作成（`HomeTabKey` 型・`tabOrder`・`moveTab`）
+- [x] **[HomeScreen]** `tabOrder` に基づき `tabs` を動的に並び替え
+- [x] **[Settings]** タブ並び替えUIを追加（↑↓ アイコンボタン、32×32pxボーダーボックス）
+- [x] **[i18n]** `tabOrder`, `tabFollowing`, `tabProfile`, `tabMoveUp`, `tabMoveDown` キーを追加

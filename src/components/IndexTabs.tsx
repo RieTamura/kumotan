@@ -15,6 +15,7 @@ import Animated, {
   withSpring,
   interpolate,
 } from 'react-native-reanimated';
+import { X } from 'lucide-react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
 
@@ -27,6 +28,10 @@ export interface TabConfig {
   key: string;
   label?: string;
   renderContent?: (isActive: boolean) => React.ReactNode;
+  /** When provided, renders an × button inside the tab that calls this on press. */
+  onRemove?: () => void;
+  /** If true, subsequent tabs are rendered on a second row below this tab. */
+  rowBreak?: boolean;
 }
 
 interface IndexTabsProps {
@@ -120,53 +125,82 @@ export const IndexTabs = memo(function IndexTabs({
 }: IndexTabsProps): React.JSX.Element {
   const { colors } = useTheme();
 
+  // Split tabs into row 1 (up to and including the rowBreak tab) and row 2 (the rest).
+  const rowBreakIdx = tabs.findIndex(t => t.rowBreak);
+  const row1 = rowBreakIdx >= 0 ? tabs.slice(0, rowBreakIdx + 1) : tabs;
+  const row2 = rowBreakIdx >= 0 ? tabs.slice(rowBreakIdx + 1) : [];
+
+  const renderTabItem = (tab: TabConfig, globalIndex: number, isLastInRow: boolean) => {
+    const isActive = tab.key === activeTab;
+    const tabTextColor = isActive ? colors.indexTabTextActive : colors.indexTabText;
+
+    return (
+      <AnimatedTab
+        key={tab.key}
+        isActive={isActive}
+        onPress={() => onTabChange(tab.key)}
+        accessibilityLabel={tab.label ?? tab.key}
+        style={[
+          styles.tab,
+          tab.renderContent ? styles.iconTab : styles.textTab,
+          !isLastInRow && styles.tabWithMargin,
+          {
+            backgroundColor: isActive
+              ? colors.indexTabActive
+              : colors.indexTabInactive,
+            borderColor: colors.indexTabBorder,
+            zIndex: isActive ? tabs.length + 2 : tabs.length - globalIndex,
+          },
+        ]}
+      >
+        {tab.renderContent ? (
+          tab.renderContent(isActive)
+        ) : tab.onRemove ? (
+          <View style={styles.tabWithRemove}>
+            <Animated.Text
+              style={[
+                styles.tabText,
+                { color: tabTextColor },
+                isActive && styles.activeTabText,
+              ]}
+            >
+              {tab.label}
+            </Animated.Text>
+            <Pressable
+              onPress={tab.onRemove}
+              hitSlop={4}
+              style={styles.removeButton}
+              accessibilityRole="button"
+              accessibilityLabel="remove tab"
+            >
+              <X size={12} color={tabTextColor} />
+            </Pressable>
+          </View>
+        ) : (
+          <Animated.Text
+            style={[
+              styles.tabText,
+              { color: tabTextColor },
+              isActive && styles.activeTabText,
+            ]}
+          >
+            {tab.label}
+          </Animated.Text>
+        )}
+      </AnimatedTab>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.tabRow}>
-        {tabs.map((tab, index) => {
-          const isActive = tab.key === activeTab;
-          const isLast = index === tabs.length - 1;
-
-          return (
-            <AnimatedTab
-              key={tab.key}
-              isActive={isActive}
-              onPress={() => onTabChange(tab.key)}
-              accessibilityLabel={tab.label ?? tab.key}
-              style={[
-                styles.tab,
-                tab.renderContent ? styles.iconTab : styles.textTab,
-                !isLast && styles.tabWithMargin,
-                {
-                  backgroundColor: isActive
-                    ? colors.indexTabActive
-                    : colors.indexTabInactive,
-                  borderColor: colors.indexTabBorder,
-                  zIndex: isActive ? 2 : 1,
-                },
-              ]}
-            >
-              {tab.renderContent ? (
-                tab.renderContent(isActive)
-              ) : (
-                <Animated.Text
-                  style={[
-                    styles.tabText,
-                    {
-                      color: isActive
-                        ? colors.indexTabTextActive
-                        : colors.indexTabText,
-                    },
-                    isActive && styles.activeTabText,
-                  ]}
-                >
-                  {tab.label}
-                </Animated.Text>
-              )}
-            </AnimatedTab>
-          );
-        })}
+        {row1.map((tab, i) => renderTabItem(tab, i, i === row1.length - 1))}
       </View>
+      {row2.length > 0 && (
+        <View style={styles.tabRow}>
+          {row2.map((tab, i) => renderTabItem(tab, row1.length + i, i === row2.length - 1))}
+        </View>
+      )}
     </View>
   );
 });
@@ -265,7 +299,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
   tabWithMargin: {
-    marginRight: Spacing.xs,
+    marginRight: -10,
+  },
+  tabWithRemove: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  removeButton: {
+    marginLeft: Spacing.xs,
+    padding: 2,
   },
   tabText: {
     fontSize: FontSizes.md,

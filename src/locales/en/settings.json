@@ -15,7 +15,12 @@
     "customFeed": "Custom Feed",
     "customFeedNone": "None",
     "customFeedSelect": "Select Custom Feed",
-    "customFeedLoading": "Loading feeds..."
+    "customFeedLoading": "Loading feeds...",
+    "tabOrder": "Tab Order",
+    "tabFollowing": "Following",
+    "tabProfile": "Profile",
+    "tabMoveUp": "Move up",
+    "tabMoveDown": "Move down"
   },
   "translation": {
     "translateDefinition": "Translate definition to Japanese",

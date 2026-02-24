@@ -25,6 +25,7 @@ import { Spacing, BorderRadius, Shadows } from '../constants/colors';
 import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useCustomFeedStore } from '../store/customFeedStore';
+import { useTabOrderStore, type HomeTabKey } from '../store/tabOrderStore';
 import { useTutorial, TutorialStep } from '../hooks/useTutorial';
 import { useWordRegistration } from '../hooks/useWordRegistration';
 import { OfflineBanner } from '../components/OfflineBanner';
@@ -48,8 +49,7 @@ import { useTheme } from '../hooks/useTheme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Tab keys valid in HomeScreen
-type HomeTabKey = 'following' | 'customFeed' | 'profile';
+// HomeTabKey is defined in tabOrderStore and re-exported here for local use
 
 /**
  * HomeScreen Component
@@ -69,29 +69,40 @@ export function HomeScreen(): React.JSX.Element {
   const pagerRef = useRef<PagerView>(null);
 
   // Custom feed selection (persisted via Zustand)
-  const { selectedFeedUri, selectedFeedDisplayName } = useCustomFeedStore();
+  const { selectedFeedUri, selectedFeedDisplayName, selectFeed } = useCustomFeedStore();
 
-  // Declarative tab configuration — custom feed tab appears when a feed is selected
+  // Tab order (persisted via Zustand)
+  const { tabOrder } = useTabOrderStore();
+
+  // Declarative tab configuration — ordered by tabOrder, customFeed only shown when selected
   const tabs = useMemo((): TabConfig[] => {
-    const base: TabConfig[] = [
-      { key: 'following', label: t('tabs.following') },
-    ];
-    if (selectedFeedUri && selectedFeedDisplayName) {
-      base.push({ key: 'customFeed', label: selectedFeedDisplayName });
-    }
-    base.push({
-      key: 'profile',
-      renderContent: (isActive: boolean) => (
-        <AvatarTabIcon
-          isActive={isActive}
-          uri={profile?.avatar}
-          activeColor={colors.indexTabTextActive}
-          inactiveColor={colors.indexTabText}
-        />
-      ),
-    });
-    return base;
-  }, [t, selectedFeedUri, selectedFeedDisplayName, profile?.avatar, colors.indexTabTextActive, colors.indexTabText]);
+    const allTabs: Partial<Record<HomeTabKey, TabConfig>> = {
+      following: { key: 'following', label: t('tabs.following') },
+      ...(selectedFeedUri && selectedFeedDisplayName
+        ? {
+            customFeed: {
+              key: 'customFeed',
+              label: selectedFeedDisplayName,
+              onRemove: () => selectFeed(null, null),
+            },
+          }
+        : {}),
+      profile: {
+        key: 'profile',
+        renderContent: (isActive: boolean) => (
+          <AvatarTabIcon
+            isActive={isActive}
+            uri={profile?.avatar}
+            activeColor={colors.indexTabTextActive}
+            inactiveColor={colors.indexTabText}
+          />
+        ),
+      },
+    };
+    return tabOrder
+      .map(key => allTabs[key])
+      .filter((tab): tab is TabConfig => tab !== undefined);
+  }, [tabOrder, t, selectedFeedUri, selectedFeedDisplayName, selectFeed, profile?.avatar, colors.indexTabTextActive, colors.indexTabText]);
 
   // Per-tab FlatList refs
   const followingListRef = useRef<FlatList<TimelinePost> | null>(null);
@@ -681,10 +692,10 @@ export function HomeScreen(): React.JSX.Element {
           PagerView must never receive null/undefined/false children —
           accessing .props on them crashes the library.
           We build a typed array and filter out null before rendering.
-          key={tabs.length} forces a full remount when the page count
+          key={tabsKey} forces a full remount when the page count or order
           changes so PagerView is always initialised with the right children. */}
       <PagerView
-        key={tabs.length}
+        key={tabs.map(t => t.key).join('-')}
         ref={pagerRef}
         style={styles.tabContent}
         initialPage={0}

@@ -41,10 +41,12 @@ import { changeLanguage, getCurrentLanguage, type Language } from '../locales';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { FeedbackModal, type FeedbackType } from '../components/FeedbackModal';
 import { GithubIcon } from '../components/common/GithubIcon';
+import { ChevronUp, ChevronDown } from 'lucide-react-native';
 import { useTutorial } from '../hooks/useTutorial';
 import { useTheme } from '../hooks/useTheme';
 import { useSettingsStore } from '../store/settingsStore';
 import { useCustomFeedSettings } from '../hooks/useCustomFeedSettings';
+import { useTabOrderStore } from '../store/tabOrderStore';
 
 /**
  * Settings item component props
@@ -161,6 +163,8 @@ export function SettingsScreen(): React.JSX.Element {
     selectFeed,
     refreshSavedFeeds,
   } = useCustomFeedSettings();
+
+  const { tabOrder, moveTab } = useTabOrderStore();
 
   /**
    * Check API key and dictionary status on mount and when screen gains focus
@@ -579,6 +583,60 @@ export function SettingsScreen(): React.JSX.Element {
             onPress={handleCustomFeedPress}
             disabled={isLoadingFeeds}
           />
+          {/* Tab order */}
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider, borderBottomWidth: 0 }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
+                {t('feed.tabOrder')}
+              </Text>
+            </View>
+          </View>
+          {tabOrder.map((key, index) => {
+            const label =
+              key === 'following'
+                ? t('feed.tabFollowing')
+                : key === 'profile'
+                  ? t('feed.tabProfile')
+                  : (selectedFeedDisplayName ?? t('feed.customFeedNone'));
+            return (
+              <View
+                key={key}
+                style={[styles.settingsItem, { borderBottomColor: colors.divider }]}
+              >
+                <View style={styles.settingsItemContent}>
+                  <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
+                    {label}
+                  </Text>
+                </View>
+                <View style={styles.tabOrderButtons}>
+                  <Pressable
+                    onPress={() => moveTab(index, index - 1)}
+                    disabled={index === 0}
+                    style={[
+                      styles.tabOrderButton,
+                      { borderColor: index === 0 ? colors.disabled : colors.border },
+                      index === 0 && styles.tabOrderButtonDisabled,
+                    ]}
+                    accessibilityLabel={t('feed.tabMoveUp')}
+                  >
+                    <ChevronUp size={16} color={index === 0 ? colors.disabled : colors.text} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => moveTab(index, index + 1)}
+                    disabled={index === tabOrder.length - 1}
+                    style={[
+                      styles.tabOrderButton,
+                      { borderColor: index === tabOrder.length - 1 ? colors.disabled : colors.border },
+                      index === tabOrder.length - 1 && styles.tabOrderButtonDisabled,
+                    ]}
+                    accessibilityLabel={t('feed.tabMoveDown')}
+                  >
+                    <ChevronDown size={16} color={index === tabOrder.length - 1 ? colors.disabled : colors.text} />
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })}
         </SettingsSection>
 
         {/* API & Translation Section */}
@@ -936,6 +994,21 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  tabOrderButtons: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  tabOrderButton: {
+    width: 32,
+    height: 32,
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabOrderButtonDisabled: {
+    opacity: 0.35,
   },
   settingsItemArrow: {
     fontSize: FontSizes.xxl,
