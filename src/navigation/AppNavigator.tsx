@@ -38,6 +38,8 @@ import { QuizResultScreen } from '../screens/QuizResultScreen';
 import { QuizSettings, QuizResult } from '../types/quiz';
 import { LegalDocumentScreen } from '../screens/LegalDocumentScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
+import { ApiTranslationSettingsScreen } from '../screens/ApiTranslationSettingsScreen';
+import { DataManagementScreen } from '../screens/DataManagementScreen';
 
 /**
  * Stack Navigator Types
@@ -57,6 +59,8 @@ export type RootStackParamList = {
   Quiz: { settings: QuizSettings };
   QuizResult: { result: QuizResult };
   NotificationSettings: undefined;
+  ApiTranslationSettings: undefined;
+  DataManagement: undefined;
 };
 
 /**
@@ -366,6 +370,30 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.notificationSettings'),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
+            }}
+          />
+          <Stack.Screen
+            name="ApiTranslationSettings"
+            component={ApiTranslationSettingsScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.apiTranslationSettings'),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
+            }}
+          />
+          <Stack.Screen
+            name="DataManagement"
+            component={DataManagementScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.dataManagement'),
               headerTintColor: colors.primary,
               headerStyle: { backgroundColor: colors.background },
               headerTitleStyle: { color: colors.text },

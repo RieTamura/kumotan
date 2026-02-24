@@ -17,6 +17,8 @@
     "quizResult": "クイズ結果",
     "termsOfService": "利用規約",
     "privacyPolicy": "プライバシーポリシー",
-    "notificationSettings": "通知設定"
+    "notificationSettings": "通知設定",
+    "apiTranslationSettings": "API・翻訳",
+    "dataManagement": "データ管理"
   }
 }

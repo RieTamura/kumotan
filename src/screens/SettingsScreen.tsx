@@ -9,12 +9,10 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Switch,
   Pressable,
   Alert,
   Linking,
   Image,
-  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -24,12 +22,6 @@ import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/
 import { APP_INFO, EXTERNAL_LINKS } from '../constants/config';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/common/Button';
-import { hasApiKey, getUsage, formatUsage, isUsageCritical, isUsageWarning, type DeepLUsage } from '../services/dictionary/deepl';
-import { hasClientId } from '../services/dictionary/yahooJapan';
-import { exportWords, deleteAllWords } from '../services/database/words';
-import { restoreWordsFromPds } from '../services/pds/vocabularySync';
-import { getAgent } from '../services/bluesky/auth';
-import { useWordStore } from '../store/wordStore';
 import {
   getDictionaryStatus,
   deleteDictionary,
@@ -44,7 +36,6 @@ import { GithubIcon } from '../components/common/GithubIcon';
 import { ChevronUp, ChevronDown } from 'lucide-react-native';
 import { useTutorial } from '../hooks/useTutorial';
 import { useTheme } from '../hooks/useTheme';
-import { useSettingsStore } from '../store/settingsStore';
 import { useCustomFeedSettings } from '../hooks/useCustomFeedSettings';
 import { useTabOrderStore } from '../store/tabOrderStore';
 
@@ -132,14 +123,8 @@ export function SettingsScreen(): React.JSX.Element {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
-  const { logout, isLoading, isAuthenticated } = useAuthStore();
+  const { logout, isLoading } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [apiKeySet, setApiKeySet] = useState(false);
-  const [deepLUsage, setDeepLUsage] = useState<DeepLUsage | null>(null);
-  const [yahooClientIdSet, setYahooClientIdSet] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [currentLang, setCurrentLang] = useState<Language>(getCurrentLanguage());
   const [dictStatus, setDictStatus] = useState<InstallStatus>('not_installed');
   const [dictVersion, setDictVersion] = useState<string | null>(null);
@@ -151,12 +136,6 @@ export function SettingsScreen(): React.JSX.Element {
   const { resetTutorial } = useTutorial([], false);
   const { colors, mode, setMode, isDark } = useTheme();
   const {
-    translateDefinition, setTranslateDefinition,
-    translateSentenceToEnglish, setTranslateSentenceToEnglish,
-    translateDefinitionInEnglishSentence, setTranslateDefinitionInEnglishSentence,
-  } = useSettingsStore();
-
-  const {
     selectedFeedDisplayName,
     savedFeeds,
     isLoading: isLoadingFeeds,
@@ -167,24 +146,9 @@ export function SettingsScreen(): React.JSX.Element {
   const { tabOrder, moveTab } = useTabOrderStore();
 
   /**
-   * Check API key and dictionary status on mount and when screen gains focus
+   * Check dictionary status on mount and when screen gains focus
    */
   useEffect(() => {
-    const checkApiKeys = async () => {
-      const hasKey = await hasApiKey();
-      setApiKeySet(hasKey);
-
-      if (hasKey) {
-        const usageResult = await getUsage();
-        setDeepLUsage(usageResult.success ? usageResult.data : null);
-      } else {
-        setDeepLUsage(null);
-      }
-
-      const hasYahooId = await hasClientId();
-      setYahooClientIdSet(hasYahooId);
-    };
-
     const checkDictionary = async () => {
       const status = await getDictionaryStatus();
       setDictStatus(status.status);
@@ -192,11 +156,9 @@ export function SettingsScreen(): React.JSX.Element {
       setDictAvailableVersion(status.availableVersion);
     };
 
-    checkApiKeys();
     checkDictionary();
 
     const unsubscribe = navigation.addListener('focus', () => {
-      checkApiKeys();
       checkDictionary();
       refreshSavedFeeds();
     });
@@ -277,157 +239,6 @@ export function SettingsScreen(): React.JSX.Element {
       ]
     );
   }, [logout, t, tc]);
-
-  /**
-   * Handle DeepL API Key settings
-   */
-  const handleDeepLApiKeySettings = useCallback(() => {
-    navigation.navigate('ApiKeySetup', { section: 'deepl' });
-  }, [navigation]);
-
-  /**
-   * Handle Yahoo JAPAN Client ID settings
-   */
-  const handleYahooApiKeySettings = useCallback(() => {
-    navigation.navigate('ApiKeySetup', { section: 'yahoo' });
-  }, [navigation]);
-
-  /**
-   * Handle data export
-   */
-  const handleExportData = useCallback(async () => {
-    setIsExporting(true);
-    try {
-      const result = await exportWords();
-
-      if (!result.success) {
-        showError(result.error.message);
-        return;
-      }
-
-      const words = result.data;
-
-      if (words.length === 0) {
-        Alert.alert(
-          t('data.exportEmpty'),
-          t('data.exportEmptyMessage'),
-          [{ text: tc('buttons.ok') }]
-        );
-        return;
-      }
-
-      const jsonData = JSON.stringify(words, null, 2);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-      const fileName = `kumotan-words-${timestamp}.json`;
-
-      // Share the JSON data
-      const shareResult = await Share.share({
-        message: jsonData,
-        title: fileName,
-      }, {
-        dialogTitle: t('data.exportDialogTitle'),
-      });
-
-      if (shareResult.action === Share.sharedAction) {
-        showSuccess(t('data.exportSuccess', { count: words.length }));
-      }
-    } catch (error) {
-      console.error('Export error:', error);
-      showError(t('data.exportError'));
-    } finally {
-      setIsExporting(false);
-    }
-  }, [showSuccess, showError, t, tc]);
-
-  /**
-   * Handle delete all data
-   */
-  const handleDeleteAllData = useCallback(() => {
-    Alert.alert(
-      t('data.deleteConfirmTitle'),
-      t('data.deleteConfirmMessage'),
-      [
-        { text: tc('buttons.cancel'), style: 'cancel' },
-        {
-          text: tc('buttons.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              const result = await deleteAllWords();
-
-              if (!result.success) {
-                showError(result.error.message);
-                return;
-              }
-
-              showSuccess(t('data.deleteSuccess'));
-            } catch (error) {
-              console.error('Delete error:', error);
-              showError(t('data.deleteError'));
-            } finally {
-              setIsDeleting(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [showSuccess, showError, t, tc]);
-
-  /**
-   * Handle PDS restore
-   */
-  const handlePdsRestore = useCallback(() => {
-    if (!isAuthenticated) {
-      showError(t('pds.restoreError'));
-      return;
-    }
-
-    Alert.alert(
-      t('pds.restoreTitle'),
-      t('pds.restoreConfirm'),
-      [
-        { text: tc('buttons.cancel'), style: 'cancel' },
-        {
-          text: tc('buttons.ok'),
-          onPress: async () => {
-            setIsRestoring(true);
-            try {
-              const agent = getAgent();
-              const result = await restoreWordsFromPds(agent);
-
-              // ストアを再読み込みして単語帳ページに反映
-              await useWordStore.getState().loadWords();
-
-              if (result.total === 0) {
-                showSuccess(t('pds.restoreEmpty'));
-              } else if (result.untranslated > 0) {
-                showSuccess(
-                  t('pds.restoreSuccessWithUntranslated', {
-                    restored: result.restored,
-                    skipped: result.skipped,
-                    untranslated: result.untranslated,
-                  })
-                );
-              } else {
-                showSuccess(
-                  t('pds.restoreSuccess', {
-                    restored: result.restored,
-                    skipped: result.skipped,
-                  })
-                );
-              }
-            } catch (error) {
-              console.error('PDS restore error:', error);
-              showError(t('pds.restoreError'));
-            } finally {
-              setIsRestoring(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [isAuthenticated, showSuccess, showError, t, tc]);
 
   /**
    * Handle license screen navigation
@@ -642,87 +453,10 @@ export function SettingsScreen(): React.JSX.Element {
         {/* API & Translation Section */}
         <SettingsSection title={t('sections.apiTranslation')}>
           <SettingsItem
-            title={t('api.deepLKey')}
-            subtitle={
-              apiKeySet && deepLUsage
-                ? formatUsage(deepLUsage)
-                : apiKeySet
-                  ? t('api.configured')
-                  : t('api.notConfigured')
-            }
-            subtitleColor={
-              apiKeySet && deepLUsage
-                ? isUsageCritical(deepLUsage)
-                  ? colors.error
-                  : isUsageWarning(deepLUsage)
-                    ? colors.warning
-                    : undefined
-                : undefined
-            }
-            onPress={handleDeepLApiKeySettings}
+            title={t('sections.apiTranslation')}
+            subtitle={t('sections.apiTranslationSubtitle')}
+            onPress={() => navigation.navigate('ApiTranslationSettings')}
           />
-          <SettingsItem
-            title={t('api.yahooClientId')}
-            subtitle={yahooClientIdSet ? t('api.configured') : t('api.notConfigured')}
-            onPress={handleYahooApiKeySettings}
-          />
-          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
-            <View style={styles.settingsItemContent}>
-              <Text style={[styles.settingsItemTitle, { color: apiKeySet ? colors.text : colors.textTertiary }]}>
-                {t('translation.translateDefinition')}
-              </Text>
-              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
-                {apiKeySet
-                  ? t('translation.translateDefinitionDescription')
-                  : t('translation.translateDefinitionNoApiKey')}
-              </Text>
-            </View>
-            <Switch
-              value={apiKeySet ? translateDefinition : false}
-              onValueChange={setTranslateDefinition}
-              disabled={!apiKeySet}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.card}
-            />
-          </View>
-          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
-            <View style={styles.settingsItemContent}>
-              <Text style={[styles.settingsItemTitle, { color: apiKeySet ? colors.text : colors.textTertiary }]}>
-                {t('translation.translateSentenceToEnglish')}
-              </Text>
-              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
-                {apiKeySet
-                  ? t('translation.translateSentenceToEnglishDescription')
-                  : t('translation.translateSentenceToEnglishNoApiKey')}
-              </Text>
-            </View>
-            <Switch
-              value={apiKeySet ? translateSentenceToEnglish : false}
-              onValueChange={setTranslateSentenceToEnglish}
-              disabled={!apiKeySet}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.card}
-            />
-          </View>
-          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
-            <View style={styles.settingsItemContent}>
-              <Text style={[styles.settingsItemTitle, { color: apiKeySet ? colors.text : colors.textTertiary }]}>
-                {t('translation.translateDefinitionInEnglishSentence')}
-              </Text>
-              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
-                {apiKeySet
-                  ? t('translation.translateDefinitionInEnglishSentenceDescription')
-                  : t('translation.translateDefinitionInEnglishSentenceNoApiKey')}
-              </Text>
-            </View>
-            <Switch
-              value={apiKeySet ? translateDefinitionInEnglishSentence : false}
-              onValueChange={setTranslateDefinitionInEnglishSentence}
-              disabled={!apiKeySet}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.card}
-            />
-          </View>
         </SettingsSection>
 
         {/* Dictionary Section */}
@@ -763,23 +497,9 @@ export function SettingsScreen(): React.JSX.Element {
         {/* Data Management Section */}
         <SettingsSection title={t('sections.dataManagement')}>
           <SettingsItem
-            title={t('data.export')}
-            subtitle={t('data.exportSubtitle')}
-            onPress={handleExportData}
-            disabled={isExporting}
-          />
-          <SettingsItem
-            title={t('pds.restore')}
-            subtitle={t('pds.restoreDescription')}
-            onPress={handlePdsRestore}
-            disabled={isRestoring || !isAuthenticated}
-          />
-          <SettingsItem
-            title={t('data.deleteAll')}
-            onPress={handleDeleteAllData}
-            danger
-            showArrow={false}
-            disabled={isDeleting}
+            title={t('sections.dataManagement')}
+            subtitle={t('sections.dataManagementSubtitle')}
+            onPress={() => navigation.navigate('DataManagement')}
           />
         </SettingsSection>
 

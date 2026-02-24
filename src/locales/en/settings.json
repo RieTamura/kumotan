@@ -6,8 +6,10 @@
     "general": "General",
     "feed": "Feed",
     "apiTranslation": "API & Translation",
+    "apiTranslationSubtitle": "API keys & translation options",
     "dictionary": "Dictionary Data",
     "dataManagement": "Data Management",
+    "dataManagementSubtitle": "Export, restore, and delete",
     "support": "Support",
     "other": "Other"
   },
@@ -23,6 +25,7 @@
     "tabMoveDown": "Move down"
   },
   "translation": {
+    "sectionTitle": "Translation Options",
     "translateDefinition": "Translate definition to Japanese",
     "translateDefinitionDescription": "Uses DeepL API",
     "translateDefinitionNoApiKey": "Set a DeepL API key to enable this feature",
@@ -40,6 +43,7 @@
     "following": "following"
   },
   "api": {
+    "sectionTitle": "API Keys",
     "deepLKey": "DeepL API Key",
     "yahooClientId": "Yahoo JAPAN Client ID",
     "configured": "Configured ✓",

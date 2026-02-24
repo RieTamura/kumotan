@@ -6,8 +6,10 @@
     "general": "一般",
     "feed": "フィード",
     "apiTranslation": "API・翻訳",
+    "apiTranslationSubtitle": "APIキー・翻訳設定",
     "dictionary": "辞書データ",
     "dataManagement": "データ管理",
+    "dataManagementSubtitle": "エクスポート・復元・削除",
     "support": "サポート",
     "other": "その他"
   },
@@ -23,6 +25,7 @@
     "tabMoveDown": "下へ"
   },
   "translation": {
+    "sectionTitle": "翻訳オプション",
     "translateDefinition": "英語の定義を日本語に翻訳",
     "translateDefinitionDescription": "DeepL APIを使用します",
     "translateDefinitionNoApiKey": "DeepL APIキーを設定すると有効になります",
@@ -40,6 +43,7 @@
     "following": "フォロー中"
   },
   "api": {
+    "sectionTitle": "API キー",
     "deepLKey": "DeepL API Key",
     "yahooClientId": "Yahoo JAPAN Client ID",
     "configured": "設定済み ✓",
