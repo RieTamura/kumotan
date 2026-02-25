@@ -4,7 +4,7 @@
  * Uses binary search on JPEG quality to compress images below the size limit.
  */
 
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 
 /** Maximum image size accepted by Bluesky (1MB) */
@@ -43,13 +43,12 @@ export async function compressImageIfNeeded(
   height: number,
 ): Promise<{ uri: string; width: number; height: number; mimeType: string }> {
   // Check current file size first
-  const fileInfo = await FileSystem.getInfoAsync(uri, { size: true });
+  const fileInfo = await FileSystem.getInfoAsync(uri);
   if (fileInfo.exists && 'size' in fileInfo && fileInfo.size <= MAX_IMAGE_SIZE) {
     return { uri, width, height, mimeType: 'image/jpeg' };
   }
 
   const newDimensions = getResizedDimensions(width, height);
-  const actions = newDimensions ? [{ resize: newDimensions }] : [];
 
   let minQuality = 0;
   let maxQuality = 101;
@@ -60,14 +59,16 @@ export async function compressImageIfNeeded(
   while (maxQuality - minQuality > 1) {
     const quality = Math.round((maxQuality + minQuality) / 2);
 
-    const resized = await manipulateAsync(uri, actions, {
-      format: SaveFormat.JPEG,
-      compress: quality / 100,
-    });
+    let ctx = ImageManipulator.manipulate(uri);
+    if (newDimensions) {
+      ctx = ctx.resize(newDimensions);
+    }
+    const imageRef = await ctx.renderAsync();
+    const resized = await imageRef.saveAsync({ format: SaveFormat.JPEG, compress: quality / 100 });
 
     intermediateUris.push(resized.uri);
 
-    const info = await FileSystem.getInfoAsync(resized.uri, { size: true });
+    const info = await FileSystem.getInfoAsync(resized.uri);
     if (!info.exists) {
       throw new Error('Image manipulation failed to create output file');
     }

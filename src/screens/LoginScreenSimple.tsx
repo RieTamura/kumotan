@@ -16,7 +16,7 @@ import { useTheme } from '../hooks/useTheme';
  */
 export function LoginScreenSimple(): React.JSX.Element {
   const { colors } = useTheme();
-  console.log('LoginScreenSimple rendering...');
+  if (__DEV__) console.log('LoginScreenSimple rendering...');
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>

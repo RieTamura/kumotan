@@ -64,7 +64,7 @@ const initialWordPopupState: WordPopupState = {
 function toTimelinePost(post: {
   uri: string;
   cid: string;
-  author: { handle: string; displayName?: string; avatar?: string };
+  author: { did: string; handle: string; displayName?: string; avatar?: string };
   record: unknown;
   likeCount?: number;
   repostCount?: number;
@@ -83,6 +83,7 @@ function toTimelinePost(post: {
     cid: post.cid,
     text: record?.text ?? '',
     author: {
+      did: post.author.did,
       handle: post.author.handle,
       displayName: post.author.displayName ?? post.author.handle,
       avatar: post.author.avatar,
@@ -155,7 +156,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
         post: {
           uri: string;
           cid: string;
-          author: { handle: string; displayName?: string; avatar?: string };
+          author: { did: string; handle: string; displayName?: string; avatar?: string };
           record: unknown;
           likeCount?: number;
           repostCount?: number;
@@ -168,7 +169,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
           post?: {
             uri: string;
             cid: string;
-            author: { handle: string; displayName?: string; avatar?: string };
+            author: { did: string; handle: string; displayName?: string; avatar?: string };
             record: unknown;
             likeCount?: number;
             repostCount?: number;
@@ -182,7 +183,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
           post?: {
             uri: string;
             cid: string;
-            author: { handle: string; displayName?: string; avatar?: string };
+            author: { did: string; handle: string; displayName?: string; avatar?: string };
             record: unknown;
             likeCount?: number;
             repostCount?: number;

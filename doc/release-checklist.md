@@ -1,6 +1,6 @@
 # App Store リリースチェックリスト
 
-**最終更新**: 2026-02-19
+**最終更新**: 2026-02-25
 **対象バージョン**: v1.0.0（正式リリース - ATProtocol OAuth対応）
 
 ## 優先度高（リリースブロッカー）
@@ -82,11 +82,14 @@
   - `src/services/auth/oauth-client.ts`
   - `src/services/bluesky/auth.ts`
   - `src/services/auth/crypto-implementation.ts`
-- [ ] 本番ビルドでログが出力されないことを確認
+- [x] 本番ビルドでログが出力されないことを確認
+  - `babel-plugin-transform-remove-console` を追加（`console.log/debug/info` を本番で除去、`error/warn` は保持）
+  - `LoginScreenSimple.tsx` のレンダリング毎 `console.log` を `__DEV__` ガードに変更
+  - `imageCompression.ts`: deprecated `manipulateAsync` → `ImageManipulator.manipulate()` 新APIに移行
 
 ### 6. テストの最終確認
 
-- **現状**: 293テスト通過（2026-02-19確認）
+- **現状**: 293テスト通過（2026-02-25確認）
 - [x] `npm test` で全テストがパスすることを確認（293通過・1スキップ）
   - 修正: `authStore.test.ts`（fix #21の認証タイミング変更に追従）
   - 修正: `deepl.test.ts`（キャッシュ汚染 → `clearDeeplCache()` 追加）
@@ -162,7 +165,9 @@
 ### コード品質チェック
 - [x] `npm test` で全テストパス（293テスト通過、1スキップ）
 - [x] `npm run type-check` でTypeScriptエラーなし
-- [x] `npm run lint` でESLintエラーなし（警告99件は既知・許容範囲）
+  - 修正：`ThreadScreen.tsx`（`toTimelinePost`のauthor型に`did`フィールドを追加）
+  - 修正：`imageCompression.ts`（`FileSystem.getInfoAsync`の廃止オプション`{ size: true }`を除去）
+- [x] `npm run lint` でESLintエラーなし（警告100件は既知・許容範囲）
   - ESLint 9対応の `eslint.config.js` を新規作成（Jest/Node globals追加）
 - [x] `npm run test:coverage` カバレッジ: **14%（閾値を14%に調整済み）**
   - UIコンポーネント・画面にユニットテストなし（既知）
