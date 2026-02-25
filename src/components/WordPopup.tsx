@@ -280,6 +280,14 @@ export function WordPopup({
   const translateDefinition = useSettingsStore(state => state.translateDefinition);
   const translateSentenceToEnglish = useSettingsStore(state => state.translateSentenceToEnglish);
   const translateDefinitionInEnglishSentence = useSettingsStore(state => state.translateDefinitionInEnglishSentence);
+  const autoSpeechOnPopup = useSettingsStore(state => state.autoSpeechOnPopup);
+
+  // Auto-speak when popup opens with a new word
+  useEffect(() => {
+    if (!autoSpeechOnPopup || !word) return;
+    const lang = Validators.isJapanese(word) ? 'ja-JP' : 'en-US';
+    speak(word, { language: lang });
+  }, [word]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Animate popup open/close

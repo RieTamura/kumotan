@@ -158,6 +158,16 @@
     "title": "いいね時の振動",
     "subtitle": "いいねボタンを押したときに振動する"
   },
+  "autoSpeech": {
+    "popup": {
+      "title": "単語ポップアップの自動読み上げ",
+      "subtitle": "単語を選択したとき自動で読み上げる"
+    },
+    "quiz": {
+      "title": "クイズの自動読み上げ",
+      "subtitle": "問題が表示されたとき自動で読み上げる"
+    }
+  },
   "moderation": {
     "title": "モデレーション設定",
     "subtitle": "Bluesky公式アプリで設定"

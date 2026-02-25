@@ -14,12 +14,13 @@ import {
   Platform,
   Animated,
   Keyboard,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Check, X, ArrowRight } from 'lucide-react-native';
+import { Check, X, ArrowRight, Volume2, VolumeX } from 'lucide-react-native';
 
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
@@ -27,6 +28,8 @@ import { Button } from '../components/common/Button';
 import { ConfirmModal } from '../components/common/ConfirmModal';
 import { QuizSession, QuizAnswer, QuizSettings } from '../types/quiz';
 import { generateQuiz, submitAnswer, completeQuiz } from '../services/quiz/quizEngine';
+import { useSpeech } from '../hooks/useSpeech';
+import { useSettingsStore } from '../store/settingsStore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type QuizRouteProp = RouteProp<RootStackParamList, 'Quiz'>;
@@ -116,6 +119,28 @@ export function QuizScreen(): React.JSX.Element {
   const inputRef = useRef<TextInput>(null);
   const isExitingRef = useRef(false);
   const isCompletingRef = useRef(false);
+
+  const { speak, stop, isSpeaking } = useSpeech();
+  const autoSpeechOnQuiz = useSettingsStore(state => state.autoSpeechOnQuiz);
+
+  // Auto-speak when question changes
+  useEffect(() => {
+    if (!session || !autoSpeechOnQuiz) return;
+    const q = session.questions[session.currentIndex];
+    const lang = q.questionType === 'en_to_ja' ? 'en-US' : 'ja-JP';
+    speak(q.question, { language: lang });
+  }, [session?.currentIndex, autoSpeechOnQuiz]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSpeak = useCallback(() => {
+    if (!session) return;
+    if (isSpeaking) {
+      stop();
+      return;
+    }
+    const q = session.questions[session.currentIndex];
+    const lang = q.questionType === 'en_to_ja' ? 'en-US' : 'ja-JP';
+    speak(q.question, { language: lang });
+  }, [session, isSpeaking, speak, stop]);
 
   // Initialize quiz
   useEffect(() => {
@@ -300,9 +325,16 @@ export function QuizScreen(): React.JSX.Element {
           <Text style={[styles.questionLabel, { color: colors.textSecondary }]}>
             {t('quiz.question')}
           </Text>
-          <Text style={[styles.questionText, { color: colors.text }]}>
-            {currentQuestion.question}
-          </Text>
+          <View style={styles.questionRow}>
+            <Text style={[styles.questionText, { color: colors.text }]}>
+              {currentQuestion.question}
+            </Text>
+            <TouchableOpacity onPress={handleSpeak} style={styles.speakButton}>
+              {isSpeaking
+                ? <VolumeX size={22} color={colors.textSecondary} />
+                : <Volume2 size={22} color={colors.textSecondary} />}
+            </TouchableOpacity>
+          </View>
           <Text style={[styles.directionHint, { color: colors.textSecondary }]}>
             {currentQuestion.questionType === 'en_to_ja'
               ? t('setup.questionType.enToJa')
@@ -432,10 +464,20 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
+  questionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   questionText: {
     fontSize: 28,
     fontWeight: '700',
     textAlign: 'center',
+    marginBottom: 8,
+    flex: 1,
+  },
+  speakButton: {
+    padding: 8,
     marginBottom: 8,
   },
   directionHint: {

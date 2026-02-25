@@ -24,6 +24,10 @@ interface SettingsState {
   setTranslateDefinitionInEnglishSentence: (value: boolean) => void;
   hapticFeedbackEnabled: boolean;
   setHapticFeedbackEnabled: (value: boolean) => void;
+  autoSpeechOnPopup: boolean;
+  setAutoSpeechOnPopup: (value: boolean) => void;
+  autoSpeechOnQuiz: boolean;
+  setAutoSpeechOnQuiz: (value: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -37,6 +41,10 @@ export const useSettingsStore = create<SettingsState>()(
       setTranslateDefinitionInEnglishSentence: (value) => set({ translateDefinitionInEnglishSentence: value }),
       hapticFeedbackEnabled: true,
       setHapticFeedbackEnabled: (value) => set({ hapticFeedbackEnabled: value }),
+      autoSpeechOnPopup: false,
+      setAutoSpeechOnPopup: (value) => set({ autoSpeechOnPopup: value }),
+      autoSpeechOnQuiz: false,
+      setAutoSpeechOnQuiz: (value) => set({ autoSpeechOnQuiz: value }),
     }),
     {
       name: 'settings-storage',

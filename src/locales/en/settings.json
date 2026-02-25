@@ -158,6 +158,16 @@
     "title": "Vibrate on Like",
     "subtitle": "Vibrate when tapping the like button"
   },
+  "autoSpeech": {
+    "popup": {
+      "title": "Auto-read Word Popup",
+      "subtitle": "Speak word aloud when popup opens"
+    },
+    "quiz": {
+      "title": "Auto-read Quiz Questions",
+      "subtitle": "Speak question aloud when it appears"
+    }
+  },
   "moderation": {
     "title": "Moderation Settings",
     "subtitle": "Configure in the Bluesky app"

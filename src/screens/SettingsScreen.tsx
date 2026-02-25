@@ -146,7 +146,11 @@ export function SettingsScreen(): React.JSX.Element {
   } = useCustomFeedSettings();
 
   const { tabOrder, moveTab } = useTabOrderStore();
-  const { hapticFeedbackEnabled, setHapticFeedbackEnabled } = useSettingsStore();
+  const {
+    hapticFeedbackEnabled, setHapticFeedbackEnabled,
+    autoSpeechOnPopup, setAutoSpeechOnPopup,
+    autoSpeechOnQuiz, setAutoSpeechOnQuiz,
+  } = useSettingsStore();
 
   /**
    * Check dictionary status on mount and when screen gains focus
@@ -399,6 +403,38 @@ export function SettingsScreen(): React.JSX.Element {
             <Switch
               value={hapticFeedbackEnabled}
               onValueChange={setHapticFeedbackEnabled}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.card}
+            />
+          </View>
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
+                {t('autoSpeech.popup.title')}
+              </Text>
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+                {t('autoSpeech.popup.subtitle')}
+              </Text>
+            </View>
+            <Switch
+              value={autoSpeechOnPopup}
+              onValueChange={setAutoSpeechOnPopup}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.card}
+            />
+          </View>
+          <View style={[styles.settingsItem, { borderBottomColor: colors.divider, borderBottomWidth: 0 }]}>
+            <View style={styles.settingsItemContent}>
+              <Text style={[styles.settingsItemTitle, { color: colors.text }]}>
+                {t('autoSpeech.quiz.title')}
+              </Text>
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textSecondary }]}>
+                {t('autoSpeech.quiz.subtitle')}
+              </Text>
+            </View>
+            <Switch
+              value={autoSpeechOnQuiz}
+              onValueChange={setAutoSpeechOnQuiz}
               trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor={colors.card}
             />
