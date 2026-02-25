@@ -1,5 +1,26 @@
 # 自動音声読み上げ設定 実装計画
 
+## ステータス
+
+### ✅ 実装完了（2026-02-25）
+
+| ステップ | ファイル | 状態 |
+| --- | --- | --- |
+| 1 | `src/store/settingsStore.ts` | ✅ 完了 |
+| 2 | `src/locales/ja/settings.json` | ✅ 完了 |
+| 2 | `src/locales/en/settings.json` | ✅ 完了 |
+| 3 | `src/screens/SettingsScreen.tsx` | ✅ 完了 |
+| 4 | `src/components/WordPopup.tsx` | ✅ 完了 |
+| 5 | `src/screens/QuizScreen.tsx` | ✅ 完了 |
+
+### 実装上の差分（計画との相違点）
+
+- **WordPopup.tsx**: `isJapanese` state は非同期で設定されるため、`useEffect` 内では `Validators.isJapanese(word)` を直接呼び出す方式に変更した（計画では state 参照）。
+- **QuizScreen.tsx**: `questionText` スタイルに `flex: 1` を追加し、`questionRow`（横並び）・`speakButton` スタイルを新設して手動ボタンを配置した。
+- 再ビルド不要。Development Build のホットリロードで動作確認可能。
+
+---
+
 ## 概要
 
 単語ポップアップ表示時・クイズ出題時に自動で音声読み上げを行う機能を追加する。
