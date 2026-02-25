@@ -1,21 +1,21 @@
 {
   "termsOfService": {
     "title": "Terms of Service",
-    "intro": "These Terms of Service (hereinafter referred to as \"these Terms\") set forth the conditions of use for Kumotan (hereinafter referred to as \"this App\"). All users (hereinafter referred to as \"Users\") who use this App shall agree to these Terms and use this App in accordance with them.",
+    "intro": "These Terms of Service (hereinafter \"these Terms\") set forth the conditions of use for Kumotan (hereinafter \"this App\"). All users (hereinafter \"Users\") who use this App shall agree to these Terms and use this App in accordance with them.",
     "sections": [
       {
         "heading": "Article 1 (Application)",
         "content": [
-          "1. These Terms shall apply to all matters relating to the use of this App between Users and the operator of this App (hereinafter referred to as the \"Operator\").",
-          "2. The Operator may establish various rules and regulations (hereinafter referred to as \"Individual Provisions\") regarding the use of this App, in addition to these Terms. Such Individual Provisions shall constitute a part of these Terms regardless of their title."
+          "1. These Terms shall apply to all matters relating to the use of this App between Users and the operator of this App (hereinafter the \"Operator\").",
+          "2. The Operator may establish various rules and regulations (hereinafter \"Individual Provisions\") regarding the use of this App, in addition to these Terms. Such Individual Provisions shall constitute a part of these Terms regardless of their title."
         ]
       },
       {
         "heading": "Article 2 (Definition of Service)",
         "content": [
           "1. This App is a vocabulary learning support tool for learning English words and phrases in Japanese while browsing AT Protocol (Bluesky, etc.) timelines.",
-          "2. This App provides the following main features:\n- Display of Bluesky timeline\n- Dictionary search and translation of English words in posts\n- Registration and management of vocabulary\n- Recording and display of learning progress\n- Sharing learning progress on Bluesky",
-          "3. The translation and text analysis features of this App use API keys from external services (DeepL API Key, Yahoo! JAPAN Client ID) obtained by Users themselves. Users are responsible for obtaining and managing these API keys."
+          "2. This App provides the following main features:\n- Display of Bluesky timeline\n- Dictionary search and translation of English words in posts\n- Registration and management of vocabulary\n- Quiz mode for vocabulary practice\n- Recording and display of learning progress\n- Sharing learning progress on Bluesky\n- Text-to-speech feature (pronunciation of English words and definitions)\n- Push notifications (Bluesky social action notifications and learning reminders)",
+          "The translation and text analysis features use API keys from external services (DeepL API Key, Yahoo! JAPAN Client ID) obtained by Users themselves. Users are responsible for obtaining and managing these API keys."
         ]
       },
       {
@@ -36,7 +36,7 @@
       {
         "heading": "Article 5 (Data Storage and Management)",
         "content": [
-          "1. User data in this App (registered words, learning statistics, etc.) is stored locally on the User's device. User data is not stored on the Operator's servers.",
+          "1. User data in this App (registered words, learning statistics, etc.) is stored locally on the User's device. User data is not transmitted to or stored on the Operator's servers.",
           "2. This App provides a function to sync registered vocabulary data and learning progress to the User's own PDS (Personal Data Server) based on the AT Protocol framework. Data stored on PDS is owned and managed by the User, and the Operator does not manage or access it.",
           "3. Data synchronization to PDS is intended for data restoration when changing devices or reinstalling the App. The Operator shall not be liable for any PDS-side failures or data loss.",
           "4. The Operator shall not be liable for data recovery if local data is lost due to device failure, app deletion, or other reasons.",
@@ -54,15 +54,14 @@
         "heading": "Article 7 (Prohibited Actions)",
         "content": [
           "Users shall not engage in the following actions when using this App:",
-          "1. Actions that violate laws or public order and morals\n2. Actions related to criminal activity\n3. Actions that destroy or interfere with the functions of this App or related servers/networks\n4. Actions that may interfere with the operation of the Operator's services\n5. Collecting or accumulating personal information of other users\n6. Unauthorized access or attempts thereof\n7. Reverse engineering, decompilation, disassembly of this App (except within the scope of open source licenses)\n8. Commercial activities using this App (unless separately permitted by the Operator)\n9. Directly or indirectly providing benefits to antisocial forces\n10. Any other actions deemed inappropriate by the Operator"
+          "1. Actions that violate laws or public order and morals\n2. Actions related to criminal activity\n3. Actions that destroy or interfere with the functions of this App or related servers/networks\n4. Actions that may interfere with the operation of the Operator's services\n5. Collecting or accumulating personal information of other users\n6. Unauthorized access or attempts thereof\n7. Reverse engineering, decompilation, or disassembly of this App (except within the scope of open source licenses)\n8. Commercial activities using this App (unless separately permitted by the Operator)\n9. Directly or indirectly providing benefits to antisocial forces\n10. Any other actions deemed inappropriate by the Operator"
         ]
       },
       {
         "heading": "Article 8 (Use of External Services)",
         "content": [
-          "1. This App uses the following external services and data to provide its features:\n- Bluesky / AT Protocol (timeline retrieval, posting)\n- DeepL API (translation, when User sets their own API key)\n- Yahoo! JAPAN Text Analysis API (Japanese analysis, when User sets their own Client ID)\n- Free Dictionary API (English dictionary)\n- JMdict dictionary data (Japanese-English dictionary, provided by Electronic Dictionary Research and Development Group, CC BY-SA 4.0 license)",
-          "2. When using external services, the terms of service of each service apply separately. Users are responsible for complying with the terms of service of each external service.",
-          "3. The Operator shall not be liable if some features of this App become unavailable due to specification changes, failures, or termination of external services."
+          "1. This App uses the following external services and data to provide its features:\n- Bluesky / AT Protocol (timeline retrieval, posting)\n- cardyb API (Official Bluesky link preview API for link card creation)\n- DeepL API (translation, when User sets their own API key)\n- Yahoo! JAPAN Text Analysis API (Japanese analysis, when User sets their own Client ID)\n- Free Dictionary API (English dictionary)\n- JMdict dictionary data (Japanese-English dictionary, provided by Electronic Dictionary Research and Development Group, CC BY-SA 4.0 license)\n- Google Apps Script (Operator-managed, feedback submission)\n- Railway (Operator-managed server, push notification delivery)\n- Expo Push Notification Service (device-level push notification delivery)",
+          "The terms of service of each external service apply separately. Users are responsible for complying with the terms of service of each external service. The Operator shall not be liable if some features become unavailable due to specification changes, failures, or termination of external services."
         ]
       },
       {
@@ -126,12 +125,12 @@
     "footer": {
       "operator": "Operator: RieTamura",
       "contact": "Contact: GitHub Issues",
-      "lastUpdated": "Last updated: February 12, 2026"
+      "lastUpdated": "Last updated: February 25, 2026"
     }
   },
   "privacyPolicy": {
     "title": "Privacy Policy",
-    "intro": "The operator (hereinafter referred to as the \"Operator\") of Kumotan (hereinafter referred to as \"this App\") establishes this Privacy Policy (hereinafter referred to as \"this Policy\") regarding the handling of users' personal information in this App.",
+    "intro": "The operator (hereinafter the \"Operator\") of Kumotan (hereinafter \"this App\") establishes this Privacy Policy (hereinafter \"this Policy\") regarding the handling of users' personal information in this App.",
     "sections": [
       {
         "heading": "Article 1 (Definition of Personal Information)",
@@ -146,15 +145,16 @@
           "[1. Bluesky Account Information]\nThe following information is obtained through Bluesky OAuth authentication:\n- User's DID (Decentralized Identifier)\n- Handle (username)\n- Display name, avatar image, profile information",
           "[2. Data Stored on Device]\nThe following data is stored only on the User's device and is not sent to the Operator's servers:\n- Registered word data (English words, Japanese translations, definitions, source post information)\n- Learning statistics data (daily learning counts, quiz history, etc.)\n- App settings (theme, language, tutorial completion status, etc.)\n- External service API keys (DeepL API Key, Yahoo! JAPAN Client ID)",
           "[3. Data Synced to PDS]\nBased on the AT Protocol framework, the following data is synced to the User's own PDS (Personal Data Server):\n- Registered word data (English words, Japanese translations, definitions, read status, source post URLs, etc.)\n- Learning session information",
-          "[4. Data Sent to External Services]\nTo provide this App's features, the following data is sent to external services:\n- Bluesky / AT Protocol: Timeline retrieval requests, post content (when sharing progress), image data (when attaching to posts)\n- DeepL API: Text for translation (only when User has set API key)\n- Yahoo! JAPAN Text Analysis API: Japanese text for analysis (only when User has set Client ID)\n- Free Dictionary API: English words for lookup",
-          "[5. Feedback Information]\nWhen Users use the in-app feedback feature, the following information is sent:\n- Feedback type (bug report, feature request, dictionary correction, etc.)\n- Feedback content (subject, description, comments)\n- Related word information or post URLs (if applicable)"
+          "[4. Data Sent to External Services]\nTo provide this App's features, the following data is sent to external services:\n- Bluesky / AT Protocol: Timeline retrieval requests, post content (when sharing progress), image data (when attaching to posts)\n- cardyb API (Official Bluesky): URLs in posts (only when creating posts with link cards)\n- DeepL API: Text for translation (only when User has set API key)\n- Yahoo! JAPAN Text Analysis API: Japanese text for analysis (only when User has set Client ID)\n- Free Dictionary API: English words for lookup\n- Railway (Operator-managed server): Bluesky DID, Expo Push Token, notification settings (only when push notifications are enabled)\n- Expo Push Notification Service: Expo Push Token, notification title and body (when sending push notifications)\n- Google Apps Script (Operator-managed): Feedback content (only when using the feedback feature)\n- Bluesky Jetstream (Official): No data sent (receives Bluesky events only)",
+          "[5. Push Notification Tokens]\nWhen Users enable push notifications, the following information is sent to and stored on the Operator's server (Railway):\n- Expo Push Token (a notification delivery token issued by the Expo Push Notification service)\n- Bluesky DID (a public identifier used to identify the notification recipient)\n- Notification type settings (ON/OFF for likes, replies, mentions, reposts, and follows)\nThis information is used solely for push notification delivery. It is deleted from the server when push notifications are disabled or the App is uninstalled.",
+          "[6. Feedback Information]\nWhen Users use the in-app feedback feature, the following information is sent to the Operator via Google Apps Script:\n- Feedback type (bug report, feature request, dictionary correction, etc.)\n- Feedback content (subject, description, comments)\n- Related word information or post URLs (if applicable)"
         ]
       },
       {
         "heading": "Article 3 (Purpose of Information Use)",
         "content": [
           "The purposes for which the Operator uses information are as follows:",
-          "1. To provide and operate this App\n2. For user authentication and linking with Bluesky accounts\n3. To provide word data storage and restoration functions\n4. To provide learning support functions such as dictionary search, translation, and text analysis\n5. To respond to user feedback and improve this App\n6. To fix bugs and improve features of this App"
+          "1. To provide and operate this App\n2. For user authentication and linking with Bluesky accounts\n3. To provide word data storage and restoration functions\n4. To provide learning support functions such as dictionary search, translation, and text analysis\n5. To respond to user feedback and improve this App\n6. To fix bugs and improve features of this App\n7. To send push notifications (Bluesky social action notifications and learning reminders)"
         ]
       },
       {
@@ -165,26 +165,43 @@
         ]
       },
       {
-        "heading": "Article 5 (Security Measures)",
+        "heading": "Article 5 (External Transmission Disclosure)",
+        "content": [
+          "Pursuant to Article 27-12 of the Telecommunications Business Act (external transmission regulations), the Operator discloses the following details regarding cases where this App transmits user information externally.",
+          "[Bluesky / AT Protocol (bsky.social)]\nInformation sent: Timeline requests, post content, image data\nOperator's purpose: Providing timeline display and posting features\nRecipient's purpose: Providing AT Protocol network services",
+          "[User's own PDS]\nInformation sent: Word data, learning session information\nOperator's purpose: Providing cross-device sync and restoration\nRecipient's purpose: User's own data management",
+          "[cardyb API (bsky.app)]\nInformation sent: URLs contained in posts\nOperator's purpose: Fetching link previews (OGP cards)\nRecipient's purpose: URL metadata extraction service",
+          "[Free Dictionary API (dictionaryapi.dev)]\nInformation sent: English words for lookup\nOperator's purpose: Providing English dictionary search\nRecipient's purpose: Dictionary service provision",
+          "[DeepL API]\nInformation sent: Text for translation (only when API key is configured)\nOperator's purpose: Providing Japanese translation feature\nRecipient's purpose: Translation service provision",
+          "[Yahoo! JAPAN Text Analysis API]\nInformation sent: Japanese text (only when Client ID is configured)\nOperator's purpose: Providing Japanese text analysis feature\nRecipient's purpose: Text analysis service provision",
+          "[Google Apps Script (Operator-managed)]\nInformation sent: Feedback content\nOperator's purpose: Feedback collection and service improvement\nRecipient's purpose: Forwarding to GitHub Issues",
+          "[Railway (Operator-managed server)]\nInformation sent: Bluesky DID, Expo Push Token, notification settings\nOperator's purpose: Managing push notification delivery\nRecipient's purpose: Operating push notification server",
+          "[Expo Push Notification Service]\nInformation sent: Expo Push Token, notification title and body\nOperator's purpose: Delivering push notifications to devices\nRecipient's purpose: Expo notification delivery service",
+          "[GitHub Pages (CDN)]\nInformation sent: None (download only)\nOperator's purpose: Fetching JMdict dictionary data\nRecipient's purpose: Static file hosting",
+          "* Transmission to DeepL API and Yahoo! JAPAN Text Analysis API occurs only when the User has configured their own API key. The Operator cannot access these API keys.\n* This App does not use analytics, advertising, or tracking SDKs."
+        ]
+      },
+      {
+        "heading": "Article 6 (Security Measures)",
         "content": [
           "The Operator takes the following measures for the security management of personal information to prevent leakage, loss, or damage:\n- Authentication tokens and API keys are stored in the device's encrypted storage (Expo SecureStore)\n- Bluesky authentication uses OAuth (PKCE + DPoP) and does not obtain or store user passwords\n- Communication with external services uses HTTPS encrypted communication"
         ]
       },
       {
-        "heading": "Article 6 (Analytics and Tracking)",
+        "heading": "Article 7 (Analytics and Tracking)",
         "content": [
           "This App does not use analytics tools, advertising SDKs, or tracking tools. No features for collecting or analyzing user behavioral data are included."
         ]
       },
       {
-        "heading": "Article 7 (Device Access Permissions)",
+        "heading": "Article 8 (Device Access Permissions)",
         "content": [
-          "This App may request access permissions to the following device features:\n- Photo Library: To save and share learning progress images, and to attach images to posts\n- Camera: To take photos for attaching to posts",
+          "This App may request access permissions to the following device features:\n- Photo Library: To save and share learning progress images, and to attach images to posts\n- Camera: To take photos for attaching to posts\n- Notifications: To receive Bluesky social action notifications (likes, replies, mentions, etc.) and learning reminders",
           "These permissions are only requested when the User uses the corresponding features, and the basic features of this App can be used without granting them."
         ]
       },
       {
-        "heading": "Article 8 (Data Deletion)",
+        "heading": "Article 9 (Data Deletion)",
         "content": [
           "1. Users can delete all learning data stored on the device by executing \"Delete All Data\" from the Settings screen of this App.",
           "2. Logging out will delete authentication information stored on the device.",
@@ -194,13 +211,13 @@
         ]
       },
       {
-        "heading": "Article 9 (Use by Minors)",
+        "heading": "Article 10 (Use by Minors)",
         "content": [
           "This App is not specifically targeted at minors, but it is recommended that minors use it with parental consent."
         ]
       },
       {
-        "heading": "Article 10 (Changes to Privacy Policy)",
+        "heading": "Article 11 (Changes to Privacy Policy)",
         "content": [
           "1. The Operator may change this Policy as needed.",
           "2. Changes to this Policy will be notified within this App or on the Operator's website.",
@@ -208,7 +225,7 @@
         ]
       },
       {
-        "heading": "Article 11 (Contact)",
+        "heading": "Article 12 (Contact)",
         "content": [
           "For inquiries regarding this Policy, please contact us through the following:"
         ]
@@ -217,7 +234,7 @@
     "footer": {
       "operator": "Operator: RieTamura",
       "contact": "Contact: GitHub Issues",
-      "lastUpdated": "Last updated: February 12, 2026"
+      "lastUpdated": "Last updated: February 25, 2026"
     }
   },
   "links": {
