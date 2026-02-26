@@ -1,13 +1,21 @@
 # App Store リリース情報
 
 ## アプリ名
-くもたん
+
+- 日本語：くもたん
+- English：Kumotan
 
 ## サブタイトル（30文字以内）
-Blueskyで英語を学ぼう
+
+- 日本語：Blueskyで英語を学ぼう
+- English：Learn English on Bluesky
 
 ## プロモーションテキスト（170文字以内）
-Blueskyのタイムラインから気になる英単語を保存して、あなただけの単語帳を作ろう！
+
+- 日本語：Blueskyのタイムラインから気になる英単語を保存して、あなただけの単語帳を作ろう！
+- English：
+  Save interesting English words from your Bluesky timeline.
+  Build your own personal vocabulary list!
 
 ## 説明文（4000文字以内）
 
@@ -55,57 +63,73 @@ Blueskyのタイムラインから気になる英単語を保存して、あな�
 Kumotan is an app that helps you learn English while browsing your Bluesky timeline.
 
 ■ Perfect for you if:
-・You want to make your social media time productive
-・You want to learn English through topics you're interested in
-・You find creating vocabulary lists tedious
-・You're a Bluesky user
+・You want to make your social media time productive.
+・You want to learn English through topics you're interested in.
+・You find creating vocabulary lists tedious.
+・You're a Bluesky user.
 
 ■ Main Features
 
 【Learn from Timeline】
+
 Long-press any English word while reading posts from people you follow to add it to your vocabulary.
 
 【Your Personal Vocabulary】
-Saved words are automatically added to your vocabulary list with translations and example sentences for easy review.
+
+Saved words are automatically added to your vocabulary list with translations and example sentences.
+Review them anytime for easy study.
 
 【Look Up Posts】
+
 Translate and analyze entire posts with one tap. Learn while understanding context.
 
 【Track Your Progress】
+
 Check your word count and daily progress. Share your achievements on Bluesky!
 
 【Images & Links】
+
 View images and links in posts for better context understanding.
 
 【Thread View】
+
 Tap a post to see the full thread including replies.
 
 ■ Supported Languages
 Japanese / English
 
 ■ Requirements
-・Bluesky account login required
-・DeepL API key required for translation (free plan available)
+・Bluesky account login required.
+・DeepL API key required for translation (free plan available).
 
 ---
 
-## キーワード（100文字以内、カンマ区切り）
-英語学習,単語帳,Bluesky,SNS,英単語,翻訳,語学,vocabulary,English,learning
+## キーワード（ローカライズ別・各100文字以内・カンマ区切り）
+
+> App Store Connect では言語ごとに別フィールドへ入力する。アプリ名・サブタイトルに含まれる単語は重複して入れない。
+
+- 日本語（41文字）：`英語学習,単語帳,Bluesky,SNS,英単語,翻訳,語学,ボキャブラリー,英会話`
+- English（76 chars）：`vocabulary,English,Bluesky,learning,words,translation,language,SNS,flashcard`
 
 ## サポートURL
+
 https://github.com/RieTamura/kumotan
 
 ## プライバシーポリシーURL
+
 https://rietamura.github.io/kumotan/privacy-policy.html
 
 ## カテゴリ
-プライマリ: 教育
-セカンダリ: ソーシャルネットワーキング
+
+- プライマリ：教育 / Education
+- セカンダリ：ソーシャルネットワーキング / Social Networking
 
 ## 年齢制限
+
 4+（制限なし）
 
 ## 著作権
+
 © 2026 RieTamura
 
 ---
@@ -140,12 +164,15 @@ https://rietamura.github.io/kumotan/privacy-policy.html
 ## App Store Connect 審査用メモ
 
 ### ログイン情報
+
 - Blueskyアカウントが必要です
-- テスト用アカウントを作成する場合: https://bsky.app で作成可能
+- テスト用アカウントを作成する場合：<https://bsky.app> で作成可能
 
 ### 翻訳機能について
+
 - DeepL APIキーを設定しないと翻訳機能は使用できません
-- APIキーなしでもアプリの基本機能（タイムライン表示、単語保存）は動作します
+- APIキーなしでもアプリの基本機能（タイムライン表示・単語保存）は動作します
 
 ### ネットワーク接続
-- Bluesky API、DeepL API、Yahoo! かな漢字変換APIへの接続が必要です
+
+- Bluesky API・DeepL API・Yahoo! かな漢字変換APIへの接続が必要です
