@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>利用規約 - くもたん</title>
+    <title>利用規約 / Terms of Service - くもたん</title>
     <style>
         * {
             margin: 0;
@@ -73,148 +73,313 @@
                 font-size: 1.3em;
             }
         }
+        .lang-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+        .lang-tab { padding: 6px 16px; border-radius: 4px; border: 1px solid #1DA1F2;
+                    cursor: pointer; background: white; color: #1DA1F2; font-size: 14px; }
+        .lang-tab.active { background: #1DA1F2; color: white; }
+        .lang-en { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>利用規約</h1>
+        <div class="lang-tabs">
+            <button class="lang-tab active" onclick="switchLang('ja')">日本語</button>
+            <button class="lang-tab" onclick="switchLang('en')">English</button>
+        </div>
 
-        <p>本利用規約（以下「本規約」といいます。）は、くもたん（以下「本アプリ」といいます。）の利用条件を定めるものです。本アプリを利用する全てのユーザー（以下「ユーザー」といいます。）は、本規約に同意の上、本規約に従って本アプリを利用するものとします。</p>
+        <div class="lang-ja">
+            <h1>利用規約</h1>
 
-        <h2>第1条（適用）</h2>
-        <ol>
-            <li>本規約は、ユーザーと本アプリの運営者（以下「運営者」といいます。）との間の本アプリの利用に関わる一切の関係に適用されるものとします。</li>
-            <li>運営者は本アプリに関し、本規約のほか、ご利用にあたってのルール等、各種の規定（以下「個別規定」といいます。）を定めることがあります。これら個別規定はその名称のいかんに関わらず、本規約の一部を構成するものとします。</li>
-        </ol>
+            <p>本利用規約（以下「本規約」といいます。）は、くもたん（以下「本アプリ」といいます。）の利用条件を定めるものです。本アプリを利用する全てのユーザー（以下「ユーザー」といいます。）は、本規約に同意の上、本規約に従って本アプリを利用するものとします。</p>
 
-        <h2>第2条（サービスの定義）</h2>
-        <ol>
-            <li>本アプリは、AT Protocol（Bluesky等）のタイムラインを閲覧しながら、英語の単語・熟語を日本語で学習するための語彙学習支援ツールです。</li>
-            <li>本アプリは、以下の主な機能を提供します。
-                <ul>
-                    <li>Blueskyタイムラインの表示</li>
-                    <li>投稿内の英単語の辞書検索・翻訳</li>
-                    <li>単語帳への登録・管理</li>
-                    <li>学習進捗の記録・表示</li>
-                    <li>学習進捗のBlueskyへのシェア</li>
-                </ul>
-            </li>
-            <li>本アプリの翻訳機能およびテキスト解析機能は、ユーザー自身が取得した外部サービスのAPIキー（DeepL API Key、Yahoo! JAPAN Client ID）を利用します。これらのAPIキーの取得・管理はユーザーの責任において行うものとします。</li>
-        </ol>
+            <h2>第1条（適用）</h2>
+            <ol>
+                <li>本規約は、ユーザーと本アプリの運営者（以下「運営者」といいます。）との間の本アプリの利用に関わる一切の関係に適用されるものとします。</li>
+                <li>運営者は本アプリに関し、本規約のほか、ご利用にあたってのルール等、各種の規定（以下「個別規定」といいます。）を定めることがあります。これら個別規定はその名称のいかんに関わらず、本規約の一部を構成するものとします。</li>
+            </ol>
 
-        <h2>第3条（利用登録）</h2>
-        <ol>
-            <li>本アプリの利用には、Blueskyアカウントによるログインが必要です。ユーザーは、AT Protocol OAuth認証を通じてBlueskyアカウントでログインすることにより、本アプリの利用を開始するものとします。</li>
-            <li>運営者は、本アプリの利用に際して、ユーザーのBlueskyアカウントのパスワード等の認証情報を取得・保存することはありません。</li>
-        </ol>
+            <h2>第2条（サービスの定義）</h2>
+            <ol>
+                <li>本アプリは、AT Protocol（Bluesky等）のタイムラインを閲覧しながら、英語の単語・熟語を日本語で学習するための語彙学習支援ツールです。</li>
+                <li>本アプリは、以下の主な機能を提供します。
+                    <ul>
+                        <li>Blueskyタイムラインの表示</li>
+                        <li>投稿内の英単語の辞書検索・翻訳</li>
+                        <li>単語帳への登録・管理</li>
+                        <li>学習進捗の記録・表示</li>
+                        <li>学習進捗のBlueskyへのシェア</li>
+                    </ul>
+                </li>
+                <li>本アプリの翻訳機能およびテキスト解析機能は、ユーザー自身が取得した外部サービスのAPIキー（DeepL API Key、Yahoo! JAPAN Client ID）を利用します。これらのAPIキーの取得・管理はユーザーの責任において行うものとします。</li>
+            </ol>
 
-        <h2>第4条（アカウントの管理）</h2>
-        <ol>
-            <li>ユーザーは、自己の責任において、本アプリの利用に使用するBlueskyアカウントを適切に管理するものとします。</li>
-            <li>ユーザーのBlueskyアカウントが第三者によって不正に使用されたことによって生じた損害について、運営者は一切の責任を負わないものとします。</li>
-            <li>ユーザーが本アプリに設定した外部サービスのAPIキー（DeepL API Key、Yahoo! JAPAN Client ID）の管理は、ユーザーの責任において行うものとします。APIキーの漏洩・不正使用等によって生じた損害について、運営者は一切の責任を負わないものとします。</li>
-        </ol>
+            <h2>第3条（利用登録）</h2>
+            <ol>
+                <li>本アプリの利用には、Blueskyアカウントによるログインが必要です。ユーザーは、AT Protocol OAuth認証を通じてBlueskyアカウントでログインすることにより、本アプリの利用を開始するものとします。</li>
+                <li>運営者は、本アプリの利用に際して、ユーザーのBlueskyアカウントのパスワード等の認証情報を取得・保存することはありません。</li>
+            </ol>
 
-        <h2>第5条（データの保存と管理）</h2>
-        <ol>
-            <li>本アプリにおけるユーザーデータ（登録した単語、学習統計等）は、ユーザーの端末内にローカルに保存されます。運営者のサーバーにユーザーデータが保存されることはありません。</li>
-            <li>本アプリは、AT Protocolの仕組みに基づき、登録した単語データおよび学習進捗をユーザー自身のPDS（Personal Data Server）に同期する機能を提供します。PDSに保存されたデータは、ユーザー自身が所有・管理するものであり、運営者がこれを管理・閲覧することはありません。</li>
-            <li>PDSへのデータ同期は、端末変更やアプリ再インストール時のデータ復元を目的としています。PDS側の障害やデータ消失について、運営者は一切の責任を負わないものとします。</li>
-            <li>端末の故障、アプリの削除、その他の事由によりローカルデータが失われた場合、運営者はデータの復旧について一切の責任を負わないものとします。</li>
-            <li>ユーザーは、必要に応じて本アプリのデータエクスポート機能を利用し、自己の責任においてデータのバックアップを行うものとします。</li>
-        </ol>
+            <h2>第4条（アカウントの管理）</h2>
+            <ol>
+                <li>ユーザーは、自己の責任において、本アプリの利用に使用するBlueskyアカウントを適切に管理するものとします。</li>
+                <li>ユーザーのBlueskyアカウントが第三者によって不正に使用されたことによって生じた損害について、運営者は一切の責任を負わないものとします。</li>
+                <li>ユーザーが本アプリに設定した外部サービスのAPIキー（DeepL API Key、Yahoo! JAPAN Client ID）の管理は、ユーザーの責任において行うものとします。APIキーの漏洩・不正使用等によって生じた損害について、運営者は一切の責任を負わないものとします。</li>
+            </ol>
 
-        <h2>第6条（知的財産権）</h2>
-        <ol>
-            <li>本アプリに関連する全ての知的財産権（著作権、商標権、意匠権等）は、運営者または正当な権利を有する第三者に帰属します。</li>
-            <li>ユーザーは、本アプリを通じて取得・保存した学習データについて、私的利用の範囲内で自由に利用することができるものとします。</li>
-        </ol>
+            <h2>第5条（データの保存と管理）</h2>
+            <ol>
+                <li>本アプリにおけるユーザーデータ（登録した単語、学習統計等）は、ユーザーの端末内にローカルに保存されます。運営者のサーバーにユーザーデータが保存されることはありません。</li>
+                <li>本アプリは、AT Protocolの仕組みに基づき、登録した単語データおよび学習進捗をユーザー自身のPDS（Personal Data Server）に同期する機能を提供します。PDSに保存されたデータは、ユーザー自身が所有・管理するものであり、運営者がこれを管理・閲覧することはありません。</li>
+                <li>PDSへのデータ同期は、端末変更やアプリ再インストール時のデータ復元を目的としています。PDS側の障害やデータ消失について、運営者は一切の責任を負わないものとします。</li>
+                <li>端末の故障、アプリの削除、その他の事由によりローカルデータが失われた場合、運営者はデータの復旧について一切の責任を負わないものとします。</li>
+                <li>ユーザーは、必要に応じて本アプリのデータエクスポート機能を利用し、自己の責任においてデータのバックアップを行うものとします。</li>
+            </ol>
 
-        <h2>第7条（禁止事項）</h2>
-        <p>ユーザーは、本アプリの利用にあたり、以下の行為をしてはなりません。</p>
-        <ol>
-            <li>法令または公序良俗に違反する行為</li>
-            <li>犯罪行為に関連する行為</li>
-            <li>本アプリまたは関連するサーバー・ネットワークの機能を破壊したり、妨害したりする行為</li>
-            <li>運営者のサービスの運営を妨害するおそれのある行為</li>
-            <li>他のユーザーに関する個人情報等を収集または蓄積する行為</li>
-            <li>不正アクセスをし、またはこれを試みる行為</li>
-            <li>本アプリのリバースエンジニアリング、逆コンパイル、逆アセンブル等の行為（オープンソースライセンスに基づく範囲を除く）</li>
-            <li>本アプリを利用した営利目的の活動（運営者が別途許可した場合を除く）</li>
-            <li>反社会的勢力に対して直接または間接に利益を供与する行為</li>
-            <li>その他、運営者が不適切と判断する行為</li>
-        </ol>
+            <h2>第6条（知的財産権）</h2>
+            <ol>
+                <li>本アプリに関連する全ての知的財産権（著作権、商標権、意匠権等）は、運営者または正当な権利を有する第三者に帰属します。</li>
+                <li>ユーザーは、本アプリを通じて取得・保存した学習データについて、私的利用の範囲内で自由に利用することができるものとします。</li>
+            </ol>
 
-        <h2>第8条（外部サービスの利用）</h2>
-        <ol>
-            <li>本アプリは、以下の外部サービスおよびデータを利用して機能を提供します。
-                <ul>
-                    <li>Bluesky / AT Protocol（タイムライン取得、投稿機能）</li>
-                    <li>DeepL API（翻訳機能、ユーザーが自身のAPIキーを設定した場合）</li>
-                    <li>Yahoo! JAPAN テキスト解析API（日本語解析機能、ユーザーが自身のClient IDを設定した場合）</li>
-                    <li>Free Dictionary API（英語辞書機能）</li>
-                    <li>JMdict辞書データ（日英・英日辞書機能、Electronic Dictionary Research and Development Group提供、CC BY-SA 4.0ライセンス）</li>
-                </ul>
-            </li>
-            <li>外部サービスの利用にあたっては、各サービスの利用規約が別途適用されます。ユーザーは、各外部サービスの利用規約を遵守する責任を負うものとします。</li>
-            <li>外部サービスの仕様変更、障害、終了等により本アプリの一部機能が利用できなくなった場合、運営者は一切の責任を負わないものとします。</li>
-        </ol>
+            <h2>第7条（禁止事項）</h2>
+            <p>ユーザーは、本アプリの利用にあたり、以下の行為をしてはなりません。</p>
+            <ol>
+                <li>法令または公序良俗に違反する行為</li>
+                <li>犯罪行為に関連する行為</li>
+                <li>本アプリまたは関連するサーバー・ネットワークの機能を破壊したり、妨害したりする行為</li>
+                <li>運営者のサービスの運営を妨害するおそれのある行為</li>
+                <li>他のユーザーに関する個人情報等を収集または蓄積する行為</li>
+                <li>不正アクセスをし、またはこれを試みる行為</li>
+                <li>本アプリのリバースエンジニアリング、逆コンパイル、逆アセンブル等の行為（オープンソースライセンスに基づく範囲を除く）</li>
+                <li>本アプリを利用した営利目的の活動（運営者が別途許可した場合を除く）</li>
+                <li>反社会的勢力に対して直接または間接に利益を供与する行為</li>
+                <li>その他、運営者が不適切と判断する行為</li>
+            </ol>
 
-        <h2>第9条（Blueskyへの投稿機能）</h2>
-        <ol>
-            <li>本アプリには、学習進捗をBlueskyに投稿する機能があります。ユーザーは、当該機能の利用にあたり、投稿内容がBluesky上で公開されることを理解し、自己の責任において利用するものとします。</li>
-            <li>ユーザーが本アプリを通じてBlueskyに投稿した内容について、運営者は一切の責任を負わないものとします。</li>
-            <li>本アプリは、Blueskyのコンテンツラベルに基づき、センシティブなコンテンツに対して警告表示を行います。コンテンツのフィルタリング設定はBluesky公式アプリで管理されるものであり、本アプリ内で変更することはできません。</li>
-        </ol>
+            <h2>第8条（外部サービスの利用）</h2>
+            <ol>
+                <li>本アプリは、以下の外部サービスおよびデータを利用して機能を提供します。
+                    <ul>
+                        <li>Bluesky / AT Protocol（タイムライン取得、投稿機能）</li>
+                        <li>DeepL API（翻訳機能、ユーザーが自身のAPIキーを設定した場合）</li>
+                        <li>Yahoo! JAPAN テキスト解析API（日本語解析機能、ユーザーが自身のClient IDを設定した場合）</li>
+                        <li>Free Dictionary API（英語辞書機能）</li>
+                        <li>JMdict辞書データ（日英・英日辞書機能、Electronic Dictionary Research and Development Group提供、CC BY-SA 4.0ライセンス）</li>
+                    </ul>
+                </li>
+                <li>外部サービスの利用にあたっては、各サービスの利用規約が別途適用されます。ユーザーは、各外部サービスの利用規約を遵守する責任を負うものとします。</li>
+                <li>外部サービスの仕様変更、障害、終了等により本アプリの一部機能が利用できなくなった場合、運営者は一切の責任を負わないものとします。</li>
+            </ol>
 
-        <h2>第10条（本アプリの提供の停止等）</h2>
-        <p>運営者は、以下のいずれかの事由があると判断した場合、ユーザーに事前に通知することなく本アプリの全部または一部の提供を停止または中断することができるものとします。</p>
-        <ol>
-            <li>本アプリにかかるシステムの保守点検または更新を行う場合</li>
-            <li>地震、落雷、火災、停電または天災などの不可抗力により、本アプリの提供が困難となった場合</li>
-            <li>コンピュータまたは通信回線等が事故により停止した場合</li>
-            <li>外部サービス（Bluesky、DeepL、Yahoo! JAPAN等）の障害・仕様変更等により、本アプリの提供が困難となった場合</li>
-            <li>その他、運営者が本アプリの提供が困難と判断した場合</li>
-        </ol>
+            <h2>第9条（Blueskyへの投稿機能）</h2>
+            <ol>
+                <li>本アプリには、学習進捗をBlueskyに投稿する機能があります。ユーザーは、当該機能の利用にあたり、投稿内容がBluesky上で公開されることを理解し、自己の責任において利用するものとします。</li>
+                <li>ユーザーが本アプリを通じてBlueskyに投稿した内容について、運営者は一切の責任を負わないものとします。</li>
+                <li>本アプリは、Blueskyのコンテンツラベルに基づき、センシティブなコンテンツに対して警告表示を行います。コンテンツのフィルタリング設定はBluesky公式アプリで管理されるものであり、本アプリ内で変更することはできません。</li>
+            </ol>
 
-        <h2>第11条（利用制限）</h2>
-        <p>運営者は、ユーザーが以下のいずれかに該当する場合には、事前の通知なく、ユーザーに対して本アプリの全部もしくは一部の利用を制限することができるものとします。</p>
-        <ol>
-            <li>本規約のいずれかの条項に違反した場合</li>
-            <li>その他、運営者が本アプリの利用を適当でないと判断した場合</li>
-        </ol>
+            <h2>第10条（本アプリの提供の停止等）</h2>
+            <p>運営者は、以下のいずれかの事由があると判断した場合、ユーザーに事前に通知することなく本アプリの全部または一部の提供を停止または中断することができるものとします。</p>
+            <ol>
+                <li>本アプリにかかるシステムの保守点検または更新を行う場合</li>
+                <li>地震、落雷、火災、停電または天災などの不可抗力により、本アプリの提供が困難となった場合</li>
+                <li>コンピュータまたは通信回線等が事故により停止した場合</li>
+                <li>外部サービス（Bluesky、DeepL、Yahoo! JAPAN等）の障害・仕様変更等により、本アプリの提供が困難となった場合</li>
+                <li>その他、運営者が本アプリの提供が困難と判断した場合</li>
+            </ol>
 
-        <h2>第12条（保証の否認および免責事項）</h2>
-        <ol>
-            <li>運営者は、本アプリに事実上または法律上の瑕疵がないことを保証しておりません。ここでいう瑕疵には、安全性、信頼性、正確性、完全性、有効性、特定目的への適合性、セキュリティに関する欠陥、エラーやバグ、権利侵害などを含みます。</li>
-            <li>運営者は、本アプリの利用によりユーザーに生じた、直接的または間接的な損害について、一切の責任を負いません。</li>
-            <li>本アプリが提供する辞書検索結果、翻訳結果、テキスト解析結果等の正確性、完全性について、運営者は一切の保証をしません。</li>
-            <li>本アプリはオープンソースソフトウェアとして提供されており、現状有姿（AS IS）で提供されます。</li>
-        </ol>
+            <h2>第11条（利用制限）</h2>
+            <p>運営者は、ユーザーが以下のいずれかに該当する場合には、事前の通知なく、ユーザーに対して本アプリの全部もしくは一部の利用を制限することができるものとします。</p>
+            <ol>
+                <li>本規約のいずれかの条項に違反した場合</li>
+                <li>その他、運営者が本アプリの利用を適当でないと判断した場合</li>
+            </ol>
 
-        <h2>第13条（サービス内容の変更等）</h2>
-        <p>運営者は、ユーザーに通知することなく、本アプリの内容を変更しまたは本アプリの提供を中止することができるものとし、これによってユーザーに生じた損害について一切の責任を負いません。</p>
+            <h2>第12条（保証の否認および免責事項）</h2>
+            <ol>
+                <li>運営者は、本アプリに事実上または法律上の瑕疵がないことを保証しておりません。ここでいう瑕疵には、安全性、信頼性、正確性、完全性、有効性、特定目的への適合性、セキュリティに関する欠陥、エラーやバグ、権利侵害などを含みます。</li>
+                <li>運営者は、本アプリの利用によりユーザーに生じた、直接的または間接的な損害について、一切の責任を負いません。</li>
+                <li>本アプリが提供する辞書検索結果、翻訳結果、テキスト解析結果等の正確性、完全性について、運営者は一切の保証をしません。</li>
+                <li>本アプリはオープンソースソフトウェアとして提供されており、現状有姿（AS IS）で提供されます。</li>
+            </ol>
 
-        <h2>第14条（利用規約の変更）</h2>
-        <ol>
-            <li>運営者は、必要と判断した場合には、ユーザーに通知することなくいつでも本規約を変更することができるものとします。</li>
-            <li>本規約の変更後、本アプリの利用を継続した場合には、当該ユーザーは変更後の規約に同意したものとみなします。</li>
-        </ol>
+            <h2>第13条（サービス内容の変更等）</h2>
+            <p>運営者は、ユーザーに通知することなく、本アプリの内容を変更しまたは本アプリの提供を中止することができるものとし、これによってユーザーに生じた損害について一切の責任を負いません。</p>
 
-        <h2>第15条（個人情報の取扱い）</h2>
-        <p>運営者は、本アプリの利用によって取得する個人情報については、別途定める「プライバシーポリシー」に従い適切に取り扱うものとします。</p>
+            <h2>第14条（利用規約の変更）</h2>
+            <ol>
+                <li>運営者は、必要と判断した場合には、ユーザーに通知することなくいつでも本規約を変更することができるものとします。</li>
+                <li>本規約の変更後、本アプリの利用を継続した場合には、当該ユーザーは変更後の規約に同意したものとみなします。</li>
+            </ol>
 
-        <h2>第16条（準拠法・裁判管轄）</h2>
-        <ol>
-            <li>本規約の解釈にあたっては、日本法を準拠法とします。</li>
-            <li>本アプリに関して紛争が生じた場合には、運営者の所在地を管轄する裁判所を第一審の専属的合意管轄裁判所とします。</li>
-        </ol>
+            <h2>第15条（個人情報の取扱い）</h2>
+            <p>運営者は、本アプリの利用によって取得する個人情報については、別途定める「プライバシーポリシー」に従い適切に取り扱うものとします。</p>
 
-        <div class="footer">
-            <p><strong>運営者:</strong> RieTamura<br>
-            <strong>お問い合わせ:</strong> <a href="https://github.com/RieTamura/kumotan/issues" target="_blank">GitHub Issues</a></p>
-            <p><strong>最終更新日:</strong> 2026年2月12日</p>
+            <h2>第16条（準拠法・裁判管轄）</h2>
+            <ol>
+                <li>本規約の解釈にあたっては、日本法を準拠法とします。</li>
+                <li>本アプリに関して紛争が生じた場合には、運営者の所在地を管轄する裁判所を第一審の専属的合意管轄裁判所とします。</li>
+            </ol>
+
+            <div class="footer">
+                <p><strong>運営者:</strong> RieTamura<br>
+                <strong>お問い合わせ:</strong> <a href="https://github.com/RieTamura/kumotan/issues" target="_blank">GitHub Issues</a></p>
+                <p><strong>最終更新日:</strong> 2026年2月12日</p>
+            </div>
+        </div>
+
+        <div class="lang-en">
+            <h1>Terms of Service</h1>
+
+            <p>These Terms of Service (hereinafter "these Terms") set forth the conditions of use for Kumotan (hereinafter "this App"). All users (hereinafter "Users") who use this App shall agree to these Terms and use this App in accordance with them.</p>
+
+            <h2>Article 1 (Application)</h2>
+            <ol>
+                <li>These Terms shall apply to all matters relating to the use of this App between Users and the operator of this App (hereinafter the "Operator").</li>
+                <li>The Operator may establish various rules and regulations (hereinafter "Individual Provisions") regarding the use of this App, in addition to these Terms. Such Individual Provisions shall constitute a part of these Terms regardless of their title.</li>
+            </ol>
+
+            <h2>Article 2 (Definition of Service)</h2>
+            <ol>
+                <li>This App is a vocabulary learning support tool for learning English words and phrases in Japanese while browsing AT Protocol (Bluesky, etc.) timelines.</li>
+                <li>This App provides the following main features:
+                    <ul>
+                        <li>Display of Bluesky timeline</li>
+                        <li>Dictionary search and translation of English words in posts</li>
+                        <li>Registration and management of vocabulary</li>
+                        <li>Recording and display of learning progress</li>
+                        <li>Sharing learning progress on Bluesky</li>
+                    </ul>
+                </li>
+                <li>The translation and text analysis features use API keys from external services (DeepL API Key, Yahoo! JAPAN Client ID) obtained by Users themselves. Users are responsible for obtaining and managing these API keys.</li>
+            </ol>
+
+            <h2>Article 3 (Registration)</h2>
+            <ol>
+                <li>Use of this App requires login with a Bluesky account. Users shall begin using this App by logging in with their Bluesky account through AT Protocol OAuth authentication.</li>
+                <li>The Operator does not obtain or store authentication credentials such as passwords for Users' Bluesky accounts.</li>
+            </ol>
+
+            <h2>Article 4 (Account Management)</h2>
+            <ol>
+                <li>Users shall properly manage the Bluesky account used for this App at their own responsibility.</li>
+                <li>The Operator shall not be liable for any damages arising from unauthorized use of a User's Bluesky account by a third party.</li>
+                <li>Users are responsible for managing API keys for external services (DeepL API Key, Yahoo! JAPAN Client ID) set in this App. The Operator shall not be liable for any damages arising from leakage or unauthorized use of API keys.</li>
+            </ol>
+
+            <h2>Article 5 (Data Storage and Management)</h2>
+            <ol>
+                <li>User data in this App (registered words, learning statistics, etc.) is stored locally on the User's device. User data is not transmitted to or stored on the Operator's servers.</li>
+                <li>This App provides a function to sync registered vocabulary data and learning progress to the User's own PDS (Personal Data Server) based on the AT Protocol framework. Data stored on PDS is owned and managed by the User, and the Operator does not manage or access it.</li>
+                <li>Data synchronization to PDS is intended for data restoration when changing devices or reinstalling the App. The Operator shall not be liable for any PDS-side failures or data loss.</li>
+                <li>The Operator shall not be liable for data recovery if local data is lost due to device failure, app deletion, or other reasons.</li>
+                <li>Users shall back up their data at their own responsibility using the data export function of this App as needed.</li>
+            </ol>
+
+            <h2>Article 6 (Intellectual Property Rights)</h2>
+            <ol>
+                <li>All intellectual property rights (copyrights, trademark rights, design rights, etc.) related to this App belong to the Operator or third parties with legitimate rights.</li>
+                <li>Users may freely use learning data obtained and saved through this App within the scope of personal use.</li>
+            </ol>
+
+            <h2>Article 7 (Prohibited Actions)</h2>
+            <p>Users shall not engage in the following actions when using this App:</p>
+            <ol>
+                <li>Actions that violate laws or public order and morals</li>
+                <li>Actions related to criminal activity</li>
+                <li>Actions that destroy or interfere with the functions of this App or related servers/networks</li>
+                <li>Actions that may interfere with the operation of the Operator's services</li>
+                <li>Collecting or accumulating personal information of other users</li>
+                <li>Unauthorized access or attempts thereof</li>
+                <li>Reverse engineering, decompilation, or disassembly of this App (except within the scope of open source licenses)</li>
+                <li>Commercial activities using this App (unless separately permitted by the Operator)</li>
+                <li>Directly or indirectly providing benefits to antisocial forces</li>
+                <li>Any other actions deemed inappropriate by the Operator</li>
+            </ol>
+
+            <h2>Article 8 (Use of External Services)</h2>
+            <ol>
+                <li>This App uses the following external services and data to provide its features:
+                    <ul>
+                        <li>Bluesky / AT Protocol (timeline retrieval, posting)</li>
+                        <li>DeepL API (translation, when User sets their own API key)</li>
+                        <li>Yahoo! JAPAN Text Analysis API (Japanese analysis, when User sets their own Client ID)</li>
+                        <li>Free Dictionary API (English dictionary)</li>
+                        <li>JMdict dictionary data (Japanese-English dictionary, provided by Electronic Dictionary Research and Development Group, CC BY-SA 4.0 license)</li>
+                    </ul>
+                </li>
+                <li>The terms of service of each external service apply separately. Users are responsible for complying with the terms of service of each external service.</li>
+                <li>The Operator shall not be liable if some features become unavailable due to specification changes, failures, or termination of external services.</li>
+            </ol>
+
+            <h2>Article 9 (Bluesky Posting Feature)</h2>
+            <ol>
+                <li>This App includes a feature to post learning progress to Bluesky. Users shall understand that posted content will be publicly available on Bluesky and use this feature at their own responsibility.</li>
+                <li>The Operator shall not be liable for any content posted to Bluesky through this App.</li>
+                <li>This App displays warnings for sensitive content based on Bluesky's content labels. Content filtering settings are managed through the official Bluesky app and cannot be changed within this App.</li>
+            </ol>
+
+            <h2>Article 10 (Suspension of Service)</h2>
+            <p>The Operator may suspend or interrupt all or part of this App without prior notice to Users if any of the following reasons apply:</p>
+            <ol>
+                <li>When performing maintenance or updates to the systems of this App</li>
+                <li>When provision of this App becomes difficult due to force majeure such as earthquakes, lightning, fire, power outages, or natural disasters</li>
+                <li>When computers or communication lines are stopped due to accidents</li>
+                <li>When provision of this App becomes difficult due to failures or specification changes of external services (Bluesky, DeepL, Yahoo! JAPAN, etc.)</li>
+                <li>When the Operator determines that provision of this App is otherwise difficult</li>
+            </ol>
+
+            <h2>Article 11 (Usage Restrictions)</h2>
+            <p>The Operator may restrict all or part of a User's use of this App without prior notice if the User falls under any of the following:</p>
+            <ol>
+                <li>When any provision of these Terms is violated</li>
+                <li>When the Operator otherwise determines that use of this App is inappropriate</li>
+            </ol>
+
+            <h2>Article 12 (Disclaimer of Warranty and Limitation of Liability)</h2>
+            <ol>
+                <li>The Operator does not warrant that this App is free from defects in fact or law. Such defects include defects related to safety, reliability, accuracy, completeness, effectiveness, fitness for a particular purpose, security, errors, bugs, and infringement of rights.</li>
+                <li>The Operator shall not be liable for any direct or indirect damages incurred by Users from the use of this App.</li>
+                <li>The Operator makes no guarantees regarding the accuracy or completeness of dictionary search results, translation results, text analysis results, etc. provided by this App.</li>
+                <li>This App is provided as open source software and is provided "AS IS".</li>
+            </ol>
+
+            <h2>Article 13 (Changes to Service Content)</h2>
+            <p>The Operator may change or discontinue the content of this App without notice to Users and shall not be liable for any damages incurred by Users as a result.</p>
+
+            <h2>Article 14 (Changes to Terms of Service)</h2>
+            <ol>
+                <li>The Operator may change these Terms at any time without notice to Users when deemed necessary.</li>
+                <li>If a User continues to use this App after changes to these Terms, the User shall be deemed to have agreed to the revised Terms.</li>
+            </ol>
+
+            <h2>Article 15 (Handling of Personal Information)</h2>
+            <p>The Operator shall handle personal information obtained through the use of this App appropriately in accordance with a separately established "Privacy Policy".</p>
+
+            <h2>Article 16 (Governing Law and Jurisdiction)</h2>
+            <ol>
+                <li>Japanese law shall be the governing law for the interpretation of these Terms.</li>
+                <li>In the event of any dispute regarding this App, the court having jurisdiction over the Operator's location shall be the exclusive agreed court of first instance.</li>
+            </ol>
+
+            <div class="footer">
+                <p><strong>Operator:</strong> RieTamura<br>
+                <strong>Contact:</strong> <a href="https://github.com/RieTamura/kumotan/issues" target="_blank">GitHub Issues</a></p>
+                <p><strong>Last updated:</strong> February 25, 2026</p>
+            </div>
         </div>
     </div>
+
+    <script>
+        function switchLang(lang) {
+            document.querySelectorAll('.lang-tab').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelector('.lang-' + lang).style.display = 'block';
+            document.querySelector('.lang-' + (lang === 'ja' ? 'en' : 'ja')).style.display = 'none';
+            event.target.classList.add('active');
+            localStorage.setItem('kumotan-lang', lang);
+        }
+        var saved = localStorage.getItem('kumotan-lang');
+        if (saved === 'ja' || saved === 'en') { switchLang(saved); }
+    </script>
 </body>
 </html>

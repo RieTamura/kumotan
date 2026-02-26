@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>プライバシーポリシー - くもたん</title>
+    <title>プライバシーポリシー / Privacy Policy - くもたん</title>
     <style>
         * {
             margin: 0;
@@ -93,165 +93,347 @@
                 font-size: 1.3em;
             }
         }
+        .lang-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+        .lang-tab { padding: 6px 16px; border-radius: 4px; border: 1px solid #1DA1F2;
+                    cursor: pointer; background: white; color: #1DA1F2; font-size: 14px; }
+        .lang-tab.active { background: #1DA1F2; color: white; }
+        .lang-en { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>プライバシーポリシー</h1>
+        <div class="lang-tabs">
+            <button class="lang-tab active" onclick="switchLang('ja')">日本語</button>
+            <button class="lang-tab" onclick="switchLang('en')">English</button>
+        </div>
 
-        <p>くもたん（以下「本アプリ」といいます。）の運営者（以下「運営者」といいます。）は、本アプリにおけるユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます。）を定めます。</p>
+        <div class="lang-ja">
+            <h1>プライバシーポリシー</h1>
 
-        <h2>第1条（個人情報の定義）</h2>
-        <p>「個人情報」とは、個人情報保護法にいう「個人情報」を指すものとし、生存する個人に関する情報であって、当該情報に含まれる氏名、生年月日、住所、電話番号、連絡先その他の記述等により特定の個人を識別できる情報（個人識別符号となるものを含む）を指します。</p>
+            <p>くもたん（以下「本アプリ」といいます。）の運営者（以下「運営者」といいます。）は、本アプリにおけるユーザーの個人情報の取扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます。）を定めます。</p>
 
-        <h2>第2条（収集する情報）</h2>
-        <p>本アプリは、以下の情報を取得する場合があります。</p>
+            <h2>第1条（個人情報の定義）</h2>
+            <p>「個人情報」とは、個人情報保護法にいう「個人情報」を指すものとし、生存する個人に関する情報であって、当該情報に含まれる氏名、生年月日、住所、電話番号、連絡先その他の記述等により特定の個人を識別できる情報（個人識別符号となるものを含む）を指します。</p>
 
-        <h3>1. Blueskyアカウント情報</h3>
-        <p>Bluesky OAuth認証を通じて以下の情報を取得します。</p>
-        <ul>
-            <li>ユーザーのDID（分散型識別子）</li>
-            <li>ハンドル名（ユーザー名）</li>
-            <li>表示名、アバター画像、プロフィール情報</li>
-        </ul>
+            <h2>第2条（収集する情報）</h2>
+            <p>本アプリは、以下の情報を取得する場合があります。</p>
 
-        <h3>2. 端末内に保存されるデータ</h3>
-        <p>以下のデータはユーザーの端末内にのみ保存され、運営者のサーバーに送信されることはありません。</p>
-        <ul>
-            <li>登録した単語データ（英単語、日本語訳、定義、登録元の投稿情報）</li>
-            <li>学習統計データ（日別の学習数、クイズ履歴等）</li>
-            <li>アプリ設定（テーマ、言語、チュートリアル完了状態等）</li>
-            <li>外部サービスのAPIキー（DeepL API Key、Yahoo! JAPAN Client ID）</li>
-        </ul>
+            <h3>1. Blueskyアカウント情報</h3>
+            <p>Bluesky OAuth認証を通じて以下の情報を取得します。</p>
+            <ul>
+                <li>ユーザーのDID（分散型識別子）</li>
+                <li>ハンドル名（ユーザー名）</li>
+                <li>表示名、アバター画像、プロフィール情報</li>
+            </ul>
 
-        <h3>3. PDSに同期されるデータ</h3>
-        <p>AT Protocolの仕組みに基づき、以下のデータがユーザー自身のPDS（Personal Data Server）に同期されます。</p>
-        <ul>
-            <li>登録した単語データ（英単語、日本語訳、定義、既読状態、登録元の投稿URL等）</li>
-            <li>学習セッション情報</li>
-        </ul>
+            <h3>2. 端末内に保存されるデータ</h3>
+            <p>以下のデータはユーザーの端末内にのみ保存され、運営者のサーバーに送信されることはありません。</p>
+            <ul>
+                <li>登録した単語データ（英単語、日本語訳、定義、登録元の投稿情報）</li>
+                <li>学習統計データ（日別の学習数、クイズ履歴等）</li>
+                <li>アプリ設定（テーマ、言語、チュートリアル完了状態等）</li>
+                <li>外部サービスのAPIキー（DeepL API Key、Yahoo! JAPAN Client ID）</li>
+            </ul>
 
-        <h3>4. 外部サービスに送信されるデータ</h3>
-        <p>本アプリの機能を提供するため、以下のデータが外部サービスに送信されます。</p>
-        <ul>
-            <li><strong>Bluesky / AT Protocol</strong>: タイムライン取得リクエスト、投稿内容（進捗シェア時）、画像データ（投稿添付時）</li>
-            <li><strong>DeepL API</strong>: 翻訳対象のテキスト（ユーザーがAPIキーを設定した場合のみ）</li>
-            <li><strong>Yahoo! JAPAN テキスト解析API</strong>: 解析対象の日本語テキスト（ユーザーがClient IDを設定した場合のみ）</li>
-            <li><strong>Free Dictionary API</strong>: 検索する英単語</li>
-            <li><strong>Railway（運営者管理サーバー）</strong>: Bluesky DID、Expo Push Token、通知設定（プッシュ通知を有効にした場合のみ）</li>
-            <li><strong>Expo Push Notification Service</strong>: Expo Push Token、通知タイトル・本文（プッシュ通知送信時）</li>
-            <li><strong>Bluesky Jetstream（公式）</strong>: 送信なし（イベント受信のみ）</li>
-        </ul>
+            <h3>3. PDSに同期されるデータ</h3>
+            <p>AT Protocolの仕組みに基づき、以下のデータがユーザー自身のPDS（Personal Data Server）に同期されます。</p>
+            <ul>
+                <li>登録した単語データ（英単語、日本語訳、定義、既読状態、登録元の投稿URL等）</li>
+                <li>学習セッション情報</li>
+            </ul>
 
-        <h3>5. プッシュ通知トークン</h3>
-        <p>ユーザーがプッシュ通知を有効にした場合、以下の情報が運営者管理サーバー（Railway）に送信・保存されます。</p>
-        <ul>
-            <li>Expo Push Token（デバイス識別子。Expo Push Notificationサービスが発行する通知配信用トークン）</li>
-            <li>Bluesky DID（通知の宛先を特定するための公開識別子）</li>
-            <li>通知種別の設定（いいね・返信・メンション・リポスト・フォローの各ON/OFF）</li>
-        </ul>
-        <p>これらの情報はプッシュ通知の送信目的にのみ使用し、それ以外の目的には使用しません。プッシュ通知を無効にした場合、または本アプリをアンインストールした場合は、サーバーから削除されます。</p>
+            <h3>4. 外部サービスに送信されるデータ</h3>
+            <p>本アプリの機能を提供するため、以下のデータが外部サービスに送信されます。</p>
+            <ul>
+                <li><strong>Bluesky / AT Protocol</strong>: タイムライン取得リクエスト、投稿内容（進捗シェア時）、画像データ（投稿添付時）</li>
+                <li><strong>DeepL API</strong>: 翻訳対象のテキスト（ユーザーがAPIキーを設定した場合のみ）</li>
+                <li><strong>Yahoo! JAPAN テキスト解析API</strong>: 解析対象の日本語テキスト（ユーザーがClient IDを設定した場合のみ）</li>
+                <li><strong>Free Dictionary API</strong>: 検索する英単語</li>
+                <li><strong>Railway（運営者管理サーバー）</strong>: Bluesky DID、Expo Push Token、通知設定（プッシュ通知を有効にした場合のみ）</li>
+                <li><strong>Expo Push Notification Service</strong>: Expo Push Token、通知タイトル・本文（プッシュ通知送信時）</li>
+                <li><strong>Bluesky Jetstream（公式）</strong>: 送信なし（イベント受信のみ）</li>
+            </ul>
 
-        <h3>6. フィードバック情報</h3>
-        <p>ユーザーがアプリ内のフィードバック機能を利用した場合、以下の情報が送信されます。</p>
-        <ul>
-            <li>フィードバックの種類（バグ報告、機能要望、辞書修正等）</li>
-            <li>フィードバックの内容（件名、説明、コメント）</li>
-            <li>関連する単語情報や投稿URL（該当する場合）</li>
-        </ul>
+            <h3>5. プッシュ通知トークン</h3>
+            <p>ユーザーがプッシュ通知を有効にした場合、以下の情報が運営者管理サーバー（Railway）に送信・保存されます。</p>
+            <ul>
+                <li>Expo Push Token（デバイス識別子。Expo Push Notificationサービスが発行する通知配信用トークン）</li>
+                <li>Bluesky DID（通知の宛先を特定するための公開識別子）</li>
+                <li>通知種別の設定（いいね・返信・メンション・リポスト・フォローの各ON/OFF）</li>
+            </ul>
+            <p>これらの情報はプッシュ通知の送信目的にのみ使用し、それ以外の目的には使用しません。プッシュ通知を無効にした場合、または本アプリをアンインストールした場合は、サーバーから削除されます。</p>
 
-        <h2>第3条（情報の利用目的）</h2>
-        <p>運営者が情報を利用する目的は、以下のとおりです。</p>
-        <ol>
-            <li>本アプリの提供・運営のため</li>
-            <li>ユーザー認証およびBlueskyアカウントとの連携のため</li>
-            <li>単語データの保存・復元機能を提供するため</li>
-            <li>辞書検索、翻訳、テキスト解析等の学習支援機能を提供するため</li>
-            <li>ユーザーからのフィードバックに対応し、本アプリを改善するため</li>
-            <li>本アプリの不具合の修正および機能改善のため</li>
-            <li>プッシュ通知（Blueskyのソーシャルアクション通知・学習リマインダー）の送信のため</li>
-        </ol>
+            <h3>6. フィードバック情報</h3>
+            <p>ユーザーがアプリ内のフィードバック機能を利用した場合、以下の情報が送信されます。</p>
+            <ul>
+                <li>フィードバックの種類（バグ報告、機能要望、辞書修正等）</li>
+                <li>フィードバックの内容（件名、説明、コメント）</li>
+                <li>関連する単語情報や投稿URL（該当する場合）</li>
+            </ul>
 
-        <h2>第4条（個人情報の第三者提供）</h2>
-        <ol>
-            <li>運営者は、次に掲げる場合を除いて、あらかじめユーザーの同意を得ることなく、第三者に個人情報を提供することはありません。
-                <ul>
-                    <li>人の生命、身体または財産の保護のために必要がある場合であって、本人の同意を得ることが困難であるとき</li>
-                    <li>公衆衛生の向上または児童の健全な育成の推進のために特に必要がある場合であって、本人の同意を得ることが困難であるとき</li>
-                    <li>国の機関もしくは地方公共団体またはその委託を受けた者が法令の定める事務を遂行することに対して協力する必要がある場合であって、本人の同意を得ることにより当該事務の遂行に支障を及ぼすおそれがあるとき</li>
-                    <li>その他法令で認められる場合</li>
-                </ul>
-            </li>
-            <li>本アプリは、ユーザーが設定した外部サービス（DeepL、Yahoo! JAPAN等）にデータを送信しますが、これはユーザーが自ら設定したAPIキーに基づく送信であり、運営者による第三者提供には該当しません。</li>
-        </ol>
+            <h2>第3条（情報の利用目的）</h2>
+            <p>運営者が情報を利用する目的は、以下のとおりです。</p>
+            <ol>
+                <li>本アプリの提供・運営のため</li>
+                <li>ユーザー認証およびBlueskyアカウントとの連携のため</li>
+                <li>単語データの保存・復元機能を提供するため</li>
+                <li>辞書検索、翻訳、テキスト解析等の学習支援機能を提供するため</li>
+                <li>ユーザーからのフィードバックに対応し、本アプリを改善するため</li>
+                <li>本アプリの不具合の修正および機能改善のため</li>
+                <li>プッシュ通知（Blueskyのソーシャルアクション通知・学習リマインダー）の送信のため</li>
+            </ol>
 
-        <h2>第5条（安全管理措置）</h2>
-        <ol>
-            <li>運営者は、個人情報の漏えい、滅失またはき損の防止その他の個人情報の安全管理のために、以下の措置を講じています。
-                <ul>
-                    <li>認証トークンおよびAPIキーは、端末の暗号化ストレージ（Expo SecureStore）に保存します</li>
-                    <li>Bluesky認証にはOAuth（PKCE + DPoP）を採用し、ユーザーのパスワードを取得・保存しません</li>
-                    <li>外部サービスとの通信はHTTPSによる暗号化通信を使用します</li>
-                </ul>
-            </li>
-        </ol>
+            <h2>第4条（個人情報の第三者提供）</h2>
+            <ol>
+                <li>運営者は、次に掲げる場合を除いて、あらかじめユーザーの同意を得ることなく、第三者に個人情報を提供することはありません。
+                    <ul>
+                        <li>人の生命、身体または財産の保護のために必要がある場合であって、本人の同意を得ることが困難であるとき</li>
+                        <li>公衆衛生の向上または児童の健全な育成の推進のために特に必要がある場合であって、本人の同意を得ることが困難であるとき</li>
+                        <li>国の機関もしくは地方公共団体またはその委託を受けた者が法令の定める事務を遂行することに対して協力する必要がある場合であって、本人の同意を得ることにより当該事務の遂行に支障を及ぼすおそれがあるとき</li>
+                        <li>その他法令で認められる場合</li>
+                    </ul>
+                </li>
+                <li>本アプリは、ユーザーが設定した外部サービス（DeepL、Yahoo! JAPAN等）にデータを送信しますが、これはユーザーが自ら設定したAPIキーに基づく送信であり、運営者による第三者提供には該当しません。</li>
+            </ol>
 
-        <h2>第6条（アナリティクス・トラッキング）</h2>
-        <p>本アプリは、アクセス解析ツール、広告配信SDK、トラッキングツール等を使用しておりません。ユーザーの行動データを収集・分析する機能は搭載していません。</p>
+            <h2>第5条（安全管理措置）</h2>
+            <ol>
+                <li>運営者は、個人情報の漏えい、滅失またはき損の防止その他の個人情報の安全管理のために、以下の措置を講じています。
+                    <ul>
+                        <li>認証トークンおよびAPIキーは、端末の暗号化ストレージ（Expo SecureStore）に保存します</li>
+                        <li>Bluesky認証にはOAuth（PKCE + DPoP）を採用し、ユーザーのパスワードを取得・保存しません</li>
+                        <li>外部サービスとの通信はHTTPSによる暗号化通信を使用します</li>
+                    </ul>
+                </li>
+            </ol>
 
-        <h2>第7条（端末のアクセス権限）</h2>
-        <p>本アプリは、以下の端末機能へのアクセス許可を求める場合があります。</p>
-        <table>
-            <thead>
-                <tr>
-                    <th>権限</th>
-                    <th>用途</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>写真ライブラリ</td>
-                    <td>学習進捗の画像を保存・シェアするため、投稿に画像を添付するため</td>
-                </tr>
-                <tr>
-                    <td>カメラ</td>
-                    <td>投稿に添付する写真を撮影するため</td>
-                </tr>
-                <tr>
-                    <td>通知</td>
-                    <td>Blueskyのソーシャルアクション通知および学習リマインダーを受信するため</td>
-                </tr>
-            </tbody>
-        </table>
-        <p>これらの権限は、ユーザーが該当する機能を利用する際にのみ求められ、許可しなくても本アプリの基本機能は利用できます。</p>
+            <h2>第6条（アナリティクス・トラッキング）</h2>
+            <p>本アプリは、アクセス解析ツール、広告配信SDK、トラッキングツール等を使用しておりません。ユーザーの行動データを収集・分析する機能は搭載していません。</p>
 
-        <h2>第8条（データの削除）</h2>
-        <ol>
-            <li>ユーザーは、本アプリの設定画面から「すべてのデータを削除」を実行することにより、端末内に保存されたすべての学習データを削除できます。</li>
-            <li>ログアウトを行うことにより、端末内に保存された認証情報は削除されます。</li>
-            <li>PDSに同期されたデータの削除については、ユーザー自身のPDS管理に委ねられます。</li>
-            <li>本アプリをアンインストールすることにより、端末内のすべてのデータが削除されます。</li>
-            <li>削除されたデータは復元できません。ユーザーは、削除前に必要に応じてデータエクスポート機能を利用し、バックアップを行ってください。</li>
-        </ol>
+            <h2>第7条（端末のアクセス権限）</h2>
+            <p>本アプリは、以下の端末機能へのアクセス許可を求める場合があります。</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>権限</th>
+                        <th>用途</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>写真ライブラリ</td>
+                        <td>学習進捗の画像を保存・シェアするため、投稿に画像を添付するため</td>
+                    </tr>
+                    <tr>
+                        <td>カメラ</td>
+                        <td>投稿に添付する写真を撮影するため</td>
+                    </tr>
+                    <tr>
+                        <td>通知</td>
+                        <td>Blueskyのソーシャルアクション通知および学習リマインダーを受信するため</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>これらの権限は、ユーザーが該当する機能を利用する際にのみ求められ、許可しなくても本アプリの基本機能は利用できます。</p>
 
-        <h2>第9条（未成年者の利用）</h2>
-        <p>本アプリは、特に未成年者を対象としたサービスではありませんが、未成年者が利用する場合は、保護者の同意のもとで利用することを推奨します。</p>
+            <h2>第8条（データの削除）</h2>
+            <ol>
+                <li>ユーザーは、本アプリの設定画面から「すべてのデータを削除」を実行することにより、端末内に保存されたすべての学習データを削除できます。</li>
+                <li>ログアウトを行うことにより、端末内に保存された認証情報は削除されます。</li>
+                <li>PDSに同期されたデータの削除については、ユーザー自身のPDS管理に委ねられます。</li>
+                <li>本アプリをアンインストールすることにより、端末内のすべてのデータが削除されます。</li>
+                <li>削除されたデータは復元できません。ユーザーは、削除前に必要に応じてデータエクスポート機能を利用し、バックアップを行ってください。</li>
+            </ol>
 
-        <h2>第10条（プライバシーポリシーの変更）</h2>
-        <ol>
-            <li>運営者は、必要に応じて本ポリシーを変更することがあります。</li>
-            <li>本ポリシーの変更は、本アプリ内または運営者のウェブサイト上で通知するものとします。</li>
-            <li>変更後に本アプリの利用を継続した場合、ユーザーは変更後のポリシーに同意したものとみなします。</li>
-        </ol>
+            <h2>第9条（未成年者の利用）</h2>
+            <p>本アプリは、特に未成年者を対象としたサービスではありませんが、未成年者が利用する場合は、保護者の同意のもとで利用することを推奨します。</p>
 
-        <h2>第11条（お問い合わせ窓口）</h2>
-        <p>本ポリシーに関するお問い合わせは、下記の窓口までお願いいたします。</p>
-        <p><strong>運営者:</strong> RieTamura<br>
-        <strong>お問い合わせ:</strong> <a href="https://github.com/RieTamura/kumotan/issues" target="_blank">GitHub Issues</a></p>
+            <h2>第10条（プライバシーポリシーの変更）</h2>
+            <ol>
+                <li>運営者は、必要に応じて本ポリシーを変更することがあります。</li>
+                <li>本ポリシーの変更は、本アプリ内または運営者のウェブサイト上で通知するものとします。</li>
+                <li>変更後に本アプリの利用を継続した場合、ユーザーは変更後のポリシーに同意したものとみなします。</li>
+            </ol>
 
-        <div class="footer">
-            <p><strong>最終更新日:</strong> 2026年2月22日</p>
+            <h2>第11条（お問い合わせ窓口）</h2>
+            <p>本ポリシーに関するお問い合わせは、下記の窓口までお願いいたします。</p>
+            <p><strong>運営者:</strong> RieTamura<br>
+            <strong>お問い合わせ:</strong> <a href="https://github.com/RieTamura/kumotan/issues" target="_blank">GitHub Issues</a></p>
+
+            <div class="footer">
+                <p><strong>最終更新日:</strong> 2026年2月22日</p>
+            </div>
+        </div>
+
+        <div class="lang-en">
+            <h1>Privacy Policy</h1>
+
+            <p>The operator (hereinafter the "Operator") of Kumotan (hereinafter "this App") establishes this Privacy Policy (hereinafter "this Policy") regarding the handling of users' personal information in this App.</p>
+
+            <h2>Article 1 (Definition of Personal Information)</h2>
+            <p>"Personal information" refers to "personal information" as defined in the Act on the Protection of Personal Information, meaning information about a living individual that can identify a specific individual by name, date of birth, address, telephone number, contact information, or other descriptions contained in the information (including personal identification codes).</p>
+
+            <h2>Article 2 (Information We Collect)</h2>
+            <p>This App may collect the following information:</p>
+
+            <h3>1. Bluesky Account Information</h3>
+            <p>The following information is obtained through Bluesky OAuth authentication:</p>
+            <ul>
+                <li>User's DID (Decentralized Identifier)</li>
+                <li>Handle (username)</li>
+                <li>Display name, avatar image, profile information</li>
+            </ul>
+
+            <h3>2. Data Stored on Device</h3>
+            <p>The following data is stored only on the User's device and is not sent to the Operator's servers:</p>
+            <ul>
+                <li>Registered word data (English words, Japanese translations, definitions, source post information)</li>
+                <li>Learning statistics data (daily learning counts, quiz history, etc.)</li>
+                <li>App settings (theme, language, tutorial completion status, etc.)</li>
+                <li>External service API keys (DeepL API Key, Yahoo! JAPAN Client ID)</li>
+            </ul>
+
+            <h3>3. Data Synced to PDS</h3>
+            <p>Based on the AT Protocol framework, the following data is synced to the User's own PDS (Personal Data Server):</p>
+            <ul>
+                <li>Registered word data (English words, Japanese translations, definitions, read status, source post URLs, etc.)</li>
+                <li>Learning session information</li>
+            </ul>
+
+            <h3>4. Data Sent to External Services</h3>
+            <p>To provide this App's features, the following data is sent to external services:</p>
+            <ul>
+                <li><strong>Bluesky / AT Protocol</strong>: Timeline retrieval requests, post content (when sharing progress), image data (when attaching to posts)</li>
+                <li><strong>DeepL API</strong>: Text for translation (only when User has set API key)</li>
+                <li><strong>Yahoo! JAPAN Text Analysis API</strong>: Japanese text for analysis (only when User has set Client ID)</li>
+                <li><strong>Free Dictionary API</strong>: English words for lookup</li>
+                <li><strong>Railway (Operator-managed server)</strong>: Bluesky DID, Expo Push Token, notification settings (only when push notifications are enabled)</li>
+                <li><strong>Expo Push Notification Service</strong>: Expo Push Token, notification title and body (when sending push notifications)</li>
+                <li><strong>Bluesky Jetstream (Official)</strong>: No data sent (receives events only)</li>
+            </ul>
+
+            <h3>5. Push Notification Tokens</h3>
+            <p>When Users enable push notifications, the following information is sent to and stored on the Operator's server (Railway):</p>
+            <ul>
+                <li>Expo Push Token (a notification delivery token issued by the Expo Push Notification service)</li>
+                <li>Bluesky DID (a public identifier used to identify the notification recipient)</li>
+                <li>Notification type settings (ON/OFF for likes, replies, mentions, reposts, and follows)</li>
+            </ul>
+            <p>This information is used solely for push notification delivery. It is deleted from the server when push notifications are disabled or the App is uninstalled.</p>
+
+            <h3>6. Feedback Information</h3>
+            <p>When Users use the in-app feedback feature, the following information is sent:</p>
+            <ul>
+                <li>Feedback type (bug report, feature request, dictionary correction, etc.)</li>
+                <li>Feedback content (subject, description, comments)</li>
+                <li>Related word information or post URLs (if applicable)</li>
+            </ul>
+
+            <h2>Article 3 (Purpose of Information Use)</h2>
+            <p>The purposes for which the Operator uses information are as follows:</p>
+            <ol>
+                <li>To provide and operate this App</li>
+                <li>For user authentication and linking with Bluesky accounts</li>
+                <li>To provide word data storage and restoration functions</li>
+                <li>To provide learning support functions such as dictionary search, translation, and text analysis</li>
+                <li>To respond to user feedback and improve this App</li>
+                <li>To fix bugs and improve features of this App</li>
+                <li>To send push notifications (Bluesky social action notifications and learning reminders)</li>
+            </ol>
+
+            <h2>Article 4 (Provision of Personal Information to Third Parties)</h2>
+            <ol>
+                <li>The Operator will not provide personal information to third parties without prior consent of the User, except in the following cases:
+                    <ul>
+                        <li>When necessary to protect the life, body, or property of a person and it is difficult to obtain consent</li>
+                        <li>When particularly necessary to improve public health or promote the sound development of children and it is difficult to obtain consent</li>
+                        <li>When it is necessary to cooperate with a national organ or local government in executing affairs prescribed by law and obtaining consent may impede such execution</li>
+                        <li>Other cases permitted by law</li>
+                    </ul>
+                </li>
+                <li>This App sends data to external services (DeepL, Yahoo! JAPAN, etc.) configured by Users, but this is based on API keys set by Users themselves and does not constitute third-party provision by the Operator.</li>
+            </ol>
+
+            <h2>Article 5 (Security Measures)</h2>
+            <ol>
+                <li>The Operator takes the following measures for security management of personal information:
+                    <ul>
+                        <li>Authentication tokens and API keys are stored in the device's encrypted storage (Expo SecureStore)</li>
+                        <li>Bluesky authentication uses OAuth (PKCE + DPoP) and does not obtain or store user passwords</li>
+                        <li>Communication with external services uses HTTPS encrypted communication</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h2>Article 6 (Analytics and Tracking)</h2>
+            <p>This App does not use analytics tools, advertising SDKs, or tracking tools. No features for collecting or analyzing user behavioral data are included.</p>
+
+            <h2>Article 7 (Device Access Permissions)</h2>
+            <p>This App may request access permissions to the following device features:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Permission</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Photo Library</td>
+                        <td>To save and share learning progress images, and to attach images to posts</td>
+                    </tr>
+                    <tr>
+                        <td>Camera</td>
+                        <td>To take photos for attaching to posts</td>
+                    </tr>
+                    <tr>
+                        <td>Notifications</td>
+                        <td>To receive Bluesky social action notifications and learning reminders</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>These permissions are only requested when the User uses the corresponding features, and the basic features of this App can be used without granting them.</p>
+
+            <h2>Article 8 (Data Deletion)</h2>
+            <ol>
+                <li>Users can delete all learning data stored on the device by executing "Delete All Data" from the Settings screen of this App.</li>
+                <li>Logging out will delete authentication information stored on the device.</li>
+                <li>Deletion of data synced to PDS is left to the User's own PDS management.</li>
+                <li>Uninstalling this App will delete all data on the device.</li>
+                <li>Deleted data cannot be recovered. Users should use the data export function to create backups before deletion as needed.</li>
+            </ol>
+
+            <h2>Article 9 (Use by Minors)</h2>
+            <p>This App is not specifically targeted at minors, but it is recommended that minors use it with parental consent.</p>
+
+            <h2>Article 10 (Changes to Privacy Policy)</h2>
+            <ol>
+                <li>The Operator may change this Policy as needed.</li>
+                <li>Changes to this Policy will be notified within this App or on the Operator's website.</li>
+                <li>If a User continues to use this App after changes, the User shall be deemed to have agreed to the revised Policy.</li>
+            </ol>
+
+            <h2>Article 11 (Contact)</h2>
+            <p>For inquiries regarding this Policy, please contact us through the following:</p>
+            <p><strong>Operator:</strong> RieTamura<br>
+            <strong>Contact:</strong> <a href="https://github.com/RieTamura/kumotan/issues" target="_blank">GitHub Issues</a></p>
+
+            <div class="footer">
+                <p><strong>Last updated:</strong> February 25, 2026</p>
+            </div>
         </div>
     </div>
+
+    <script>
+        function switchLang(lang) {
+            document.querySelectorAll('.lang-tab').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelector('.lang-' + lang).style.display = 'block';
+            document.querySelector('.lang-' + (lang === 'ja' ? 'en' : 'ja')).style.display = 'none';
+            event.target.classList.add('active');
+            localStorage.setItem('kumotan-lang', lang);
+        }
+        var saved = localStorage.getItem('kumotan-lang');
+        if (saved === 'ja' || saved === 'en') { switchLang(saved); }
+    </script>
 </body>
 </html>

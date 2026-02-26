@@ -1,0 +1,5 @@
+{
+  "NSPhotoLibraryUsageDescription": "Access to your photo library is needed to select images to attach to posts.",
+  "NSCameraUsageDescription": "Access to your camera is needed to take photos to attach to posts.",
+  "NSUserNotificationsUsageDescription": "Used for vocabulary learning reminders and Bluesky social notifications (likes, replies, etc.)."
+}

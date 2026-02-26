@@ -54,7 +54,8 @@
           "color": "#1DA1F2"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-localization"
     ],
     "scheme": "io.github.rietamura",
     "extra": {
@@ -66,6 +67,10 @@
         "redirectUri": "io.github.rietamura:/oauth/callback"
       }
     },
-    "owner": "rietamura"
+    "owner": "rietamura",
+    "locales": {
+      "ja": "./locales/ja.json",
+      "en": "./locales/en.json"
+    }
   }
 }

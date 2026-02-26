@@ -1,0 +1,5 @@
+{
+  "NSPhotoLibraryUsageDescription": "投稿に添付する画像を選択するために写真ライブラリへのアクセスが必要です。",
+  "NSCameraUsageDescription": "投稿に添付する写真を撮影するためにカメラへのアクセスが必要です。",
+  "NSUserNotificationsUsageDescription": "クイズ・単語学習のリマインダーと、Blueskyのいいねや返信などのプッシュ通知に使用します。"
+}

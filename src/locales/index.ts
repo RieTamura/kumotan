@@ -6,6 +6,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocales } from 'expo-localization';
 import { STORAGE_KEYS } from '../constants/config';
 
 // Import Japanese translations
@@ -116,9 +117,12 @@ const languageDetector = {
       const savedLanguage = await AsyncStorage.getItem(STORAGE_KEYS.LANGUAGE);
       if (savedLanguage === 'ja' || savedLanguage === 'en') {
         callback(savedLanguage);
-      } else {
-        callback('ja'); // Default to Japanese
+        return;
       }
+      // デバイスロケールから判定（'en' 以外はすべて 'ja' へフォールバック）
+      const deviceLocale = getLocales()[0]?.languageCode ?? 'ja';
+      const lang = deviceLocale === 'en' ? 'en' : 'ja';
+      callback(lang);
     } catch {
       callback('ja');
     }

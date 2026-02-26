@@ -197,7 +197,7 @@ if (saved) switchLang(saved);
 
 ## 実施状況
 
-- [ ] Step 1: InfoPlist 権限説明文の英語化
-- [ ] Step 2: デバイスロケール自動検出
-- [ ] Step 3: HTML に日英タブを追加
+- [x] Step 1: InfoPlist 権限説明文の英語化
+- [x] Step 2: デバイスロケール自動検出
+- [x] Step 3: HTML に日英タブを追加
 - [ ] Step 4: App Store Connect に英語メタデータ登録
