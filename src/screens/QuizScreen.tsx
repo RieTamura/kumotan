@@ -325,16 +325,14 @@ export function QuizScreen(): React.JSX.Element {
           <Text style={[styles.questionLabel, { color: colors.textSecondary }]}>
             {t('quiz.question')}
           </Text>
-          <View style={styles.questionRow}>
-            <Text style={[styles.questionText, { color: colors.text }]}>
-              {currentQuestion.question}
-            </Text>
-            <TouchableOpacity onPress={handleSpeak} style={styles.speakButton}>
-              {isSpeaking
-                ? <VolumeX size={22} color={colors.textSecondary} />
-                : <Volume2 size={22} color={colors.textSecondary} />}
-            </TouchableOpacity>
-          </View>
+          <Text style={[styles.questionText, { color: colors.text }]}>
+            {currentQuestion.question}
+          </Text>
+          <TouchableOpacity onPress={handleSpeak} style={styles.speakButton}>
+            {isSpeaking
+              ? <VolumeX size={22} color={colors.textSecondary} />
+              : <Volume2 size={22} color={colors.textSecondary} />}
+          </TouchableOpacity>
           <Text style={[styles.directionHint, { color: colors.textSecondary }]}>
             {currentQuestion.questionType === 'en_to_ja'
               ? t('setup.questionType.enToJa')
@@ -464,21 +462,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  questionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   questionText: {
     fontSize: 28,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
-    flex: 1,
+    marginBottom: 4,
   },
   speakButton: {
     padding: 8,
-    marginBottom: 8,
+    marginTop: 4,
   },
   directionHint: {
     fontSize: 12,

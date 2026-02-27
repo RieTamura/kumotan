@@ -87,12 +87,13 @@ function buildQuestion(word: Word, questionType: 'en_to_ja' | 'ja_to_en'): QuizQ
   } else {
     // Japanese -> English: Show Japanese, answer English
     const questionText = getPrimaryAnswer(word.japanese || '');
+    const { primary, alternatives } = getAllAcceptableAnswers(word.english);
     return {
       word,
       questionType,
       question: questionText,
-      correctAnswer: word.english,
-      alternativeAnswers: [], // English usually has one answer
+      correctAnswer: primary,
+      alternativeAnswers: alternatives,
     };
   }
 }
