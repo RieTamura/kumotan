@@ -38,6 +38,10 @@ interface NotificationState {
   setNotifyOnRepost: (value: boolean) => void;
   notifyOnFollow: boolean;
   setNotifyOnFollow: (value: boolean) => void;
+
+  // Unread notification indicator
+  hasUnread: boolean;
+  setHasUnread: (value: boolean) => void;
 }
 
 export const useNotificationStore = create<NotificationState>()(
@@ -65,6 +69,9 @@ export const useNotificationStore = create<NotificationState>()(
       setNotifyOnRepost: (value) => set({ notifyOnRepost: value }),
       notifyOnFollow: true,
       setNotifyOnFollow: (value) => set({ notifyOnFollow: value }),
+
+      hasUnread: false,
+      setHasUnread: (value) => set({ hasUnread: value }),
     }),
     {
       name: 'notification-storage',

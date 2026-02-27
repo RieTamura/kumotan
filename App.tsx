@@ -10,16 +10,19 @@ import 'react-native-url-polyfill/auto';
 // Initialize i18n
 import './src/locales';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, StyleSheet, Text, Animated, Easing, Image } from 'react-native';
+import { View, StyleSheet, Text, Animated, Easing, Image, AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Notifications from 'expo-notifications';
 
 import { AppNavigator } from './src/navigation/AppNavigator';
-import { useAuthStore } from './src/store/authStore';
+import { useAuthStore, useAuthUser } from './src/store/authStore';
+import { useNotificationStore } from './src/store/notificationStore';
+import { getAgent } from './src/services/bluesky/auth';
 import { initDatabase } from './src/services/database/init';
 import { setDatabase as setWordsDatabase } from './src/services/database/words';
 import { setDatabase as setStatsDatabase } from './src/services/database/stats';
@@ -45,6 +48,41 @@ interface InitState {
 
 export default function App(): React.JSX.Element {
   const { colors, isDark } = useTheme();
+  const user = useAuthUser();
+  const setHasUnread = useNotificationStore((state) => state.setHasUnread);
+
+  const checkAndUpdateBadge = useCallback(async () => {
+    try {
+      const { data } = await getAgent().app.bsky.notification.getUnreadCount();
+      const count = data.count ?? 0;
+      setHasUnread(count > 0);
+      await Notifications.setBadgeCountAsync(count);
+    } catch {
+      // ユーザー未認証またはネットワークエラーは無視
+    }
+  }, [setHasUnread]);
+
+  useEffect(() => {
+    if (!user?.did) return;
+
+    checkAndUpdateBadge();
+
+    const receivedSub = Notifications.addNotificationReceivedListener(() => {
+      setHasUnread(true);
+    });
+
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        checkAndUpdateBadge();
+      }
+    });
+
+    return () => {
+      receivedSub.remove();
+      appStateSub.remove();
+    };
+  }, [user?.did, checkAndUpdateBadge, setHasUnread]);
+
   const [initState, setInitState] = useState<InitState>({
     isReady: false,
     error: null,

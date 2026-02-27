@@ -39,6 +39,7 @@ import { QuizResultScreen } from '../screens/QuizResultScreen';
 import { QuizSettings, QuizResult } from '../types/quiz';
 import { LegalDocumentScreen } from '../screens/LegalDocumentScreen';
 import { NotificationSettingsScreen } from '../screens/NotificationSettingsScreen';
+import { BlueskyNotificationsScreen } from '../screens/BlueskyNotificationsScreen';
 import { ApiTranslationSettingsScreen } from '../screens/ApiTranslationSettingsScreen';
 import { DataManagementScreen } from '../screens/DataManagementScreen';
 
@@ -60,6 +61,7 @@ export type RootStackParamList = {
   Quiz: { settings: QuizSettings };
   QuizResult: { result: QuizResult };
   NotificationSettings: undefined;
+  BlueskyNotifications: undefined;
   ApiTranslationSettings: undefined;
   DataManagement: undefined;
 };
@@ -386,6 +388,18 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.notificationSettings'),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
+            }}
+          />
+          <Stack.Screen
+            name="BlueskyNotifications"
+            component={BlueskyNotificationsScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.blueskyNotifications'),
               headerTintColor: colors.primary,
               headerStyle: { backgroundColor: colors.background },
               headerTitleStyle: { color: colors.text },

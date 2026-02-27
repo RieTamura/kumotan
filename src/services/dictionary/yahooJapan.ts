@@ -14,7 +14,27 @@ import { STORAGE_KEYS, TIMEOUT } from '../../constants/config';
 const YAHOO_API = {
   MA: 'https://jlp.yahooapis.jp/MAService/V2/parse', // 形態素解析
   FURIGANA: 'https://jlp.yahooapis.jp/FuriganaService/V2/furigana', // ルビ振り
+  KOUSEI: 'https://jlp.yahooapis.jp/KouseiService/V2/kousei', // 校正支援
 } as const;
+
+/**
+ * 校正支援サジェスチョンの型定義
+ */
+export interface ProofreadingSuggestion {
+  note: string;         // エラーの種類 e.g. "もしかして", "表記の揺れ"
+  offset: number;       // テキスト内の開始位置（文字単位）
+  length: number;       // エラー文字数
+  word: string;         // 問題のある単語
+  suggestion: string[]; // 修正候補リスト
+}
+
+interface KouseiResponse {
+  id: string;
+  jsonrpc: string;
+  result?: {
+    suggestions?: ProofreadingSuggestion[];
+  };
+}
 
 /**
  * 形態素解析レスポンスの型定義
@@ -400,6 +420,104 @@ export async function addFurigana(
       error: new AppError(
         ErrorCode.NETWORK_ERROR,
         'ルビ振りに失敗しました。',
+        error
+      ),
+    };
+  }
+}
+
+/**
+ * 校正支援 API を実行
+ * テキスト内の誤字・表記ゆれ・助詞誤り等を検出する
+ */
+export async function checkProofreading(
+  text: string
+): Promise<Result<ProofreadingSuggestion[], AppError>> {
+  try {
+    const clientId = await getClientId();
+    if (!clientId) {
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.INVALID_API_KEY,
+          'Yahoo! Client IDが設定されていません。'
+        ),
+      };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT.API);
+
+    const url = `${YAHOO_API.KOUSEI}?appid=${encodeURIComponent(clientId)}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: '1',
+        jsonrpc: '2.0',
+        method: 'jlp.kouseiservice.kousei',
+        params: {
+          q: text,
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return {
+          success: false,
+          error: new AppError(
+            ErrorCode.RATE_LIMIT_EXCEEDED,
+            'API利用制限に達しました。しばらく待ってから再試行してください。'
+          ),
+        };
+      }
+
+      if (response.status === 400 || response.status === 403) {
+        return {
+          success: false,
+          error: new AppError(
+            ErrorCode.INVALID_API_KEY,
+            'Yahoo! Client IDが無効です。正しいIDを入力してください。'
+          ),
+        };
+      }
+
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.NETWORK_ERROR,
+          `校正支援APIエラー: ${response.status}`
+        ),
+      };
+    }
+
+    const data: KouseiResponse = await response.json();
+    const suggestions = data.result?.suggestions ?? [];
+
+    return { success: true, data: suggestions };
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      return {
+        success: false,
+        error: new AppError(
+          ErrorCode.NETWORK_ERROR,
+          'リクエストがタイムアウトしました。'
+        ),
+      };
+    }
+
+    return {
+      success: false,
+      error: new AppError(
+        ErrorCode.NETWORK_ERROR,
+        '校正チェックに失敗しました。',
         error
       ),
     };

@@ -100,5 +100,26 @@
   "blockConfirmMessage": "@{{handle}}さんをブロックしますか？",
   "blockConfirm": "ブロックする",
   "profilePreviewLoadError": "プロフィールの読み込みに失敗しました",
-  "linkPreviewLoading": "リンクを取得中..."
+  "linkPreviewLoading": "リンクを取得中...",
+  "proofreadingButton": "校正",
+  "proofreadingIssuesFound": "{{count}}件の問題が見つかりました（タップで修正適用）",
+  "proofreadingNoErrors": "問題は見つかりませんでした",
+  "proofreadingEdit": "編集に戻る",
+  "proofreadingNoClientId": "Yahoo! Client IDが未設定",
+  "proofreadingNoClientIdMessage": "設定 → APIキー設定からYahoo! Client IDを登録してください",
+  "proofreadingNoJapanese": "日本語テキストが含まれていません",
+  "proofreadingError": "校正チェックに失敗しました",
+  "notifications": {
+    "bell": "通知",
+    "empty": "通知はありません",
+    "loading": "通知を読み込み中...",
+    "error": "通知の読み込みに失敗しました",
+    "like": "いいねしました",
+    "repost": "リポストしました",
+    "follow": "フォローしました",
+    "mention": "メンションしました",
+    "reply": "返信しました",
+    "quote": "引用しました",
+    "unknown": "アクションしました"
+  }
 }

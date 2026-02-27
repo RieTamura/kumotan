@@ -19,6 +19,7 @@
     "privacyPolicy": "プライバシーポリシー",
     "notificationSettings": "通知設定",
     "apiTranslationSettings": "API・翻訳",
-    "dataManagement": "データ管理"
+    "dataManagement": "データ管理",
+    "blueskyNotifications": "Bluesky通知"
   }
 }

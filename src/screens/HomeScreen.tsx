@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import PagerView, { PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowUp, Plus } from 'lucide-react-native';
+import { ArrowUp, Bell, Plus } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -47,6 +47,8 @@ import { ConfirmModal } from '../components/common/ConfirmModal';
 import { ProfilePreviewModal } from '../components/ProfilePreviewModal';
 import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { useTheme } from '../hooks/useTheme';
+import { useNotificationStore } from '../store/notificationStore';
+import { Colors } from '../constants/colors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -61,6 +63,7 @@ export function HomeScreen(): React.JSX.Element {
   const { t } = useTranslation('home');
   const { t: tt } = useTranslation('tutorial');
   const { colors } = useTheme();
+  const hasUnread = useNotificationStore((state) => state.hasUnread);
   const profile = useAuthProfile();
   const user = useAuthUser();
   const { setFollowing, setBlocking, userStates } = useSocialStore();
@@ -611,7 +614,17 @@ export function HomeScreen(): React.JSX.Element {
           onTabChange={handleTabChange}
         />
       </View>
-      <View style={styles.headerRight} />
+      <View style={styles.headerRight}>
+        <Pressable
+          style={styles.headerIconButton}
+          onPress={() => navigation.navigate('BlueskyNotifications')}
+          accessibilityLabel={t('notifications.bell')}
+          accessibilityRole="button"
+        >
+          <Bell size={22} color={colors.text} />
+          {hasUnread && <View style={styles.unreadDot} />}
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -856,6 +869,15 @@ const styles = StyleSheet.create({
   headerIconButton: {
     padding: Spacing.sm,
     borderRadius: BorderRadius.full,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.error,
   },
   tabContent: {
     flex: 1,

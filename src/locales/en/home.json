@@ -100,5 +100,26 @@
   "blockConfirmMessage": "Block @{{handle}}?",
   "blockConfirm": "Block",
   "profilePreviewLoadError": "Failed to load profile",
-  "linkPreviewLoading": "Fetching link..."
+  "linkPreviewLoading": "Fetching link...",
+  "proofreadingButton": "Proofread",
+  "proofreadingIssuesFound": "{{count}} issue(s) found — tap to apply fix",
+  "proofreadingNoErrors": "No issues found",
+  "proofreadingEdit": "Back to Edit",
+  "proofreadingNoClientId": "Yahoo! Client ID not set",
+  "proofreadingNoClientIdMessage": "Please register your Yahoo! Client ID in Settings → API Key Settings",
+  "proofreadingNoJapanese": "No Japanese text found",
+  "proofreadingError": "Proofreading check failed",
+  "notifications": {
+    "bell": "Notifications",
+    "empty": "No notifications",
+    "loading": "Loading notifications...",
+    "error": "Failed to load notifications",
+    "like": "liked your post",
+    "repost": "reposted your post",
+    "follow": "followed you",
+    "mention": "mentioned you",
+    "reply": "replied to your post",
+    "quote": "quoted your post",
+    "unknown": "interacted with you"
+  }
 }

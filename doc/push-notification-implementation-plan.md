@@ -396,6 +396,17 @@ SettingsScreen から通知設定を切り出し、Bluesky ソーシャル通知
 27. [ ] App Store Connect プライバシー申告更新
 28. [ ] TestFlight 配信・動作確認
 
+### Phase 5：バッジ表示・通知一覧画面
+
+1. [x] `src/store/notificationStore.ts` に `hasUnread` / `setHasUnread` を追加
+2. [x] `App.tsx` に通知受信リスナー・AppStateリスナーを追加（バッジ・赤丸管理）
+3. [x] `src/screens/HomeScreen.tsx` のヘッダー右にBellアイコン＋赤丸を追加
+4. [x] `src/screens/BlueskyNotificationsScreen.tsx` を新規作成（通知一覧・既読化・バッジリセット）
+5. [x] `src/navigation/AppNavigator.tsx` に `BlueskyNotifications` ルートを追加
+6. [x] `src/locales/ja/home.json` `src/locales/en/home.json` に通知文言を追加
+7. [x] `src/locales/ja/navigation.json` `src/locales/en/navigation.json` にヘッダータイトルを追加
+8. [ ] 実機テスト（バッジ・ベルアイコン・通知一覧・各通知タップ遷移）
+
 ---
 
 ## 6. 工数見積もり

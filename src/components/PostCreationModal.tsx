@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { X, Globe, ImagePlus, Tag } from 'lucide-react-native';
+import { X, Globe, ImagePlus, Tag, SpellCheck2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../hooks/useTheme';
 import { usePostCreation, ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
@@ -30,6 +30,12 @@ import { PostImageAttachment } from '../services/bluesky/feed';
 import { Button } from './common/Button';
 import { ReplySettingsModal } from './ReplySettingsModal';
 import { ContentLabelModal } from './ContentLabelModal';
+import { ProofreadingView } from './ProofreadingView';
+import {
+  checkProofreading,
+  hasClientId,
+  ProofreadingSuggestion,
+} from '../services/dictionary/yahooJapan';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_CHARACTERS = 300;
@@ -126,6 +132,9 @@ export function PostCreationModal({
   const [showReplySettings, setShowReplySettings] = useState(false);
   const [showContentLabels, setShowContentLabels] = useState(false);
   const [focusedImageIndex, setFocusedImageIndex] = useState(0);
+  const [isProofreadingMode, setIsProofreadingMode] = useState(false);
+  const [proofreadingSuggestions, setProofreadingSuggestions] = useState<ProofreadingSuggestion[]>([]);
+  const [isProofreadingChecking, setIsProofreadingChecking] = useState(false);
 
   /**
    * Keep focusedImageIndex in bounds when images are removed
@@ -153,8 +162,72 @@ export function PostCreationModal({
   useEffect(() => {
     if (!visible) {
       reset();
+      setIsProofreadingMode(false);
+      setProofreadingSuggestions([]);
     }
   }, [visible, reset]);
+
+  /**
+   * Toggle proofreading mode: call Yahoo 校正 API and enter review mode.
+   * If already in review mode, exit back to edit mode.
+   */
+  const handleProofreadingToggle = useCallback(async () => {
+    if (isProofreadingMode) {
+      setIsProofreadingMode(false);
+      setProofreadingSuggestions([]);
+      return;
+    }
+
+    if (!text.trim()) return;
+
+    const clientIdSet = await hasClientId();
+    if (!clientIdSet) {
+      Alert.alert(t('proofreadingNoClientId'), t('proofreadingNoClientIdMessage'));
+      return;
+    }
+
+    const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text);
+    if (!hasJapanese) {
+      Alert.alert(t('proofreadingNoJapanese'));
+      return;
+    }
+
+    setIsProofreadingChecking(true);
+    const result = await checkProofreading(text);
+    setIsProofreadingChecking(false);
+
+    if (!result.success) {
+      Alert.alert(t('proofreadingError'), result.error.getUserMessage());
+      return;
+    }
+
+    if (result.data.length === 0) {
+      Alert.alert(t('proofreadingNoErrors'));
+      return;
+    }
+
+    setProofreadingSuggestions(result.data);
+    setIsProofreadingMode(true);
+  }, [isProofreadingMode, text, t]);
+
+  /**
+   * Apply a proofreading suggestion to the text.
+   * Adjusts offsets of remaining suggestions and exits review mode when all are resolved.
+   */
+  const handleApplySuggestion = useCallback((offset: number, length: number, suggestion: string) => {
+    const newText = text.slice(0, offset) + suggestion + text.slice(offset + length);
+    setText(newText);
+
+    const diff = suggestion.length - length;
+    const remaining = proofreadingSuggestions
+      .filter(s => s.offset !== offset)
+      .map(s => s.offset > offset ? { ...s, offset: s.offset + diff } : s);
+
+    setProofreadingSuggestions(remaining);
+    if (remaining.length === 0) {
+      setIsProofreadingMode(false);
+    }
+  }, [text, setText, proofreadingSuggestions]);
 
   /**
    * Handle submit post
@@ -339,17 +412,38 @@ export function PostCreationModal({
 
             {/* Input Area */}
             <View style={styles.inputSection}>
-              <TextInput
-                style={[styles.textInput, { color: colors.text }]}
-                placeholder={t('postPlaceholder')}
-                placeholderTextColor={colors.textTertiary}
-                value={text}
-                onChangeText={setText}
-                multiline
-                autoFocus={true}
-                editable={!isPosting}
-                maxLength={MAX_CHARACTERS + 50}
-              />
+              {isProofreadingMode ? (
+                <>
+                  <View style={[styles.proofreadingBanner, { backgroundColor: colors.warningLight }]}>
+                    <Text style={[styles.proofreadingBannerText, { color: colors.warning }]}>
+                      {t('proofreadingIssuesFound', { count: proofreadingSuggestions.length })}
+                    </Text>
+                    <Pressable onPress={() => { setIsProofreadingMode(false); setProofreadingSuggestions([]); }}>
+                      <Text style={[styles.proofreadingEditLink, { color: colors.primary }]}>
+                        {t('proofreadingEdit')}
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <ProofreadingView
+                    text={text}
+                    suggestions={proofreadingSuggestions}
+                    onApplySuggestion={handleApplySuggestion}
+                    style={styles.proofreadingView}
+                  />
+                </>
+              ) : (
+                <TextInput
+                  style={[styles.textInput, { color: colors.text }]}
+                  placeholder={t('postPlaceholder')}
+                  placeholderTextColor={colors.textTertiary}
+                  value={text}
+                  onChangeText={setText}
+                  multiline
+                  autoFocus={true}
+                  editable={!isPosting}
+                  maxLength={MAX_CHARACTERS + 50}
+                />
+              )}
             </View>
 
             {/* Link Preview Card */}
@@ -518,6 +612,29 @@ export function PostCreationModal({
                 </Pressable>
               )}
 
+              {/* Proofreading Button */}
+              <Pressable
+                style={styles.toolbarButton}
+                onPress={handleProofreadingToggle}
+                disabled={isPosting || isProofreadingChecking || !text.trim()}
+                accessibilityLabel={t('proofreadingButton')}
+              >
+                {isProofreadingChecking ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <SpellCheck2
+                    size={20}
+                    color={
+                      isProofreadingMode
+                        ? colors.primary
+                        : !text.trim()
+                        ? colors.disabled
+                        : colors.textSecondary
+                    }
+                  />
+                )}
+              </Pressable>
+
               <View style={styles.spacer} />
 
               {/* Character Counter */}
@@ -600,6 +717,28 @@ const styles = StyleSheet.create({
     fontSize: 18, // FontSizes.xl
     minHeight: SCREEN_HEIGHT * 0.2,
     textAlignVertical: 'top',
+  },
+  proofreadingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+    borderRadius: 6,
+  },
+  proofreadingBannerText: {
+    fontSize: 13,
+    flex: 1,
+  },
+  proofreadingEditLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  proofreadingView: {
+    minHeight: SCREEN_HEIGHT * 0.2,
+    paddingVertical: 4,
   },
   errorContainer: {
     flexDirection: 'row',
