@@ -1,7 +1,7 @@
 # プッシュ通知実装計画書
 
 **作成日**: 2026-02-20
-**改訂日**: 2026-02-22
+**改訂日**: 2026-02-27
 **対象バージョン**: v1.1.0（リリース前実装）
 
 ---
@@ -405,7 +405,7 @@ SettingsScreen から通知設定を切り出し、Bluesky ソーシャル通知
 5. [x] `src/navigation/AppNavigator.tsx` に `BlueskyNotifications` ルートを追加
 6. [x] `src/locales/ja/home.json` `src/locales/en/home.json` に通知文言を追加
 7. [x] `src/locales/ja/navigation.json` `src/locales/en/navigation.json` にヘッダータイトルを追加
-8. [ ] 実機テスト（バッジ・ベルアイコン・通知一覧・各通知タップ遷移）
+8. [x] 実機テスト（バッジ・ベルアイコン・通知一覧・各通知タップ遷移）
 
 ---
 
@@ -417,7 +417,8 @@ SettingsScreen から通知設定を切り出し、Bluesky ソーシャル通知
 | Phase 2（アプリ側） | 4〜5.5h | **完了** |
 | Phase 3（プライバシー対応） | 1〜2h | **完了** |
 | Phase 4（テスト・リリース） | 2〜3h | 進行中（24完了） |
-| **合計** | **14〜20.5h** | |
+| Phase 5（バッジ・通知一覧） | 2〜3h | **完了** (2026-02-27) |
+| **合計** | **16〜23.5h** | |
 
 ---
 

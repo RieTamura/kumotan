@@ -332,13 +332,16 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
 ### Phase 5: コミュニティ機能
 
-- **Bluesky ソーシャル通知（プッシュ通知）** ← 次フェーズ候補
+- **Bluesky ソーシャル通知（プッシュ通知）** ✅ **完了** (2026-02-27)
   - いいねされたとき
   - 返信が来たとき
   - メンション・リポスト・フォローされたとき
-  - アーキテクチャ：Cloudflare Workers（Cron 5分ポーリング）+ Expo Push Notification Service
-  - 詳細は「通知機能アーキテクチャ」セクションを参照
-- 学習リマインダー通知（プッシュ通知）
+  - アーキテクチャ：Jetstream（WebSocket常時接続）+ Railway（Node.js） + Expo Push Notification Service
+  - アプリアイコンバッジ表示（アプリ起動時に正確な件数を反映、通知一覧閲覧でリセット）
+  - ホーム画面ヘッダーにBellアイコン＋赤丸（未読あり時）
+  - アプリ内通知一覧画面（`BlueskyNotificationsScreen`）：各通知からスレッド・プロフィールへ遷移
+  - 詳細：`doc/push-notification-implementation-plan.md`
+- **学習リマインダー通知（プッシュ通知）** ✅ **完了**（クイズ・単語リマインダー、時刻設定対応）
 - 友達との学習進捗比較
 - 共有単語帳（パブリック単語帳）
 - 学習チャレンジ・イベント
@@ -976,6 +979,22 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - `src/screens/ThreadScreen.tsx`: ハンドラ追加、`PostCreationModal`追加
   - `src/locales/ja/home.json`、`src/locales/en/home.json`: 翻訳キー追加
 - 詳細: `doc/reply-repost-implementation-plan.md`
+
+### M12: Blueskyプッシュ通知・バッジ・通知一覧 ✅ **完了** (2026-02-27)
+
+**目的**: Blueskyのソーシャルアクションをプッシュ通知で受け取り、アプリ内で確認できる仕組みを構築する
+
+- [x] バックエンド（Railway + Node.js + Jetstream WebSocket常時接続）
+  - いいね・返信・メンション・リポスト・フォローをリアルタイム検知してEPNS経由でiOS Push通知送信
+- [x] アプリアイコンバッジ表示
+  - アプリ起動・フォアグラウンド復帰時に`getUnreadCount()`で正確な件数を取得してバッジ更新
+  - プッシュ受信直後はバッジなし（バックエンド変更不要）
+- [x] ホーム画面ヘッダーBellアイコン＋赤丸
+  - 未読通知あり時に赤丸を表示、通知一覧閲覧でリセット
+- [x] アプリ内通知一覧画面（`BlueskyNotificationsScreen`）
+  - 全通知タイプを表示、タップでThreadScreen/ProfilePreviewModalへ遷移
+  - `updateSeenNotifications()`で既読化・バッジリセット
+- 詳細：`doc/push-notification-implementation-plan.md`
 
 ### M11: 日本語投稿・文章モードの英語翻訳表示 ✅ **完了** (2026-02-19)
 
