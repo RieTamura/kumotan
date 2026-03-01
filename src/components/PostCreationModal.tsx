@@ -135,6 +135,11 @@ export function PostCreationModal({
   const [isProofreadingMode, setIsProofreadingMode] = useState(false);
   const [proofreadingSuggestions, setProofreadingSuggestions] = useState<ProofreadingSuggestion[]>([]);
   const [isProofreadingChecking, setIsProofreadingChecking] = useState(false);
+  const [selectedError, setSelectedError] = useState<{
+    offset: number;
+    length: number;
+    suggestions: string[];
+  } | null>(null);
 
   /**
    * Keep focusedImageIndex in bounds when images are removed
@@ -164,6 +169,7 @@ export function PostCreationModal({
       reset();
       setIsProofreadingMode(false);
       setProofreadingSuggestions([]);
+      setSelectedError(null);
     }
   }, [visible, reset]);
 
@@ -175,6 +181,7 @@ export function PostCreationModal({
     if (isProofreadingMode) {
       setIsProofreadingMode(false);
       setProofreadingSuggestions([]);
+      setSelectedError(null);
       return;
     }
 
@@ -211,10 +218,20 @@ export function PostCreationModal({
   }, [isProofreadingMode, text, t]);
 
   /**
-   * Apply a proofreading suggestion to the text.
+   * Called when the user taps an error segment in ProofreadingView.
+   * Opens the correction panel for the tapped segment.
+   */
+  const handleSegmentTap = useCallback((offset: number, length: number, suggestions: string[]) => {
+    setSelectedError({ offset, length, suggestions });
+  }, []);
+
+  /**
+   * Apply the chosen suggestion from the correction panel.
    * Adjusts offsets of remaining suggestions and exits review mode when all are resolved.
    */
-  const handleApplySuggestion = useCallback((offset: number, length: number, suggestion: string) => {
+  const handleApplySelectedSuggestion = useCallback((suggestion: string) => {
+    if (!selectedError) return;
+    const { offset, length } = selectedError;
     const newText = text.slice(0, offset) + suggestion + text.slice(offset + length);
     setText(newText);
 
@@ -224,10 +241,11 @@ export function PostCreationModal({
       .map(s => s.offset > offset ? { ...s, offset: s.offset + diff } : s);
 
     setProofreadingSuggestions(remaining);
+    setSelectedError(null);
     if (remaining.length === 0) {
       setIsProofreadingMode(false);
     }
-  }, [text, setText, proofreadingSuggestions]);
+  }, [selectedError, text, setText, proofreadingSuggestions]);
 
   /**
    * Handle submit post
@@ -418,7 +436,7 @@ export function PostCreationModal({
                     <Text style={[styles.proofreadingBannerText, { color: colors.warning }]}>
                       {t('proofreadingIssuesFound', { count: proofreadingSuggestions.length })}
                     </Text>
-                    <Pressable onPress={() => { setIsProofreadingMode(false); setProofreadingSuggestions([]); }}>
+                    <Pressable onPress={() => { setIsProofreadingMode(false); setProofreadingSuggestions([]); setSelectedError(null); }}>
                       <Text style={[styles.proofreadingEditLink, { color: colors.primary }]}>
                         {t('proofreadingEdit')}
                       </Text>
@@ -427,9 +445,38 @@ export function PostCreationModal({
                   <ProofreadingView
                     text={text}
                     suggestions={proofreadingSuggestions}
-                    onApplySuggestion={handleApplySuggestion}
+                    onSegmentTap={handleSegmentTap}
                     style={styles.proofreadingView}
                   />
+                  {selectedError && (
+                    <View style={[styles.correctionPanel, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}>
+                      <View style={styles.correctionPanelHeader}>
+                        <Text style={[styles.correctionPanelLabel, { color: colors.textSecondary }]}>
+                          {t('proofreadingSuggestionLabel')}
+                        </Text>
+                        <Pressable onPress={() => setSelectedError(null)} hitSlop={8}>
+                          <X size={16} color={colors.textSecondary} />
+                        </Pressable>
+                      </View>
+                      {selectedError.suggestions.length > 0 ? (
+                        selectedError.suggestions.map((sug, idx) => (
+                          <Pressable
+                            key={idx}
+                            style={[styles.correctionOption, { borderTopColor: colors.border }]}
+                            onPress={() => handleApplySelectedSuggestion(sug)}
+                          >
+                            <Text style={[styles.correctionOptionText, { color: colors.primary }]}>
+                              {sug}
+                            </Text>
+                          </Pressable>
+                        ))
+                      ) : (
+                        <Text style={[styles.correctionNoSuggestion, { color: colors.textSecondary }]}>
+                          {t('proofreadingNoSuggestion')}
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 </>
               ) : (
                 <TextInput
@@ -739,6 +786,38 @@ const styles = StyleSheet.create({
   proofreadingView: {
     minHeight: SCREEN_HEIGHT * 0.2,
     paddingVertical: 4,
+  },
+  correctionPanel: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  correctionPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  correctionPanelLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  correctionOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  correctionOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  correctionNoSuggestion: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   errorContainer: {
     flexDirection: 'row',

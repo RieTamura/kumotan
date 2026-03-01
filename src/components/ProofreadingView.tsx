@@ -1,18 +1,18 @@
 /**
  * ProofreadingView Component
- * Displays text with highlighted error segments and correction candidates below each error.
- * Intended for the post-creation proofreading review flow.
+ * Displays text with inline highlighted error segments using nested Text.
+ * Tapping an error segment notifies the parent to show a correction panel.
  */
 
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { ProofreadingSuggestion } from '../services/dictionary/yahooJapan';
 
 interface ProofreadingViewProps {
   text: string;
   suggestions: ProofreadingSuggestion[];
-  onApplySuggestion: (offset: number, length: number, suggestion: string) => void;
+  onSegmentTap: (offset: number, length: number, suggestions: string[]) => void;
   style?: object;
 }
 
@@ -34,7 +34,6 @@ function buildSegments(text: string, suggestions: ProofreadingSuggestion[]): Tex
     return [{ type: 'normal', text }];
   }
 
-  // Sort by offset ascending, skip overlapping / out-of-bounds entries
   const sorted = [...suggestions].sort((a, b) => a.offset - b.offset);
   const segments: TextSegment[] = [];
   let pos = 0;
@@ -66,97 +65,48 @@ function buildSegments(text: string, suggestions: ProofreadingSuggestion[]): Tex
 }
 
 /**
- * Render a normal text segment, splitting on newlines to insert
- * line-break elements that work inside a flex-wrap row.
- */
-function NormalSegment({
-  text,
-  segKey,
-  textStyle,
-}: {
-  text: string;
-  segKey: string;
-  textStyle: object;
-}): React.JSX.Element {
-  const lines = text.split('\n');
-  return (
-    <>
-      {lines.map((line, j) => (
-        <React.Fragment key={`${segKey}-${j}`}>
-          {j > 0 && <View style={styles.lineBreak} />}
-          {line.length > 0 && <Text style={textStyle}>{line}</Text>}
-        </React.Fragment>
-      ))}
-    </>
-  );
-}
-
-/**
  * ProofreadingView
- * Renders text inline with highlighted error words and correction candidates
- * displayed directly below each highlighted segment.
- *
- * Layout note: Uses flexDirection "row" + flexWrap "wrap" on a View container.
- * Normal text segments are <Text> flex items; error segments are <View column>
- * flex items containing the highlighted error text and the correction below it.
- * Text flow at segment boundaries may not be pixel-perfect for long normal
- * segments, but is adequate for the 300-character post review use case.
+ * Renders all text as a single nested-Text block, so line-wrapping is handled
+ * naturally by React Native's text engine (no View-in-flex-wrap issues).
+ * Error words are highlighted inline; tapping one calls onSegmentTap so the
+ * parent can display a correction panel.
  */
 export function ProofreadingView({
   text,
   suggestions,
-  onApplySuggestion,
+  onSegmentTap,
   style,
 }: ProofreadingViewProps): React.JSX.Element {
   const { colors } = useTheme();
   const segments = buildSegments(text, suggestions);
 
-  const normalTextStyle = [styles.normalText, { color: colors.text }];
-
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.textRow}>
+      <Text style={[styles.textWrapper, { color: colors.text }]}>
         {segments.map((seg, i) => {
           if (seg.type === 'normal') {
             return (
-              <NormalSegment
-                key={`n-${i}`}
-                text={seg.text}
-                segKey={`n-${i}`}
-                textStyle={normalTextStyle}
-              />
+              <Text key={`n-${i}`} style={{ color: colors.text }}>
+                {seg.text}
+              </Text>
             );
           }
 
-          const firstSuggestion = seg.suggestions[0] ?? '';
           return (
-            <Pressable
+            <Text
               key={`e-${i}`}
-              onPress={() => {
-                if (firstSuggestion) {
-                  onApplySuggestion(seg.offset, seg.length, firstSuggestion);
-                }
-              }}
-              style={styles.errorSegment}
-              accessibilityLabel={`${seg.text}、修正候補: ${firstSuggestion}、タップで適用`}
+              style={[
+                styles.errorText,
+                { color: colors.error, backgroundColor: colors.errorLight },
+              ]}
+              onPress={() => onSegmentTap(seg.offset, seg.length, seg.suggestions)}
+              accessibilityLabel={`${seg.text}、タップで修正候補を表示`}
             >
-              <Text
-                style={[
-                  styles.errorText,
-                  { color: colors.error, backgroundColor: colors.errorLight },
-                ]}
-              >
-                {seg.text}
-              </Text>
-              {firstSuggestion ? (
-                <Text style={[styles.correctionText, { color: colors.primary }]}>
-                  {firstSuggestion}
-                </Text>
-              ) : null}
-            </Pressable>
+              {seg.text}
+            </Text>
           );
         })}
-      </View>
+      </Text>
     </View>
   );
 }
@@ -165,36 +115,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  textRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
-  },
-  normalText: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  // Forces a line break in the flex-wrap row (width 100% occupies the full row)
-  lineBreak: {
-    width: '100%',
-    height: 0,
-  },
-  errorSegment: {
-    alignItems: 'center',
-    marginHorizontal: 1,
-    marginBottom: 2,
+  textWrapper: {
+    fontSize: 18,
+    lineHeight: 28,
   },
   errorText: {
-    fontSize: 16,
-    lineHeight: 24,
-    borderRadius: 3,
-    paddingHorizontal: 2,
+    fontSize: 18,
+    lineHeight: 28,
     textDecorationLine: 'underline',
-  },
-  correctionText: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '600',
-    marginTop: 1,
   },
 });
