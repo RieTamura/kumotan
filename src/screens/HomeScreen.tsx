@@ -614,7 +614,7 @@ export function HomeScreen(): React.JSX.Element {
           accessibilityRole="button"
         >
           <Bell size={22} color={colors.text} />
-          {hasUnread && <View style={styles.unreadDot} />}
+          {hasUnread && <View style={[styles.unreadDot, { borderColor: colors.background }]} />}
         </Pressable>
       </View>
     </View>
@@ -865,12 +865,13 @@ const styles = StyleSheet.create({
   },
   unreadDot: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: Colors.error,
+    borderWidth: 1.5,
   },
   tabContent: {
     flex: 1,
