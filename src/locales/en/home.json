@@ -123,5 +123,16 @@
     "reply": "replied to your post",
     "quote": "quoted your post",
     "unknown": "interacted with you"
+  },
+  "updates": {
+    "appUpdate": "App update: v{{version}} available",
+    "dictionaryUpdate": "Dictionary data has been updated",
+    "details": "Details",
+    "dismiss": "Dismiss",
+    "appUpdateModalTitle": "App Update v{{version}}",
+    "dictionaryUpdateModalTitle": "Dictionary Update",
+    "dictionaryLatestCommit": "Latest change:",
+    "openAppStore": "Update on App Store",
+    "noReleaseNotes": "No release notes available"
   }
 }

@@ -42,6 +42,20 @@ interface NotificationState {
   // Unread notification indicator
   hasUnread: boolean;
   setHasUnread: (value: boolean) => void;
+
+  // App update info (not persisted – refreshed on each launch)
+  availableAppVersion: string | null;
+  availableAppReleaseNotes: string | null;
+  availableAppReleaseUrl: string | null;
+  setAppUpdate: (version: string, notes: string, url: string) => void;
+  clearAppUpdate: () => void;
+
+  // Dictionary update info
+  dictionaryUpdateAvailable: boolean;
+  lastKnownDictionaryCommit: string | null; // persisted
+  dictionaryLatestCommitMessage: string | null;
+  setDictionaryUpdateAvailable: (available: boolean, sha: string, message: string) => void;
+  clearDictionaryUpdate: () => void;
 }
 
 export const useNotificationStore = create<NotificationState>()(
@@ -72,10 +86,46 @@ export const useNotificationStore = create<NotificationState>()(
 
       hasUnread: false,
       setHasUnread: (value) => set({ hasUnread: value }),
+
+      // App update (not persisted)
+      availableAppVersion: null,
+      availableAppReleaseNotes: null,
+      availableAppReleaseUrl: null,
+      setAppUpdate: (version, notes, url) =>
+        set({ availableAppVersion: version, availableAppReleaseNotes: notes, availableAppReleaseUrl: url }),
+      clearAppUpdate: () =>
+        set({ availableAppVersion: null, availableAppReleaseNotes: null, availableAppReleaseUrl: null }),
+
+      // Dictionary update
+      dictionaryUpdateAvailable: false,
+      lastKnownDictionaryCommit: null,
+      dictionaryLatestCommitMessage: null,
+      setDictionaryUpdateAvailable: (available, sha, message) =>
+        set({
+          dictionaryUpdateAvailable: available,
+          lastKnownDictionaryCommit: sha,
+          dictionaryLatestCommitMessage: message,
+        }),
+      clearDictionaryUpdate: () => set({ dictionaryUpdateAvailable: false }),
     }),
     {
       name: 'notification-storage',
       storage: createJSONStorage(() => zustandStorage),
+      // アプリ更新情報はセッションをまたいで保持しない
+      partialize: (state) => ({
+        quizReminderEnabled: state.quizReminderEnabled,
+        wordReminderEnabled: state.wordReminderEnabled,
+        reminderHour: state.reminderHour,
+        reminderMinute: state.reminderMinute,
+        blueskyNotificationsEnabled: state.blueskyNotificationsEnabled,
+        notifyOnLike: state.notifyOnLike,
+        notifyOnReply: state.notifyOnReply,
+        notifyOnMention: state.notifyOnMention,
+        notifyOnRepost: state.notifyOnRepost,
+        notifyOnFollow: state.notifyOnFollow,
+        hasUnread: state.hasUnread,
+        lastKnownDictionaryCommit: state.lastKnownDictionaryCommit,
+      }),
     }
   )
 );

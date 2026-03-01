@@ -23,6 +23,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore, useAuthUser } from './src/store/authStore';
 import { useNotificationStore } from './src/store/notificationStore';
 import { getAgent } from './src/services/bluesky/auth';
+import { checkAppUpdate, checkDictionaryUpdate } from './src/services/updates/githubUpdateChecker';
 import { initDatabase } from './src/services/database/init';
 import { setDatabase as setWordsDatabase } from './src/services/database/words';
 import { setDatabase as setStatsDatabase } from './src/services/database/stats';
@@ -39,6 +40,25 @@ import { useTheme } from './src/hooks/useTheme';
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* ignore */
 });
+
+async function runUpdateChecks(): Promise<void> {
+  const store = useNotificationStore.getState();
+
+  const [appResult, dictResult] = await Promise.allSettled([
+    checkAppUpdate(),
+    checkDictionaryUpdate(store.lastKnownDictionaryCommit),
+  ]);
+
+  if (appResult.status === 'fulfilled' && appResult.value?.hasUpdate) {
+    const { latestVersion, releaseNotes, releaseUrl } = appResult.value;
+    useNotificationStore.getState().setAppUpdate(latestVersion, releaseNotes, releaseUrl);
+  }
+
+  if (dictResult.status === 'fulfilled' && dictResult.value) {
+    const { hasUpdate, latestSha, latestCommitMessage } = dictResult.value;
+    useNotificationStore.getState().setDictionaryUpdateAvailable(hasUpdate, latestSha, latestCommitMessage);
+  }
+}
 
 interface InitState {
   isReady: boolean;
@@ -169,6 +189,9 @@ export default function App(): React.JSX.Element {
           await resumeSession();
           console.log('Session resumed');
         }
+
+        // GitHub更新チェック（失敗しても起動を妨げない）
+        runUpdateChecks().catch(() => {});
 
         console.log('Initialization complete');
         setInitState((prev) => ({ ...prev, isReady: true, error: null }));

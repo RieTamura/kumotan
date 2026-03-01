@@ -116,6 +116,16 @@ export const EXTERNAL_LINKS = {
   GITHUB_SPONSORS: 'https://github.com/sponsors/RieTamura',
   BLUESKY_ACCOUNT: 'https://bsky.app/profile/kumotanapp.bsky.social',
   BLUESKY_MODERATION: 'https://bsky.app/profile/did:plc:ar7c4by46qjdydhdevvrndac',
+  // TODO: App Store公開後に実際のURLに差し替えること
+  APP_STORE: 'https://github.com/RieTamura/kumotan/releases/latest',
+} as const;
+
+/**
+ * GitHub API endpoints for update checks
+ */
+export const GITHUB = {
+  APP_RELEASES_URL: 'https://api.github.com/repos/RieTamura/kumotan/releases/latest',
+  DICT_COMMITS_URL: 'https://api.github.com/repos/RieTamura/kumotan-Dictionary/commits?per_page=1',
 } as const;
 
 /**

@@ -35,6 +35,7 @@ import { useAuthUser } from '../store/authStore';
 import { getAgent } from '../services/bluesky/auth';
 import { followUser, unfollowUser, blockUser, unblockUser } from '../services/bluesky/social';
 import { ProfilePreviewModal } from '../components/ProfilePreviewModal';
+import { UpdateBanner } from '../components/UpdateBanner';
 import { Loading } from '../components/common/Loading';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
@@ -269,6 +270,7 @@ export function BlueskyNotificationsScreen(): React.JSX.Element {
         data={notifications}
         keyExtractor={(item) => item.uri}
         renderItem={renderItem}
+        ListHeaderComponent={<UpdateBanner />}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

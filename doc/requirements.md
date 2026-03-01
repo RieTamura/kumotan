@@ -342,6 +342,11 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - アプリ内通知一覧画面（`BlueskyNotificationsScreen`）：各通知からスレッド・プロフィールへ遷移
   - 詳細：`doc/push-notification-implementation-plan.md`
 - **学習リマインダー通知（プッシュ通知）** ✅ **完了**（クイズ・単語リマインダー、時刻設定対応）
+- **アプリ・辞書更新チェック通知** ✅ **完了** (2026-03-01)
+  - 起動時にGitHub APIをポーリングし、新しいリリース・辞書コミットを検出
+  - 通知画面（BlueskyNotificationsScreen）上部にバナー表示
+  - タップでアプリ内モーダルにリリースノートを表示（アプリ外遷移なし）
+  - 詳細：`doc/github-update-checker-plan.md`
 - 友達との学習進捗比較
 - 共有単語帳（パブリック単語帳）
 - 学習チャレンジ・イベント
@@ -979,6 +984,26 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - `src/screens/ThreadScreen.tsx`: ハンドラ追加、`PostCreationModal`追加
   - `src/locales/ja/home.json`、`src/locales/en/home.json`: 翻訳キー追加
 - 詳細: `doc/reply-repost-implementation-plan.md`
+
+### M13: GitHub更新チェック通知 ✅ **完了** (2026-03-01)
+
+**目的**: アプリ起動時にGitHub APIをポーリングし、アプリ・辞書の更新を通知画面でユーザーに知らせる
+
+- [x] `src/services/updates/githubUpdateChecker.ts`（新規）
+  - `checkAppUpdate()`: releases/latestをfetch、semver比較で更新判定
+  - `checkDictionaryUpdate(lastKnownSha)`: commits APIで最新SHA比較（初回は通知しない）
+  - `stripMarkdown()`: リリースノートのMarkdownを除去してプレーンテキスト化
+- [x] `src/store/notificationStore.ts`: 更新状態フィールド追加
+  - `availableAppVersion / releaseNotes / releaseUrl`（セッション内のみ保持）
+  - `dictionaryUpdateAvailable / dictionaryLatestCommitMessage`
+  - `lastKnownDictionaryCommit`（AsyncStorageにpersist、セッションをまたいで保持）
+- [x] `App.tsx`: `runUpdateChecks()`をfire-and-forgetで起動後に呼び出し
+- [x] `src/components/UpdateBanner.tsx`（新規）: 通知画面上部のバナー（更新なし時はnull）
+- [x] `src/components/UpdateNotesModal.tsx`（新規）: アプリ内リリースノート表示モーダル
+- [x] `src/screens/BlueskyNotificationsScreen.tsx`: `ListHeaderComponent={<UpdateBanner />}`を追加
+- [x] `src/constants/config.ts`: `GITHUB`定数・`EXTERNAL_LINKS.APP_STORE`追加
+- [x] i18nキー追加（`updates.*`、ja/en）
+- 詳細：`doc/github-update-checker-plan.md`
 
 ### M12: Blueskyプッシュ通知・バッジ・通知一覧 ✅ **完了** (2026-02-27)
 
