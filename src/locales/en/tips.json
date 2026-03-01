@@ -11,5 +11,33 @@
   "share": {
     "title": "Share Feature",
     "description": "After selecting a word, tap the 'Share' button in the popup to share the post to Bluesky with an image. Share your learning progress with friends."
+  },
+  "quiz": {
+    "title": "Practice with Quiz",
+    "description": "Tap the quiz icon in the top-right of the word list screen to take a quiz using your saved vocabulary. Choose from English→Japanese, Japanese→English, or mixed mode."
+  },
+  "textToSpeech": {
+    "title": "Text to Speech",
+    "description": "Tap the speaker icon in the word popup to hear the word or example sentence read aloud. Great for checking pronunciation."
+  },
+  "autoSpeech": {
+    "title": "Auto Speech Setting",
+    "description": "Turn on 'Auto Speech' in Settings to automatically read words aloud when a word popup opens or when a quiz question appears."
+  },
+  "wordSearch": {
+    "title": "Search Vocabulary",
+    "description": "Use the search bar at the top of the word list screen to quickly find saved words. Supports searching by English word, Japanese meaning, or definition."
+  },
+  "replyRepost": {
+    "title": "Reply & Repost",
+    "description": "Use the icons below a post to reply or repost. With quote repost, you can add your own comment when resharing."
+  },
+  "proofreading": {
+    "title": "Japanese Proofreading",
+    "description": "Tap the spell check icon in the post creation screen to detect errors in Japanese text and get correction suggestions."
+  },
+  "customFeed": {
+    "title": "Custom Feeds",
+    "description": "Add Bluesky custom feeds as tabs on the home screen. Go to Settings → Feed Management to add your favorite feeds."
   }
 }

@@ -12,7 +12,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Hand, BookSearch, Share2 } from 'lucide-react-native';
+import {
+  Hand,
+  BookSearch,
+  Share2,
+  GraduationCap,
+  Volume2,
+  Mic,
+  Search,
+  MessageSquare,
+  SpellCheck2,
+  LayoutGrid,
+} from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useTheme } from '../hooks/useTheme';
 
@@ -76,6 +87,55 @@ export function TipsScreen(): React.JSX.Element {
           icon={<Share2 size={24} color={iconColor} />}
           title={t('share.title')}
           description={t('share.description')}
+        />
+
+        {/* Quiz Tip */}
+        <TipCard
+          icon={<GraduationCap size={24} color={iconColor} />}
+          title={t('quiz.title')}
+          description={t('quiz.description')}
+        />
+
+        {/* Text to Speech Tip */}
+        <TipCard
+          icon={<Volume2 size={24} color={iconColor} />}
+          title={t('textToSpeech.title')}
+          description={t('textToSpeech.description')}
+        />
+
+        {/* Auto Speech Tip */}
+        <TipCard
+          icon={<Mic size={24} color={iconColor} />}
+          title={t('autoSpeech.title')}
+          description={t('autoSpeech.description')}
+        />
+
+        {/* Word Search Tip */}
+        <TipCard
+          icon={<Search size={24} color={iconColor} />}
+          title={t('wordSearch.title')}
+          description={t('wordSearch.description')}
+        />
+
+        {/* Reply & Repost Tip */}
+        <TipCard
+          icon={<MessageSquare size={24} color={iconColor} />}
+          title={t('replyRepost.title')}
+          description={t('replyRepost.description')}
+        />
+
+        {/* Proofreading Tip */}
+        <TipCard
+          icon={<SpellCheck2 size={24} color={iconColor} />}
+          title={t('proofreading.title')}
+          description={t('proofreading.description')}
+        />
+
+        {/* Custom Feed Tip */}
+        <TipCard
+          icon={<LayoutGrid size={24} color={iconColor} />}
+          title={t('customFeed.title')}
+          description={t('customFeed.description')}
         />
       </ScrollView>
     </SafeAreaView>
