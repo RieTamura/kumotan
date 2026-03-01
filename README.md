@@ -12,27 +12,41 @@
 
 ## ✨ 機能
 
-- 🔐 **Bluesky認証** - App Passwordによる安全なログイン
-- 📰 **タイムライン表示** - Blueskyの投稿をリアルタイムで表示
+- 🔐 **Bluesky認証** - OAuthによる安全なログイン
+- 📰 **タイムライン表示** - Following / カスタムフィード / プロフィールタブをスワイプで切り替え
 - 📝 **単語保存** - 投稿から英単語を長押しで選択・保存
-- 📚 **単語帳管理** - 保存した単語の一覧表示・既読管理・ソート・フィルタ
+- 📚 **単語帳管理** - 保存した単語の一覧表示・既読管理・ソート・フィルタ・検索
+- 🧠 **クイズモード** - 4択／テキスト入力形式のクイズで単語を復習・結果をBlueskyでシェア
 - 📊 **学習進捗** - 日別の学習統計とカレンダー表示・Blueskyシェア機能
+- 🔤 **翻訳・定義** - DeepL / Free Dictionary / Yahoo! JAPAN / JMdict（ローカル辞書）に対応
+- 🔔 **Bluesky通知** - いいね・返信・メンション・フォロー等の通知フィード
+- 🗣️ **テキスト読み上げ** - 単語の発音をネイティブ音声で確認
+- 💾 **データ管理** - 単語データのエクスポート・インポート・PDS同期
 - 🌐 **オフライン対応** - ネットワーク状態の監視と表示
-- 🔤 **翻訳・定義** - DeepL API / Free Dictionary API / Yahoo! JAPAN APIによる多言語対応
+- 📖 **スレッド表示** - 投稿スレッドと返信を展開して閲覧
+- 🔔 **学習リマインダー** - 時刻・頻度を設定して学習通知
+- 🌍 **多言語対応** - 日本語/英語UI切り替え
+- 🌙 **ダークモード** - ライト/ダークテーマ対応
+- ⬆️ **自動更新チェック** - GitHubからアプリ・辞書の更新を通知
 
 ## 🛠️ 技術スタック
 
 | カテゴリ | 技術 |
 |---------|------|
 | フレームワーク | React Native + Expo (SDK 54) |
-| 言語 | TypeScript |
-| 状態管理 | Zustand |
+| 言語 | TypeScript 5.9 |
+| 状態管理 | Zustand v5 |
 | ナビゲーション | React Navigation v7 |
 | データベース | SQLite (expo-sqlite) |
 | セキュアストレージ | expo-secure-store |
-| キャッシュ | @react-native-async-storage/async-storage |
+| ファイル操作 | expo-file-system |
+| 画像処理 | expo-image-manipulator |
+| 音声読み上げ | expo-speech |
 | ネットワーク監視 | @react-native-community/netinfo |
-| API | AT Protocol (@atproto/api), DeepL, Yahoo! JAPAN |
+| 国際化 | i18next + react-i18next |
+| アイコン | lucide-react-native |
+| アニメーション | react-native-reanimated |
+| API | AT Protocol (@atproto/api), DeepL, Yahoo! JAPAN, Free Dictionary |
 
 ## 📂 プロジェクト構成
 
@@ -41,19 +55,39 @@ kumotan/
 ├── App.tsx                 # エントリーポイント
 ├── src/
 │   ├── components/         # 再利用可能なコンポーネント
-│   │   ├── common/         # 汎用コンポーネント (Button, Input, Loading)
+│   │   ├── common/         # 汎用コンポーネント (Button, Input, Loading, Toast)
 │   │   ├── PostCard.tsx    # 投稿カード
+│   │   ├── WordPopup.tsx   # 単語選択・定義ポップアップ
+│   │   ├── Calendar.tsx    # カレンダー（進捗画面）
+│   │   ├── ShareCard.tsx   # シェア用画像カード
+│   │   ├── QuizShareCard.tsx # クイズ結果シェアカード
 │   │   └── ...
 │   ├── screens/            # 画面コンポーネント
-│   │   ├── HomeScreen.tsx  # ホーム（タイムライン）
-│   │   ├── WordListScreen.tsx  # 単語帳
-│   │   ├── ProgressScreen.tsx  # 学習進捗
-│   │   ├── SettingsScreen.tsx  # 設定
-│   │   └── ApiKeySetupScreen.tsx  # API Key設定
+│   │   ├── HomeScreen.tsx          # ホーム（タイムライン）
+│   │   ├── WordListScreen.tsx      # 単語帳
+│   │   ├── QuizSetupScreen.tsx     # クイズ設定
+│   │   ├── QuizScreen.tsx          # クイズ（ゲームプレイ）
+│   │   ├── QuizResultScreen.tsx    # クイズ結果
+│   │   ├── ProgressScreen.tsx      # 学習進捗
+│   │   ├── SettingsScreen.tsx      # 設定
+│   │   ├── ApiKeySetupScreen.tsx   # APIキー設定
+│   │   ├── ThreadScreen.tsx        # 投稿スレッド
+│   │   ├── BlueskyNotificationsScreen.tsx  # Bluesky通知
+│   │   ├── NotificationSettingsScreen.tsx  # 学習リマインダー設定
+│   │   ├── DictionarySetupScreen.tsx       # JMdict辞書管理
+│   │   ├── DataManagementScreen.tsx        # データ管理
+│   │   ├── TipsScreen.tsx          # 使い方ヒント
+│   │   └── ...
 │   ├── services/           # 外部サービス連携
-│   │   ├── bluesky/        # Bluesky API
-│   │   ├── database/       # SQLite操作
-│   │   └── dictionary/     # 翻訳・辞書API
+│   │   ├── auth/           # OAuthクライアント
+│   │   ├── bluesky/        # Bluesky API (feed, social)
+│   │   ├── database/       # SQLite操作 (words, stats, quiz)
+│   │   ├── dictionary/     # 翻訳・辞書API (DeepL, Free Dictionary, Yahoo, JMdict)
+│   │   ├── quiz/           # クイズエンジン・回答バリデーション
+│   │   ├── network/        # ネットワーク監視
+│   │   ├── notifications/  # プッシュ通知
+│   │   ├── updates/        # GitHubアップデートチェッカー
+│   │   └── pds/            # Personal Data Server同期
 │   ├── store/              # 状態管理 (Zustand)
 │   ├── hooks/              # カスタムフック
 │   ├── types/              # TypeScript型定義
@@ -92,12 +126,13 @@ npx expo start
 
 ## 📖 使い方
 
-1. **ログイン** - Blueskyのハンドル名とApp Passwordでログイン
-2. **API設定（オプション）** - 設定画面からDeepL API KeyまたはYahoo! Client IDを設定
-3. **タイムライン閲覧** - ホーム画面でフォローユーザーの投稿を表示
-4. **単語を保存** - 投稿内の英単語を長押しして単語帳に追加
-5. **学習** - 単語帳タブで保存した単語を復習
-6. **進捗確認** - 進捗タブで学習状況をチェック・Blueskyでシェア
+1. **ログイン** - BlueskyアカウントでOAuth認証
+2. **API設定（オプション）** - 設定画面からDeepL APIキーまたはYahoo! Client IDを設定
+3. **タイムライン閲覧** - ホーム画面でFollowing・カスタムフード・プロフィールをスワイプで切り替え
+4. **単語を保存** - 投稿内の英単語を長押しして単語帳に追加（翻訳・定義も表示）
+5. **クイズで復習** - クイズタブから4択またはテキスト入力形式のクイズに挑戦
+6. **単語帳を管理** - 単語帳タブで検索・フィルタ・ソート・既読管理
+7. **進捗確認** - 進捗タブで学習カレンダー・統計をチェック・Blueskyでシェア
 
 ## ⚙️ 設定
 
