@@ -91,7 +91,7 @@ function FlatBackButton({ tintColor }: { tintColor?: string }): React.JSX.Elemen
       onPress={() => navigation.goBack()}
       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       accessibilityLabel="戻る"
-      style={{ backgroundColor: 'transparent' }}
+      style={{ backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' }}
     >
       <ChevronLeft size={24} color={tintColor ?? colors.text} />
     </Pressable>
@@ -379,7 +379,7 @@ function RootNavigator(): React.JSX.Element {
               headerTintColor: colors.primary,
               headerStyle: { backgroundColor: colors.background },
               headerTitleStyle: { color: colors.text },
-              headerLeft: () => null,
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
           />
           <Stack.Screen
