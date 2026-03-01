@@ -48,7 +48,8 @@ function TipCard({ icon, title, description }: TipCardProps): React.JSX.Element 
  */
 export function TipsScreen(): React.JSX.Element {
   const { t } = useTranslation('tips');
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const iconColor = isDark ? colors.primary : '#FFFFFF';
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -58,21 +59,21 @@ export function TipsScreen(): React.JSX.Element {
       >
         {/* Word Selection Tip */}
         <TipCard
-          icon={<Hand size={24} color={colors.primary} />}
+          icon={<Hand size={24} color={iconColor} />}
           title={t('wordSelection.title')}
           description={t('wordSelection.description')}
         />
 
         {/* Book Search Tip */}
         <TipCard
-          icon={<BookSearch size={24} color={colors.primary} />}
+          icon={<BookSearch size={24} color={iconColor} />}
           title={t('bookSearch.title')}
           description={t('bookSearch.description')}
         />
 
         {/* Share Tip */}
         <TipCard
-          icon={<Share2 size={24} color={colors.primary} />}
+          icon={<Share2 size={24} color={iconColor} />}
           title={t('share.title')}
           description={t('share.description')}
         />
