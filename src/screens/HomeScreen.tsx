@@ -47,6 +47,7 @@ import { ConfirmModal } from '../components/common/ConfirmModal';
 import { ProfilePreviewModal } from '../components/ProfilePreviewModal';
 import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { useTheme } from '../hooks/useTheme';
+import { useProfilePreview } from '../hooks/useProfilePreview';
 import { useNotificationStore } from '../store/notificationStore';
 import { Colors } from '../constants/colors';
 
@@ -352,10 +353,7 @@ export function HomeScreen(): React.JSX.Element {
   }>({ visible: false, post: null });
 
   // Profile preview modal state
-  const [profilePreview, setProfilePreview] = useState<{
-    visible: boolean;
-    author: TimelinePost['author'] | null;
-  }>({ visible: false, author: null });
+  const { profilePreview, handleAvatarPress, closePreview } = useProfilePreview();
 
   /**
    * Handle post press - navigate to thread
@@ -542,13 +540,6 @@ export function HomeScreen(): React.JSX.Element {
     });
     setReplyTarget(null);
     setIsPostModalVisible(true);
-  }, []);
-
-  /**
-   * Handle avatar press - open profile preview modal
-   */
-  const handleAvatarPress = useCallback((author: TimelinePost['author']) => {
-    setProfilePreview({ visible: true, author });
   }, []);
 
   /**
@@ -819,7 +810,7 @@ export function HomeScreen(): React.JSX.Element {
         visible={profilePreview.visible}
         author={profilePreview.author}
         currentUserDid={user?.did}
-        onClose={() => setProfilePreview((prev) => ({ ...prev, visible: false }))}
+        onClose={closePreview}
         onFollowPress={handleFollowPress}
         onBlockPress={handleBlockPress}
       />

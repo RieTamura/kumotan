@@ -24,8 +24,13 @@ import { WordPopup } from '../components/WordPopup';
 import { TimelinePost } from '../types/bluesky';
 import { getAgent, hasActiveSession, refreshSession } from '../services/bluesky/auth';
 import { likePost, unlikePost, repostPost, unrepostPost, extractPostEmbed } from '../services/bluesky/feed';
+import { followUser, unfollowUser, blockUser, unblockUser } from '../services/bluesky/social';
 import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
+import { useProfilePreview } from '../hooks/useProfilePreview';
 import { addWord } from '../services/database/words';
+import { useSocialStore } from '../store/socialStore';
+import { useAuthUser } from '../store/authStore';
+import { ProfilePreviewModal } from '../components/ProfilePreviewModal';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type ThreadScreenProps = NativeStackScreenProps<RootStackParamList, 'Thread'>;
@@ -111,6 +116,10 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { colors } = useTheme();
+
+  const user = useAuthUser();
+  const { setFollowing, setBlocking } = useSocialStore();
+  const { profilePreview, handleAvatarPress, closePreview } = useProfilePreview();
 
   // Word popup state
   const [wordPopup, setWordPopup] = useState<WordPopupState>(initialWordPopupState);
@@ -395,6 +404,96 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
   );
 
   /**
+   * Handle follow/unfollow from profile preview modal
+   */
+  const handleFollowPress = useCallback(
+    async (did: string, shouldFollow: boolean, followUri?: string) => {
+      setFollowing(did, shouldFollow ? 'optimistic' : null);
+      try {
+        if (shouldFollow) {
+          const result = await followUser(did);
+          if (result.success) {
+            setFollowing(did, result.data.uri);
+          } else {
+            setFollowing(did, followUri ?? null);
+            if (__DEV__) {
+              console.error('Failed to follow user:', result.error);
+            }
+          }
+        } else {
+          if (!followUri) return;
+          const result = await unfollowUser(followUri);
+          if (!result.success) {
+            setFollowing(did, followUri);
+            if (__DEV__) {
+              console.error('Failed to unfollow user:', result.error);
+            }
+          }
+        }
+      } catch (error) {
+        setFollowing(did, followUri ?? null);
+        if (__DEV__) {
+          console.error('Follow operation failed:', error);
+        }
+      }
+    },
+    [setFollowing]
+  );
+
+  /**
+   * Handle block/unblock from profile preview modal
+   */
+  const handleBlockPress = useCallback(
+    (did: string, handle: string, shouldBlock: boolean, blockUri?: string) => {
+      if (shouldBlock) {
+        Alert.alert(
+          th('blockConfirmTitle'),
+          th('blockConfirmMessage', { handle }),
+          [
+            { text: tc('cancel'), style: 'cancel' },
+            {
+              text: th('blockConfirm'),
+              style: 'destructive',
+              onPress: async () => {
+                setBlocking(did, 'optimistic');
+                try {
+                  const result = await blockUser(did);
+                  if (result.success) {
+                    setBlocking(did, result.data.uri);
+                  } else {
+                    setBlocking(did, blockUri ?? null);
+                    if (__DEV__) {
+                      console.error('Failed to block user:', result.error);
+                    }
+                  }
+                } catch (error) {
+                  setBlocking(did, blockUri ?? null);
+                  if (__DEV__) {
+                    console.error('Block operation failed:', error);
+                  }
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        setBlocking(did, null);
+        if (blockUri) {
+          unblockUser(blockUri).then((result) => {
+            if (!result.success) {
+              setBlocking(did, blockUri);
+              if (__DEV__) {
+                console.error('Failed to unblock user:', result.error);
+              }
+            }
+          });
+        }
+      }
+    },
+    [setBlocking, th, tc]
+  );
+
+  /**
    * Handle quote press
    */
   const handleQuotePress = useCallback((post: TimelinePost) => {
@@ -441,6 +540,8 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
               onReplyPress={handleReplyPress}
               onRepostPress={handleRepostPress}
               onQuotePress={handleQuotePress}
+              onAvatarPress={handleAvatarPress}
+              currentUserDid={user?.did}
               clearSelection={shouldClearParentSelection}
             />
           </View>
@@ -457,6 +558,8 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
             onReplyPress={handleReplyPress}
             onRepostPress={handleRepostPress}
             onQuotePress={handleQuotePress}
+            onAvatarPress={handleAvatarPress}
+            currentUserDid={user?.did}
             clearSelection={shouldClearMainSelection}
           />
         </View>
@@ -471,7 +574,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
         )}
       </View>
     );
-  }, [threadData, t, handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, wordPopup.visible, wordPopup.postUri]);
+  }, [threadData, t, handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Render reply item
@@ -489,11 +592,13 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
           onReplyPress={handleReplyPress}
           onRepostPress={handleRepostPress}
           onQuotePress={handleQuotePress}
+          onAvatarPress={handleAvatarPress}
+          currentUserDid={user?.did}
           clearSelection={shouldClearSelection}
         />
       </View>
     );
-  }, [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, wordPopup.visible, wordPopup.postUri]);
+  }, [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Key extractor
@@ -575,6 +680,15 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
         postText={wordPopup.postText}
         onClose={closeWordPopup}
         onAddToWordList={handleAddWord}
+      />
+
+      <ProfilePreviewModal
+        visible={profilePreview.visible}
+        author={profilePreview.author}
+        currentUserDid={user?.did}
+        onClose={closePreview}
+        onFollowPress={handleFollowPress}
+        onBlockPress={handleBlockPress}
       />
     </SafeAreaView>
   );
