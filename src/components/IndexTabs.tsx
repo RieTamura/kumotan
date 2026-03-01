@@ -32,6 +32,8 @@ export interface TabConfig {
   onRemove?: () => void;
   /** If true, subsequent tabs are rendered on a second row below this tab. */
   rowBreak?: boolean;
+  /** When true, the tab is clipped at the right edge of the container (half-visible). */
+  clipAtEdge?: boolean;
 }
 
 interface IndexTabsProps {
@@ -144,6 +146,7 @@ export const IndexTabs = memo(function IndexTabs({
           styles.tab,
           tab.renderContent ? styles.iconTab : styles.textTab,
           !isLastInRow && styles.tabWithMargin,
+          tab.clipAtEdge && { marginRight: -AVATAR_TAB_CLIP },
           {
             backgroundColor: isActive
               ? colors.indexTabActive
@@ -219,6 +222,11 @@ export const IndexTabs = memo(function IndexTabs({
 const AVATAR_SIZE = 24;
 const AVATAR_SIZE_ACTIVE = 30;
 
+// Amount to shift a clipAtEdge tab beyond the container's right boundary.
+// Derived from actual tab dimensions: (AVATAR_SIZE + padding*2 + border*2) / 2
+// iconTab: paddingHorizontal = Spacing.sm (8px each side), borderWidth = 1px each side
+const AVATAR_TAB_CLIP = Math.round((AVATAR_SIZE + Spacing.sm * 2 + 2) / 2);
+
 export interface AvatarTabIconProps {
   isActive: boolean;
   uri?: string;
@@ -278,7 +286,7 @@ export const AvatarTabIcon = memo(function AvatarTabIcon({
 const styles = StyleSheet.create({
   container: {
     paddingTop: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
+    paddingLeft: Spacing.lg,
   },
   tabRow: {
     flexDirection: 'row',

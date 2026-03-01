@@ -93,6 +93,7 @@ export function HomeScreen(): React.JSX.Element {
         : {}),
       profile: {
         key: 'profile',
+        clipAtEdge: true,
         renderContent: (isActive: boolean) => (
           <AvatarTabIcon
             isActive={isActive}
@@ -860,6 +861,7 @@ const styles = StyleSheet.create({
   },
   headerTabsContainer: {
     flex: 1,
+    overflow: 'hidden',
   },
   headerRight: {
     flexDirection: 'row',

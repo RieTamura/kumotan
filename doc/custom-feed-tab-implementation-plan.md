@@ -445,6 +445,64 @@ Now Playing           [↑] [↓]
 
 ---
 
+### 7.4. プロフィールタブの右端半クリップ表示
+
+**ファイル**: `src/components/IndexTabs.tsx`, `src/screens/HomeScreen.tsx`
+
+プロフィール（アバター）タブをタブエリアの右端で半分クリップし、存在を示唆するビジュアルにする。
+
+#### TabConfig への `clipAtEdge` 追加
+
+```typescript
+export interface TabConfig {
+  // ... 既存フィールド ...
+  /** When true, the tab is clipped at the right edge of the container (half-visible). */
+  clipAtEdge?: boolean;
+}
+```
+
+#### クリップ量の定数化
+
+マジックナンバーを避け、実際のタブ寸法から導出する。
+
+```typescript
+// AVATAR_SIZE(24) + paddingHorizontal*2(8*2) + borderWidth*2(1*2) = 42px → 半分 = 21px
+const AVATAR_TAB_CLIP = Math.round((AVATAR_SIZE + Spacing.sm * 2 + 2) / 2);
+```
+
+`AVATAR_SIZE` や `Spacing.sm` の変更に自動追従する。
+
+#### 仕組み
+
+```
+[headerTabsContainer (flex:1, overflow:hidden)] | [headerRight (Bell)]
+                                               ↑ここでクリップ
+[Following][Latest From Follows ×][avatar → -21px →|← clipped]
+```
+
+- `clipAtEdge: true` のタブに `marginRight: -AVATAR_TAB_CLIP` を適用して右に押し出す
+- `headerTabsContainer` の `overflow: 'hidden'` がクリップ境界を担う（スクリーン端の暗黙依存を排除）
+- タブ順序変更があっても `clipAtEdge` フラグで対象タブを明示するため影響を受けない
+
+#### HomeScreen への適用
+
+```typescript
+profile: {
+  key: 'profile',
+  clipAtEdge: true,
+  renderContent: (isActive) => <AvatarTabIcon ... />,
+},
+```
+
+```typescript
+headerTabsContainer: {
+  flex: 1,
+  overflow: 'hidden',
+},
+```
+
+---
+
 ### Phase 3 実装上の決定事項
 
 | 項目 | 決定内容 |
@@ -522,3 +580,5 @@ Now Playing           [↑] [↓]
 - [x] **[HomeScreen]** `tabOrder` に基づき `tabs` を動的に並び替え
 - [x] **[Settings]** タブ並び替えUIを追加（↑↓ アイコンボタン、32×32pxボーダーボックス）
 - [x] **[i18n]** `tabOrder`, `tabFollowing`, `tabProfile`, `tabMoveUp`, `tabMoveDown` キーを追加
+- [x] **[IndexTabs]** `TabConfig` に `clipAtEdge` を追加し、プロフィールタブを右端で半クリップ表示
+- [x] **[HomeScreen]** `headerTabsContainer` に `overflow: 'hidden'` を追加（クリップ境界を明示化）
