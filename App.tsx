@@ -69,18 +69,18 @@ interface InitState {
 export default function App(): React.JSX.Element {
   const { colors, isDark } = useTheme();
   const user = useAuthUser();
-  const setHasUnread = useNotificationStore((state) => state.setHasUnread);
+  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
 
   const checkAndUpdateBadge = useCallback(async () => {
     try {
       const { data } = await getAgent().app.bsky.notification.getUnreadCount();
       const count = data.count ?? 0;
-      setHasUnread(count > 0);
+      setUnreadCount(count);
       await Notifications.setBadgeCountAsync(count);
     } catch {
       // ユーザー未認証またはネットワークエラーは無視
     }
-  }, [setHasUnread]);
+  }, [setUnreadCount]);
 
   useEffect(() => {
     if (!user?.did) return;
@@ -88,7 +88,7 @@ export default function App(): React.JSX.Element {
     checkAndUpdateBadge();
 
     const receivedSub = Notifications.addNotificationReceivedListener(() => {
-      setHasUnread(true);
+      setUnreadCount(1);
     });
 
     const appStateSub = AppState.addEventListener('change', (nextState) => {
@@ -101,7 +101,7 @@ export default function App(): React.JSX.Element {
       receivedSub.remove();
       appStateSub.remove();
     };
-  }, [user?.did, checkAndUpdateBadge, setHasUnread]);
+  }, [user?.did, checkAndUpdateBadge, setUnreadCount]);
 
   const [initState, setInitState] = useState<InitState>({
     isReady: false,

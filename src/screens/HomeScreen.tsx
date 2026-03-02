@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   FlatList,
   Pressable,
@@ -64,7 +65,7 @@ export function HomeScreen(): React.JSX.Element {
   const { t } = useTranslation('home');
   const { t: tt } = useTranslation('tutorial');
   const { colors } = useTheme();
-  const hasUnread = useNotificationStore((state) => state.hasUnread);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
   const profile = useAuthProfile();
   const user = useAuthUser();
   const { setFollowing, setBlocking, userStates } = useSocialStore();
@@ -614,7 +615,11 @@ export function HomeScreen(): React.JSX.Element {
           accessibilityRole="button"
         >
           <Bell size={22} color={colors.text} />
-          {hasUnread && <View style={[styles.unreadDot, { borderColor: colors.background }]} />}
+          {unreadCount > 0 && (
+            <View style={[styles.unreadBadge, { borderColor: colors.background }]}>
+              <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
     </View>
@@ -863,15 +868,24 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: BorderRadius.full,
   },
-  unreadDot: {
+  unreadBadge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    top: -4,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: Colors.error,
     borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  unreadBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '700',
+    lineHeight: 12,
   },
   tabContent: {
     flex: 1,

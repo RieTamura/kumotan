@@ -60,7 +60,7 @@ export function BlueskyNotificationsScreen(): React.JSX.Element {
   const { colors } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = useAuthUser();
-  const setHasUnread = useNotificationStore((state) => state.setHasUnread);
+  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
   const { setFollowing, setBlocking } = useSocialStore();
 
   const [notifications, setNotifications] = useState<BlueskyNotification[]>([]);
@@ -85,12 +85,12 @@ export function BlueskyNotificationsScreen(): React.JSX.Element {
   const markAsRead = useCallback(async () => {
     try {
       await getAgent().app.bsky.notification.updateSeen({ seenAt: new Date().toISOString() });
-      setHasUnread(false);
+      setUnreadCount(0);
       await Notifications.setBadgeCountAsync(0);
     } catch {
       // ignore
     }
-  }, [setHasUnread]);
+  }, [setUnreadCount]);
 
   useEffect(() => {
     const init = async () => {

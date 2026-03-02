@@ -42,6 +42,8 @@ interface NotificationState {
   // Unread notification indicator
   hasUnread: boolean;
   setHasUnread: (value: boolean) => void;
+  unreadCount: number;
+  setUnreadCount: (count: number) => void;
 
   // App update info (not persisted – refreshed on each launch)
   availableAppVersion: string | null;
@@ -86,6 +88,8 @@ export const useNotificationStore = create<NotificationState>()(
 
       hasUnread: false,
       setHasUnread: (value) => set({ hasUnread: value }),
+      unreadCount: 0,
+      setUnreadCount: (count) => set({ unreadCount: count, hasUnread: count > 0 }),
 
       // App update (not persisted)
       availableAppVersion: null,
@@ -124,6 +128,7 @@ export const useNotificationStore = create<NotificationState>()(
         notifyOnRepost: state.notifyOnRepost,
         notifyOnFollow: state.notifyOnFollow,
         hasUnread: state.hasUnread,
+        unreadCount: state.unreadCount,
         lastKnownDictionaryCommit: state.lastKnownDictionaryCommit,
       }),
     }
