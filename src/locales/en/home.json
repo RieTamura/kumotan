@@ -102,7 +102,7 @@
   "profilePreviewLoadError": "Failed to load profile",
   "linkPreviewLoading": "Fetching link...",
   "proofreadingButton": "Proofread",
-  "proofreadingIssuesFound": "{{count}} issue(s) found — tap to see suggestions",
+  "proofreadingIssuesFound": "{{count}} issue(s) found — tap a highlighted word to see suggestions",
   "proofreadingNoErrors": "No issues found",
   "proofreadingEdit": "Back to Edit",
   "proofreadingNoClientId": "Yahoo! Client ID not set",
@@ -111,6 +111,8 @@
   "proofreadingError": "Proofreading check failed",
   "proofreadingSuggestionLabel": "Suggestions",
   "proofreadingNoSuggestion": "No suggestions available",
+  "proofreadingRuleLabel": "Detected rule",
+  "proofreadingNoSuggestionHint": "Yahoo! API could not provide a specific correction",
   "notifications": {
     "bell": "Notifications",
     "empty": "No notifications",

@@ -26,13 +26,24 @@ export interface ProofreadingSuggestion {
   length: number;       // エラー文字数
   word: string;         // 問題のある単語
   suggestion: string[]; // 修正候補リスト
+  rule?: string;        // エラーのルール名 e.g. "助詞不足の可能性あり"
+}
+
+/** Yahoo! KouseiService の生レスポンス型（offset/length は文字列、suggestion は文字列または配列） */
+interface RawKouseiSuggestion {
+  note: string;
+  offset: string | number;
+  length: string | number;
+  word: string;
+  rule?: string;
+  suggestion: string | string[];
 }
 
 interface KouseiResponse {
   id: string;
   jsonrpc: string;
   result?: {
-    suggestions?: ProofreadingSuggestion[];
+    suggestions?: RawKouseiSuggestion[];
   };
 }
 
@@ -499,7 +510,20 @@ export async function checkProofreading(
     }
 
     const data: KouseiResponse = await response.json();
-    const suggestions = data.result?.suggestions ?? [];
+
+    // APIは offset/length を文字列で、suggestion を文字列または配列で返すため正規化する
+    const suggestions: ProofreadingSuggestion[] = (data.result?.suggestions ?? []).map((raw) => ({
+      note: raw.note,
+      offset: Number(raw.offset),
+      length: Number(raw.length),
+      word: raw.word,
+      rule: raw.rule,
+      suggestion: Array.isArray(raw.suggestion)
+        ? raw.suggestion
+        : raw.suggestion
+          ? [raw.suggestion]
+          : [],
+    }));
 
     return { success: true, data: suggestions };
   } catch (error: any) {

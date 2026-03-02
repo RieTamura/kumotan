@@ -102,7 +102,7 @@
   "profilePreviewLoadError": "プロフィールの読み込みに失敗しました",
   "linkPreviewLoading": "リンクを取得中...",
   "proofreadingButton": "校正",
-  "proofreadingIssuesFound": "{{count}}件の問題が見つかりました（タップで修正候補を確認）",
+  "proofreadingIssuesFound": "{{count}}件の問題が見つかりました（ハイライト文をタップして修正候補を確認）",
   "proofreadingNoErrors": "問題は見つかりませんでした",
   "proofreadingEdit": "編集に戻る",
   "proofreadingNoClientId": "Yahoo! Client IDが未設定",
@@ -111,6 +111,8 @@
   "proofreadingError": "校正チェックに失敗しました",
   "proofreadingSuggestionLabel": "修正候補",
   "proofreadingNoSuggestion": "修正候補がありません",
+  "proofreadingRuleLabel": "検出ルール",
+  "proofreadingNoSuggestionHint": "Yahoo! APIは具体的な修正案を提供できませんでした",
   "notifications": {
     "bell": "通知",
     "empty": "通知はありません",

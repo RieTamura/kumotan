@@ -12,7 +12,7 @@ import { ProofreadingSuggestion } from '../services/dictionary/yahooJapan';
 interface ProofreadingViewProps {
   text: string;
   suggestions: ProofreadingSuggestion[];
-  onSegmentTap: (offset: number, length: number, suggestions: string[]) => void;
+  onSegmentTap: (offset: number, length: number, suggestions: string[], rule?: string) => void;
   style?: object;
 }
 
@@ -23,6 +23,7 @@ type ErrorSegment = {
   offset: number;
   length: number;
   suggestions: string[];
+  rule?: string;
 };
 type TextSegment = NormalSegment | ErrorSegment;
 
@@ -40,7 +41,9 @@ function buildSegments(text: string, suggestions: ProofreadingSuggestion[]): Tex
 
   for (const sug of sorted) {
     if (sug.offset < pos) continue;
-    if (sug.offset + sug.length > text.length) continue;
+    if (sug.offset + sug.length > text.length) {
+      continue;
+    }
 
     if (sug.offset > pos) {
       segments.push({ type: 'normal', text: text.slice(pos, sug.offset) });
@@ -52,6 +55,7 @@ function buildSegments(text: string, suggestions: ProofreadingSuggestion[]): Tex
       offset: sug.offset,
       length: sug.length,
       suggestions: sug.suggestion,
+      rule: sug.rule,
     });
 
     pos = sug.offset + sug.length;
@@ -97,9 +101,13 @@ export function ProofreadingView({
               key={`e-${i}`}
               style={[
                 styles.errorText,
-                { color: colors.error, backgroundColor: colors.errorLight },
+                {
+                  color: colors.error,
+                  // rgba 固定値でライト/ダーク両モードで視認できる背景を確保
+                  backgroundColor: 'rgba(224, 36, 94, 0.25)',
+                },
               ]}
-              onPress={() => onSegmentTap(seg.offset, seg.length, seg.suggestions)}
+              onPress={() => onSegmentTap(seg.offset, seg.length, seg.suggestions, seg.rule)}
               accessibilityLabel={`${seg.text}、タップで修正候補を表示`}
             >
               {seg.text}

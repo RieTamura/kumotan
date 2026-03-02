@@ -139,6 +139,7 @@ export function PostCreationModal({
     offset: number;
     length: number;
     suggestions: string[];
+    rule?: string;
   } | null>(null);
 
   /**
@@ -221,8 +222,8 @@ export function PostCreationModal({
    * Called when the user taps an error segment in ProofreadingView.
    * Opens the correction panel for the tapped segment.
    */
-  const handleSegmentTap = useCallback((offset: number, length: number, suggestions: string[]) => {
-    setSelectedError({ offset, length, suggestions });
+  const handleSegmentTap = useCallback((offset: number, length: number, suggestions: string[], rule?: string) => {
+    setSelectedError({ offset, length, suggestions, rule });
   }, []);
 
   /**
@@ -471,9 +472,16 @@ export function PostCreationModal({
                           </Pressable>
                         ))
                       ) : (
-                        <Text style={[styles.correctionNoSuggestion, { color: colors.textSecondary }]}>
-                          {t('proofreadingNoSuggestion')}
-                        </Text>
+                        <View style={[styles.correctionNoSuggestionBlock, { borderTopColor: colors.border }]}>
+                          {selectedError.rule && (
+                            <Text style={[styles.correctionRuleText, { color: colors.textSecondary }]}>
+                              {t('proofreadingRuleLabel')}: {selectedError.rule}
+                            </Text>
+                          )}
+                          <Text style={[styles.correctionNoSuggestion, { color: colors.textTertiary }]}>
+                            {t('proofreadingNoSuggestionHint')}
+                          </Text>
+                        </View>
                       )}
                     </View>
                   )}
@@ -813,11 +821,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  correctionNoSuggestion: {
+  correctionNoSuggestionBlock: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    paddingTop: 10,
+    paddingBottom: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+  },
+  correctionRuleText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  correctionNoSuggestion: {
+    fontSize: 13,
   },
   errorContainer: {
     flexDirection: 'row',

@@ -39,14 +39,14 @@ Bluesky 投稿作成モーダルに Yahoo! テキスト解析 Web API（校正�
                      │
                      [ProofreadingView 表示]
                      ・エラー箇所: 赤背景ハイライト＋下線（inline Text）
-                     ・バナー: 「N件の問題（タップで修正候補を確認）| 編集に戻る」
+                     ・バナー: 「N件の問題（ハイライト文をタップして修正候補を確認）| 編集に戻る」
                      │
                      [エラー箇所をタップ]
                      └─ 修正候補パネルを表示（テキスト直下）
                             │
                             ├─ 候補あり → 候補をタップ → text 更新 → パネル閉じる
                             │             → 残り0件で校正モード自動終了
-                            ├─ 候補なし → 「修正候補がありません」表示
+                            ├─ 候補なし → 検出ルール名 ＋ 「Yahoo! APIは具体的な修正案を提供できませんでした」表示
                             └─ ✕ボタン  → パネルを閉じる（テキスト変更なし）
 ```
 
@@ -69,15 +69,28 @@ Bluesky 投稿作成モーダルに Yahoo! テキスト解析 Web API（校正�
 ```
 ┌────────────────────────────────────────┐
 │ ⚠ 2件の問題が見つかりました    編集に戻る │  ← バナー
+│    （ハイライト文をタップして修正候補を確認）│
 ├────────────────────────────────────────┤
 │ これは こんにちわ です。               │  ← inline Text（レイアウト崩れなし）
 │          ─────────                     │    エラー語: 赤色＋下線
 └────────────────────────────────────────┘
+
+候補ありの場合：
 ┌────────────────────────────────────────┐
 │ 修正候補                            ✕ │  ← 修正候補パネル（エラー語タップで出現）
 ├────────────────────────────────────────┤
 │ こんにちは                             │  ← 候補ボタン（タップで適用）
 └────────────────────────────────────────┘
+
+候補なしの場合（例: 助詞不足）：
+┌────────────────────────────────────────┐
+│ 修正候補                            ✕ │
+├────────────────────────────────────────┤
+│ 検出ルール: 助詞不足の可能性あり        │  ← rule フィールドの値
+│ Yahoo! APIは具体的な修正案を            │  ← 理由の説明
+│ 提供できませんでした                    │
+└────────────────────────────────────────┘
+
 [🌐 誰でも] [🖼] [🏷] ............ [🔍*] [15/300]
                                ↑ アクティブ色
 ```
@@ -109,9 +122,9 @@ React Nativeのテキストエンジンがinline flowを処理するため、
   <Text>正常テキスト</Text>               ← 通常セグメント
   <Text                                   ← エラーセグメント
     color="error"
-    backgroundColor="errorLight"
+    backgroundColor="rgba(224,36,94,0.25)"  ← ライト/ダーク両モード対応の固定値
     textDecorationLine="underline"
-    onPress={() => onSegmentTap(offset, length, suggestions)}
+    onPress={() => onSegmentTap(offset, length, suggestions, rule)}
   >
     エラー語
   </Text>
@@ -127,8 +140,45 @@ React Nativeのテキストエンジンがinline flowを処理するため、
 パネルの表示・適用処理は `PostCreationModal` 側で管理する。
 
 - 候補あり：候補ごとにPressableボタンを表示
-- 候補なし：「修正候補がありません」テキストを表示（タップは無効）
+- 候補なし：`rule` フィールド（検出ルール名）と補足メッセージを表示
 - ✕ボタン：パネルを閉じてテキスト変更なし
+
+---
+
+## APIレスポンスの実際の型（実装時の発見）
+
+> **注意**: Yahoo! KouseiService V2 のレスポンスは型定義と異なる部分があった。
+
+| フィールド | 型定義 | 実際のAPIレスポンス |
+| --------- | ------ | ---------------- |
+| `offset` | `number` | `string`（例: `"2"`） |
+| `length` | `number` | `string`（例: `"5"`） |
+| `suggestion` | `string[]` | `string`（候補がある場合）または `""`（ない場合） |
+| `rule` | なし | `string`（例: `"助詞不足の可能性あり"`） |
+
+### 対処
+
+`checkProofreading()` 内で正規化レイヤー（`RawKouseiSuggestion` → `ProofreadingSuggestion`）を挟む：
+
+```typescript
+interface RawKouseiSuggestion {
+  offset: string | number;   // APIは文字列で返す
+  length: string | number;   // APIは文字列で返す
+  suggestion: string | string[];  // 空文字・文字列・配列の可能性
+  rule?: string;
+  // ...
+}
+
+// 正規化
+{
+  offset: Number(raw.offset),   // string → number
+  length: Number(raw.length),   // string → number
+  rule: raw.rule,
+  suggestion: Array.isArray(raw.suggestion)
+    ? raw.suggestion
+    : raw.suggestion ? [raw.suggestion] : [],
+}
+```
 
 ---
 
@@ -140,6 +190,12 @@ React Nativeのテキストエンジンがinline flowを処理するため、
 const [isProofreadingMode, setIsProofreadingMode] = useState(false);
 const [proofreadingSuggestions, setProofreadingSuggestions] = useState<ProofreadingSuggestion[]>([]);
 const [isProofreadingChecking, setIsProofreadingChecking] = useState(false);
+const [selectedError, setSelectedError] = useState<{
+  offset: number;
+  length: number;
+  suggestions: string[];
+  rule?: string;
+} | null>(null);
 ```
 
 ---
