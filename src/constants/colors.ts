@@ -87,9 +87,6 @@ export const LightColors = {
   loginButtonBackground: '#FFFFFF',
   loginButtonText: '#1DA1F2',
   loginDivider: 'rgba(255, 255, 255, 0.3)',
-
-  // Header button
-  headerButtonBackground: 'rgba(120, 120, 128, 0.16)',
 } as const;
 
 export const DarkColors = {
@@ -176,9 +173,6 @@ export const DarkColors = {
   loginButtonBackground: '#1DA1F2',
   loginButtonText: '#FFFFFF',
   loginDivider: '#38444D',
-
-  // Header button
-  headerButtonBackground: 'rgba(120, 120, 128, 0.24)',
 } as const;
 
 export type ThemeColors = Record<keyof typeof LightColors, string>;
