@@ -149,3 +149,161 @@
 - [x] **[Cache]** プロフィールデータのキャッシュ機構
 - [x] **[Animation]** タブ切り替えアニメーション
 - [x] **[UX]** スワイプによるタブ切り替え
+
+---
+
+## 8. 現在の実装状況（コード調査結果）
+
+### 8.1. ホーム画面の実際の構成（`HomeScreen.tsx`）
+
+計画からの主な変更・拡張点：
+
+#### タブ構成の拡張
+
+計画では `following` | `profile` の2タブだったが、現在は3種類のタブキーをサポート：
+
+| タブキー | 内容 |
+| --- | --- |
+| `following` | フォロー中ユーザーのタイムライン（`FollowingFeedTab`） |
+| `customFeed` | カスタムフィード（`CustomFeedTab`、フィード選択時のみ表示） |
+| `profile` | ログインユーザーのプロフィール（`ProfileView`） |
+
+タブの順序は `useTabOrderStore` で管理されており、ユーザーがカスタマイズ可能。
+
+#### コンテンツ切り替えの実装
+
+条件レンダリングではなく **`react-native-pager-view`（PagerView）** によるスワイプ式ページング：
+
+```text
+SafeAreaView
+├── OfflineBanner（ネットワーク切断時バナー）
+├── ヘッダー行（IndexTabs + 通知ベルアイコン）
+├── PagerView（水平スワイプ）
+│   ├── FollowingFeedTab（単語選択機能付き）
+│   ├── CustomFeedTab（カスタムフィード選択時のみ）
+│   └── ProfileView（自分のプロフィール）
+├── スクロールトップFAB（Animated、スクロール量に応じて表示）
+├── 投稿作成FAB（Plusアイコン）
+├── PostCreationModal
+├── WordPopup（英単語選択ポップアップ）
+├── ConfirmModal（ブロック・投稿削除確認）
+├── ProfilePreviewModal
+└── TutorialTooltip
+```
+
+#### 主な状態管理
+
+- **`activeTab`**: 現在のタブ（`HomeTabKey` 型）
+- **`tabs`**: `useMemo` で生成された `TabConfig[]`（tabOrderに従って並び替え）
+- **タブごとのスクロールオフセット**: FAB表示制御に使用
+- **FABアニメーション**: `Animated.Value` で透明度・位置をアニメーション
+- **Zustand ストア**: `customFeedStore`, `authStore`, `socialStore`, `notificationStore`
+
+---
+
+### 8.2. IndexTabs コンポーネント（`IndexTabs.tsx`）
+
+計画からの主な変更点：
+
+#### TabConfig インターフェース（計画より拡張）
+
+```typescript
+interface TabConfig {
+  key: string;
+  label?: string;
+  renderContent?: (isActive: boolean) => React.ReactNode;  // カスタム描画（アバター等）
+  onRemove?: () => void;           // 「×」ボタンによるタブ削除
+  rowBreak?: boolean;              // ここで行を折り返す
+  clipAtEdge?: boolean;            // コンテナ端でクリップ（アバタータブ用）
+}
+```
+
+#### 2行レイアウト
+
+`rowBreak: true` のタブを境界に **Row 1 / Row 2** の2段構成が可能（現在は1段のみ使用）。
+
+#### AnimatedTab のアニメーション仕様
+
+- **プレスアニメーション**: `scale` 0.95 → 1（spring: damping 15, stiffness 150, mass 0.5）
+- **アクティブ高さ**: 非選択36px → 選択44px（interpolate）
+- `withSpring` を使用したスムーズなトランジション
+
+#### AvatarTabIcon
+
+プロフィールタブ専用の丸型アバター表示コンポーネント：
+
+- 非選択時：24px、選択時：30px（アニメーションで変化）
+- 画像未設定時はプレースホルダー円を表示
+- `AVATAR_TAB_CLIP = 17px` でコンテナ右端をクリップ
+
+---
+
+### 8.3. ProfileView コンポーネント（`ProfileView.tsx`）
+
+計画からの主な変更点：
+
+#### Props インターフェース（計画より拡張）
+
+```typescript
+interface ProfileViewProps {
+  flatListRef?: React.RefObject<FlatList<TimelinePost> | null>;
+  onScroll?: (event) => void;
+  onReplyPress?: (post) => void;
+  onRepostPress?: (post, shouldRepost) => Promise<void>;
+  onQuotePress?: (post) => void;
+}
+```
+
+#### 表示構成（FlatList ベース）
+
+```text
+FlatList
+├── ListHeaderComponent（プロフィールヘッダー）
+│   ├── バナー画像（BANNER_HEIGHT: 120px）
+│   ├── アバター画像（AVATAR_SIZE: 80px、バナー上にオーバーラップ）
+│   ├── 表示名 + ハンドル（@username）
+│   ├── 自己紹介文（URL/ハッシュタグ/メンションのリッチテキスト解析）
+│   ├── フォロー中・フォロワー・投稿数（K/Mフォーマット）
+│   └── 「My Posts」セクションヘッダー
+├── 投稿一覧（PostCard、単語選択機能付き）
+├── 空状態メッセージ
+└── ページングローダー
+```
+
+#### 追加機能
+
+- `useAuthorFeed` による無限スクロール付き投稿フィード
+- プルトゥリフレッシュ（プロフィール＋フィード同時更新）
+- `tokenizeRichText` による説明文のURL/ハッシュタグ/メンション解析
+- 投稿の楽観的削除（`deletedUris` セット管理）
+- 単語選択ポップアップ（`WordPopup`）
+
+---
+
+### 8.4. カラーパレット（`colors.ts`）
+
+計画のクラフト紙風カラーからTwitter/Bluesky風のニュートラルカラーに変更：
+
+| カラーキー | ライトモード | ダークモード |
+| --- | --- | --- |
+| `indexTabActive` | `#FFFFFF`（白） | `#15202B` |
+| `indexTabInactive` | `#F7F9FA`（薄グレー） | `#1E2732` |
+| `indexTabBorder` | `#E1E8ED` | `#38444D` |
+| `indexTabShadow` | `rgba(0,0,0,0.1)` | `rgba(0,0,0,0.3)` |
+| `indexTabText` | `#657786`（グレー） | `#8899A6` |
+| `indexTabTextActive` | `#14171A`（ほぼ黒） | `#FFFFFF` |
+
+---
+
+### 8.5. 多言語対応（`home.json`）
+
+計画のタブラベル以外にも大幅に拡張済み（ja/en両対応）：
+
+- タブラベル（Following / プロフィール）
+- 投稿作成・操作（いいね、リポスト、返信、引用、削除、ブロック）
+- 校正機能（`proofreadingButton`, `proofreadingIssuesFound`）
+- 英単語選択機能（`wordSelection.*`）
+- 通知（`notifications.*`：いいね/リポスト/フォロー/メンション/返信/引用）
+- チュートリアル（`tutorial.*`）
+- 投稿設定（返信制限、コンテンツ警告）
+- エラー・ローディング状態
