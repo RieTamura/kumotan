@@ -3,11 +3,12 @@
  * File index-style tab navigation for the home screen
  */
 
-import React, { memo, useCallback, useEffect } from 'react';
+import React, { memo, useCallback, useEffect, useState } from 'react';
 import {
   View,
   Pressable,
   StyleSheet,
+  LayoutChangeEvent,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -32,8 +33,10 @@ export interface TabConfig {
   onRemove?: () => void;
   /** If true, subsequent tabs are rendered on a second row below this tab. */
   rowBreak?: boolean;
-  /** When true, the tab is clipped at the right edge of the container (half-visible). */
+  /** When true, the tab is tucked under the preceding tab instead of extending to the right. */
   clipAtEdge?: boolean;
+  /** When true, half of this tab is tucked under the preceding tab (uses onLayout to measure). */
+  halfUnderPrev?: boolean;
 }
 
 interface IndexTabsProps {
@@ -63,6 +66,7 @@ interface AnimatedTabProps {
   accessibilityLabel: string;
   children: React.ReactNode;
   style?: any;
+  onLayout?: (event: LayoutChangeEvent) => void;
 }
 
 const AnimatedTab = memo(function AnimatedTab({
@@ -71,6 +75,7 @@ const AnimatedTab = memo(function AnimatedTab({
   accessibilityLabel,
   children,
   style,
+  onLayout,
 }: AnimatedTabProps) {
   const scale = useSharedValue(1);
   const activeProgress = useSharedValue(isActive ? 1 : 0);
@@ -106,6 +111,7 @@ const AnimatedTab = memo(function AnimatedTab({
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      onLayout={onLayout}
       style={[style, animatedStyle]}
       accessibilityRole="tab"
       accessibilityState={{ selected: isActive }}
@@ -126,6 +132,12 @@ export const IndexTabs = memo(function IndexTabs({
   onTabChange,
 }: IndexTabsProps): React.JSX.Element {
   const { colors } = useTheme();
+  const [tabWidths, setTabWidths] = useState<Record<string, number>>({});
+
+  const handleLayout = useCallback((key: string, event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setTabWidths(prev => (prev[key] === width ? prev : { ...prev, [key]: width }));
+  }, []);
 
   // Split tabs into row 1 (up to and including the rowBreak tab) and row 2 (the rest).
   const rowBreakIdx = tabs.findIndex(t => t.rowBreak);
@@ -135,6 +147,14 @@ export const IndexTabs = memo(function IndexTabs({
   const renderTabItem = (tab: TabConfig, globalIndex: number, isLastInRow: boolean) => {
     const isActive = tab.key === activeTab;
     const tabTextColor = isActive ? colors.indexTabTextActive : colors.indexTabText;
+    // Align this tab's left edge with the preceding tab's left edge.
+    // preceding tab has marginRight: -10 (tabWithMargin), so subtract 10 to cancel that offset.
+    const precedingWidth = tab.halfUnderPrev
+      ? tabWidths[tabs[globalIndex - 1]?.key] ?? 0
+      : 0;
+    const halfUnderPrevMargin = tab.halfUnderPrev && precedingWidth
+      ? { marginLeft: -(precedingWidth - 10) }
+      : undefined;
 
     return (
       <AnimatedTab
@@ -142,11 +162,13 @@ export const IndexTabs = memo(function IndexTabs({
         isActive={isActive}
         onPress={() => onTabChange(tab.key)}
         accessibilityLabel={tab.label ?? tab.key}
+        onLayout={(e) => handleLayout(tab.key, e)}
         style={[
           styles.tab,
           tab.renderContent ? styles.iconTab : styles.textTab,
           !isLastInRow && styles.tabWithMargin,
-          tab.clipAtEdge && { marginRight: -AVATAR_TAB_CLIP },
+          tab.clipAtEdge && { marginLeft: -AVATAR_TAB_CLIP },
+          halfUnderPrevMargin,
           {
             backgroundColor: isActive
               ? colors.indexTabActive
@@ -222,7 +244,7 @@ export const IndexTabs = memo(function IndexTabs({
 const AVATAR_SIZE = 24;
 const AVATAR_SIZE_ACTIVE = 30;
 
-// Amount to shift a clipAtEdge tab beyond the container's right boundary.
+// Amount to pull a clipAtEdge tab leftward, tucking it under the preceding tab.
 // Derived from actual tab dimensions: (AVATAR_SIZE + padding*2 + border*2) / 2
 // iconTab: paddingHorizontal = Spacing.sm (8px each side), borderWidth = 1px each side
 const AVATAR_TAB_CLIP = Math.round((AVATAR_SIZE + Spacing.sm * 2 + 2) / 2);

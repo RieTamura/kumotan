@@ -90,6 +90,7 @@ export function HomeScreen(): React.JSX.Element {
               key: 'customFeed',
               label: selectedFeedDisplayName,
               onRemove: () => selectFeed(null, null),
+              halfUnderPrev: true,
             },
           }
         : {}),
