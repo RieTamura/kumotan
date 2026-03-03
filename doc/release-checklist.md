@@ -1,6 +1,6 @@
 # App Store リリースチェックリスト
 
-**最終更新**: 2026-02-25
+**最終更新**: 2026-03-03
 **対象バージョン**: v1.0.0（正式リリース - ATProtocol OAuth対応）
 
 ## 優先度高（リリースブロッカー）
@@ -73,6 +73,12 @@
 - [ ] **チュートリアル機能**
   - 初回ログイン時のツールチップ表示
   - スキップ/完了の動作確認
+- [ ] **タブカラー設定機能**（最新コミットで追加）
+  - 各タブのアクセントカラーを選択・保存できるか
+  - 設定がアプリ再起動後も保持されるか（`tabColorStore` 永続化）
+- [ ] **前タブ表示オプション**（最新コミットで追加）
+  - スワイプUIで前のタブの一部が表示されるか
+  - タブ間スワイプのアニメーションが滑らかか
 
 ### 5. console.log の整理
 - **部分完了**: M2.6でデバッグログ削除済み（words.ts等）
@@ -89,7 +95,7 @@
 
 ### 6. テストの最終確認
 
-- **現状**: 293テスト通過（2026-02-25確認）
+- **現状**: 293テスト通過（2026-03-03確認）
 - [x] `npm test` で全テストがパスすることを確認（293通過・1スキップ）
   - 修正: `authStore.test.ts`（fix #21の認証タイミング変更に追従）
   - 修正: `deepl.test.ts`（キャッシュ汚染 → `clearDeeplCache()` 追加）
@@ -167,6 +173,9 @@
 - [x] `npm run type-check` でTypeScriptエラーなし
   - 修正：`ThreadScreen.tsx`（`toTimelinePost`のauthor型に`did`フィールドを追加）
   - 修正：`imageCompression.ts`（`FileSystem.getInfoAsync`の廃止オプション`{ size: true }`を除去）
+  - 修正：`BlueskyNotificationsScreen.tsx`
+    - `followUser`/`blockUser` の戻り値 `Result<T,E>` で `.success` チェック前に `.uri` を参照。
+    - `result.success` 確認後に `result.data.uri` を参照するよう修正。
 - [x] `npm run lint` でESLintエラーなし（警告100件は既知・許容範囲）
   - ESLint 9対応の `eslint.config.js` を新規作成（Jest/Node globals追加）
 - [x] `npm run test:coverage` カバレッジ: **14%（閾値を14%に調整済み）**

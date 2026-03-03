@@ -134,7 +134,7 @@ export function BlueskyNotificationsScreen(): React.JSX.Element {
       try {
         if (shouldFollow) {
           const result = await followUser(did);
-          setFollowing(did, result.uri);
+          if (result.success) setFollowing(did, result.data.uri);
         } else if (followUri) {
           await unfollowUser(followUri);
           setFollowing(did, null);
@@ -151,7 +151,7 @@ export function BlueskyNotificationsScreen(): React.JSX.Element {
       try {
         if (shouldBlock) {
           const result = await blockUser(did);
-          setBlocking(did, result.uri);
+          if (result.success) setBlocking(did, result.data.uri);
         } else if (blockUri) {
           await unblockUser(blockUri);
           setBlocking(did, null);
