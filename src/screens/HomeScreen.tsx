@@ -28,7 +28,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useCustomFeedStore } from '../store/customFeedStore';
 import { useTabOrderStore, type HomeTabKey } from '../store/tabOrderStore';
 import { useTabColorStore } from '../store/tabColorStore';
-import { hexToRgba } from '../utils/colorUtils';
+import { hexToRgba, isLightColor } from '../utils/colorUtils';
 import { useTutorial, TutorialStep } from '../hooks/useTutorial';
 import { useTutorialTargetStore } from '../store/tutorialTargetStore';
 import { useWordRegistration } from '../hooks/useWordRegistration';
@@ -104,14 +104,17 @@ export function HomeScreen(): React.JSX.Element {
         key: 'profile',
         clipAtEdge: true,
         accentColor: profileColor,
-        renderContent: (isActive: boolean) => (
-          <AvatarTabIcon
-            isActive={isActive}
-            uri={profile?.avatar}
-            activeColor={colors.indexTabTextActive}
-            inactiveColor={colors.indexTabText}
-          />
-        ),
+        renderContent: (isActive: boolean) => {
+          const avatarColor = isLightColor(profileColor) ? '#14171A' : '#FFFFFF';
+          return (
+            <AvatarTabIcon
+              isActive={isActive}
+              uri={profile?.avatar}
+              activeColor={avatarColor}
+              inactiveColor={avatarColor}
+            />
+          );
+        },
       },
     };
     return tabOrder

@@ -234,14 +234,14 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
           {profile.avatar ? (
             <Image
               source={{ uri: profile.avatar }}
-              style={[styles.avatar, { borderColor: colors.background }]}
+              style={styles.avatar}
             />
           ) : (
             <View
               style={[
                 styles.avatar,
                 styles.avatarPlaceholder,
-                { borderColor: colors.background, backgroundColor: colors.backgroundTertiary },
+                { backgroundColor: colors.backgroundTertiary },
               ]}
             />
           )}
@@ -434,7 +434,7 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={styles.container}>
       <FlatList
         ref={flatListRef}
         style={styles.container}
@@ -546,7 +546,6 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    borderWidth: 4,
   },
   avatarPlaceholder: {
     justifyContent: 'center',

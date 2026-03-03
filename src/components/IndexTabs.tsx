@@ -59,6 +59,8 @@ const SPRING_CONFIG = {
 
 const TAB_HEIGHT = 36;
 const TAB_HEIGHT_ACTIVE = 44;
+// How many px of the preceding tab remain visible when a halfUnderPrev tab is in front.
+const HALF_UNDER_PREV_VISIBLE = 28;
 
 /**
  * Individual animated tab component
@@ -142,6 +144,9 @@ export const IndexTabs = memo(function IndexTabs({
     setTabWidths(prev => (prev[key] === width ? prev : { ...prev, [key]: width }));
   }, []);
 
+  // Index of the currently active tab (used for distance-based z-index).
+  const activeTabIndex = tabs.findIndex(t => t.key === activeTab);
+
   // Split tabs into row 1 (up to and including the rowBreak tab) and row 2 (the rest).
   const rowBreakIdx = tabs.findIndex(t => t.rowBreak);
   const row1 = rowBreakIdx >= 0 ? tabs.slice(0, rowBreakIdx + 1) : tabs;
@@ -152,13 +157,13 @@ export const IndexTabs = memo(function IndexTabs({
     const tabTextColor = tab.accentColor
       ? (isLightColor(tab.accentColor) ? '#14171A' : '#FFFFFF')
       : (isActive ? colors.indexTabTextActive : colors.indexTabText);
-    // Align this tab's left edge with the preceding tab's left edge.
+    // Overlap this tab under the preceding tab, leaving HALF_UNDER_PREV_VISIBLE px of it visible.
     // preceding tab has marginRight: -10 (tabWithMargin), so subtract 10 to cancel that offset.
     const precedingWidth = tab.halfUnderPrev
       ? tabWidths[tabs[globalIndex - 1]?.key] ?? 0
       : 0;
     const halfUnderPrevMargin = tab.halfUnderPrev && precedingWidth
-      ? { marginLeft: -(precedingWidth - 10) }
+      ? { marginLeft: -(precedingWidth - 10 - HALF_UNDER_PREV_VISIBLE) }
       : undefined;
 
     return (
@@ -178,7 +183,12 @@ export const IndexTabs = memo(function IndexTabs({
             backgroundColor: tab.accentColor
               ? (isActive ? tab.accentColor : blendColors(tab.accentColor, colors.background, 0.45))
               : (isActive ? colors.indexTabActive : colors.indexTabInactive),
-            zIndex: isActive ? tabs.length + 2 : tabs.length - globalIndex,
+            // Active tab is always in front.
+            // Inactive tabs: closer to the active tab = higher z-index, so the
+            // visible "peek" tabs always render in front of tabs farther away.
+            zIndex: isActive
+              ? tabs.length + 2
+              : tabs.length + 1 - Math.abs(activeTabIndex - globalIndex),
           },
         ]}
       >
@@ -349,9 +359,7 @@ const styles = StyleSheet.create({
   activeTabText: {
     fontWeight: '600',
   },
-  avatar: {
-    borderWidth: 2,
-  },
+  avatar: {},
   avatarPlaceholder: {
     opacity: 0.5,
   },
