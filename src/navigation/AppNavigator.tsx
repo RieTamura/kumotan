@@ -42,6 +42,7 @@ import { NotificationSettingsScreen } from '../screens/NotificationSettingsScree
 import { BlueskyNotificationsScreen } from '../screens/BlueskyNotificationsScreen';
 import { ApiTranslationSettingsScreen } from '../screens/ApiTranslationSettingsScreen';
 import { DataManagementScreen } from '../screens/DataManagementScreen';
+import { TabColorSettingsScreen } from '../screens/TabColorSettingsScreen';
 
 /**
  * Stack Navigator Types
@@ -64,6 +65,7 @@ export type RootStackParamList = {
   BlueskyNotifications: undefined;
   ApiTranslationSettings: undefined;
   DataManagement: undefined;
+  TabColorSettings: undefined;
 };
 
 /**
@@ -424,6 +426,18 @@ function RootNavigator(): React.JSX.Element {
             options={{
               headerShown: true,
               headerTitle: t('headers.dataManagement'),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
+            }}
+          />
+          <Stack.Screen
+            name="TabColorSettings"
+            component={TabColorSettingsScreen}
+            options={{
+              headerShown: true,
+              headerTitle: t('headers.tabColorSettings'),
               headerTintColor: colors.primary,
               headerStyle: { backgroundColor: colors.background },
               headerTitleStyle: { color: colors.text },

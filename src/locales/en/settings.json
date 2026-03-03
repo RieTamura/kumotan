@@ -154,6 +154,13 @@
     "system": "Follow System Settings",
     "selectTheme": "Select Theme"
   },
+  "tabColors": {
+    "title": "Tab Colors",
+    "subtitle": "Accent color per feed",
+    "following": "Following",
+    "customFeed": "Custom Feed",
+    "profile": "Profile"
+  },
   "haptic": {
     "title": "Vibrate on Like",
     "subtitle": "Vibrate when tapping the like button"

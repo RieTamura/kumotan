@@ -154,6 +154,13 @@
     "system": "システム設定に従う",
     "selectTheme": "テーマを選択"
   },
+  "tabColors": {
+    "title": "タブの色",
+    "subtitle": "フィードごとのアクセントカラー",
+    "following": "Following",
+    "customFeed": "カスタムフィード",
+    "profile": "プロフィール"
+  },
   "haptic": {
     "title": "いいね時の振動",
     "subtitle": "いいねボタンを押したときに振動する"

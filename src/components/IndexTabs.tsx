@@ -19,6 +19,7 @@ import Animated, {
 import { X } from 'lucide-react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
+import { blendColors, isLightColor } from '../utils/colorUtils';
 
 /**
  * Configuration for a single tab.
@@ -37,6 +38,8 @@ export interface TabConfig {
   clipAtEdge?: boolean;
   /** When true, half of this tab is tucked under the preceding tab (uses onLayout to measure). */
   halfUnderPrev?: boolean;
+  /** Accent color for this tab (hex). Sets background and text color dynamically. */
+  accentColor?: string;
 }
 
 interface IndexTabsProps {
@@ -146,7 +149,9 @@ export const IndexTabs = memo(function IndexTabs({
 
   const renderTabItem = (tab: TabConfig, globalIndex: number, isLastInRow: boolean) => {
     const isActive = tab.key === activeTab;
-    const tabTextColor = isActive ? colors.indexTabTextActive : colors.indexTabText;
+    const tabTextColor = tab.accentColor
+      ? (isLightColor(tab.accentColor) ? '#14171A' : '#FFFFFF')
+      : (isActive ? colors.indexTabTextActive : colors.indexTabText);
     // Align this tab's left edge with the preceding tab's left edge.
     // preceding tab has marginRight: -10 (tabWithMargin), so subtract 10 to cancel that offset.
     const precedingWidth = tab.halfUnderPrev
@@ -170,10 +175,9 @@ export const IndexTabs = memo(function IndexTabs({
           tab.clipAtEdge && { marginLeft: -AVATAR_TAB_CLIP },
           halfUnderPrevMargin,
           {
-            backgroundColor: isActive
-              ? colors.indexTabActive
-              : colors.indexTabInactive,
-            borderColor: colors.indexTabBorder,
+            backgroundColor: tab.accentColor
+              ? (isActive ? tab.accentColor : blendColors(tab.accentColor, colors.background, 0.45))
+              : (isActive ? colors.indexTabActive : colors.indexTabInactive),
             zIndex: isActive ? tabs.length + 2 : tabs.length - globalIndex,
           },
         ]}
@@ -245,9 +249,10 @@ const AVATAR_SIZE = 24;
 const AVATAR_SIZE_ACTIVE = 30;
 
 // Amount to pull a clipAtEdge tab leftward, tucking it under the preceding tab.
-// Derived from actual tab dimensions: (AVATAR_SIZE + padding*2 + border*2) / 2
-// iconTab: paddingHorizontal = Spacing.sm (8px each side), borderWidth = 1px each side
-const AVATAR_TAB_CLIP = Math.round((AVATAR_SIZE + Spacing.sm * 2 + 2) / 2);
+// Tuned so that half the avatar circle (AVATAR_SIZE/2) peeks out from the preceding tab's right edge.
+// Formula: (tabWidth - tabWithMargin) - (AVATAR_SIZE/2 + rightPadding + rightBorder)
+//        = (42 - 10) - (12 + 8 + 1) = 11
+const AVATAR_TAB_CLIP = Math.round(AVATAR_SIZE / 2) - 1;
 
 export interface AvatarTabIconProps {
   isActive: boolean;
@@ -317,8 +322,6 @@ const styles = StyleSheet.create({
   tab: {
     borderTopLeftRadius: BorderRadius.md,
     borderTopRightRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderBottomWidth: 0,
     justifyContent: 'center',
     alignItems: 'center',
   },

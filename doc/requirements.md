@@ -234,6 +234,14 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   - 読み上げ中は `VolumeX` アイコンに変化しタップで停止、ポップアップ閉鎖時に自動停止
   - `src/hooks/useSpeech.ts` にTTSロジックをカプセル化
   - 詳細設計: [tts-implementation-plan.md](./tts-implementation-plan.md)
+- **発音練習機能（Speech-to-Text）**
+  - TTS で単語を読み上げ → ユーザーが発音 → 音声認識で正誤判定するインタラクティブな発音練習
+  - クイズモードと組み合わせた発音スコア表示が考えられる
+  - **候補ライブラリ**: [Moonshine Voice](https://github.com/moonshine-ai/moonshine)
+    - Whisper Large v3 超えの精度、完全オンデバイス・API不要・日本語対応
+    - **保留理由**: 2024年末リリースで新しく、公式 React Native/Expo モジュールが未提供。
+      カスタムネイティブモジュール（Swift/Kotlin ブリッジ）が必要で工数・保守コストが高い。
+      ライブラリが成熟し、Expo 公式サポートまたは安定したコミュニティモジュールが登場したタイミングで再検討。
 - **日本語訳ルビ振り機能**
   - Yahoo! JAPAN Text Analysis APIのFurigana機能を使用
   - 単語詳細画面・単語帳一覧で日本語訳にふりがな表示

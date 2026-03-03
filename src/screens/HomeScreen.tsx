@@ -27,6 +27,8 @@ import { useBlueskyFeed } from '../hooks/useBlueskyFeed';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useCustomFeedStore } from '../store/customFeedStore';
 import { useTabOrderStore, type HomeTabKey } from '../store/tabOrderStore';
+import { useTabColorStore } from '../store/tabColorStore';
+import { hexToRgba } from '../utils/colorUtils';
 import { useTutorial, TutorialStep } from '../hooks/useTutorial';
 import { useTutorialTargetStore } from '../store/tutorialTargetStore';
 import { useWordRegistration } from '../hooks/useWordRegistration';
@@ -80,10 +82,13 @@ export function HomeScreen(): React.JSX.Element {
   // Tab order (persisted via Zustand)
   const { tabOrder } = useTabOrderStore();
 
+  // Tab accent colors (persisted via Zustand)
+  const { followingColor, customFeedColor, profileColor } = useTabColorStore();
+
   // Declarative tab configuration — ordered by tabOrder, customFeed only shown when selected
   const tabs = useMemo((): TabConfig[] => {
     const allTabs: Partial<Record<HomeTabKey, TabConfig>> = {
-      following: { key: 'following', label: t('tabs.following') },
+      following: { key: 'following', label: t('tabs.following'), accentColor: followingColor },
       ...(selectedFeedUri && selectedFeedDisplayName
         ? {
             customFeed: {
@@ -91,12 +96,14 @@ export function HomeScreen(): React.JSX.Element {
               label: selectedFeedDisplayName,
               onRemove: () => selectFeed(null, null),
               halfUnderPrev: true,
+              accentColor: customFeedColor,
             },
           }
         : {}),
       profile: {
         key: 'profile',
         clipAtEdge: true,
+        accentColor: profileColor,
         renderContent: (isActive: boolean) => (
           <AvatarTabIcon
             isActive={isActive}
@@ -110,7 +117,7 @@ export function HomeScreen(): React.JSX.Element {
     return tabOrder
       .map(key => allTabs[key])
       .filter((tab): tab is TabConfig => tab !== undefined);
-  }, [tabOrder, t, selectedFeedUri, selectedFeedDisplayName, selectFeed, profile?.avatar, colors.indexTabTextActive, colors.indexTabText]);
+  }, [tabOrder, t, selectedFeedUri, selectedFeedDisplayName, selectFeed, profile?.avatar, colors.indexTabTextActive, colors.indexTabText, followingColor, customFeedColor, profileColor]);
 
   // Per-tab FlatList refs
   const followingListRef = useRef<FlatList<TimelinePost> | null>(null);
@@ -597,10 +604,7 @@ export function HomeScreen(): React.JSX.Element {
 
   // Shared IndexTabs / header props
   const indexTabsHeader = (
-    <View style={[styles.header, {
-      backgroundColor: 'transparent',
-      borderBottomColor: colors.indexTabBorder,
-    }]}>
+    <View style={[styles.header, { backgroundColor: 'transparent' }]}>
       <View style={styles.headerTabsContainer}>
         <IndexTabs
           tabs={tabs}
@@ -648,6 +652,12 @@ export function HomeScreen(): React.JSX.Element {
           We build a typed array and filter out null before rendering.
           key={tabsKey} forces a full remount when the page count or order
           changes so PagerView is always initialised with the right children. */}
+      <View style={[styles.tabContent, {
+        backgroundColor: (() => {
+          const c = tabs.find(t => t.key === activeTab)?.accentColor;
+          return c ? hexToRgba(c, 0.10) : undefined;
+        })(),
+      }]}>
       <PagerView
         key={tabs.map(t => t.key).join('-')}
         ref={pagerRef}
@@ -721,6 +731,7 @@ export function HomeScreen(): React.JSX.Element {
           ] as (React.JSX.Element | null)[]
         ).filter((page): page is React.JSX.Element => page !== null)}
       </PagerView>
+      </View>
 
       {/* Scroll-to-top FAB */}
       {showScrollToTop && (
@@ -853,7 +864,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     paddingRight: Spacing.lg,
-    borderBottomWidth: 1,
     minHeight: 56,
   },
   headerTabsContainer: {

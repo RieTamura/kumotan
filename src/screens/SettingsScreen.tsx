@@ -391,6 +391,11 @@ export function SettingsScreen(): React.JSX.Element {
             }
             onPress={handleThemeChange}
           />
+          <SettingsItem
+            title={t('tabColors.title')}
+            subtitle={t('tabColors.subtitle')}
+            onPress={() => navigation.navigate('TabColorSettings')}
+          />
           <View style={[styles.settingsItem, { borderBottomColor: colors.divider, borderBottomWidth: 0 }]}>
             <View style={styles.settingsItemContent}>
               <Text style={[styles.settingsItemTitle, { color: colors.text }]}>

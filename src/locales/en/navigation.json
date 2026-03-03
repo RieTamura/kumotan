@@ -20,6 +20,7 @@
     "notificationSettings": "Notification Settings",
     "apiTranslationSettings": "API & Translation",
     "dataManagement": "Data Management",
-    "blueskyNotifications": "Notifications"
+    "blueskyNotifications": "Notifications",
+    "tabColorSettings": "Tab Colors"
   }
 }
