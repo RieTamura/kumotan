@@ -9,6 +9,7 @@ import { Result } from '../types/result';
 import { AppError } from '../utils/errors';
 import * as WordService from '../services/database/words';
 import { syncWordToPds, updateWordInPds, getPdsRkey } from '../services/pds/vocabularySync';
+import { requestReviewAtMilestone } from '../utils/storeReview';
 import { getAgent } from '../services/bluesky/auth';
 import { useAuthStore } from './authStore';
 
@@ -86,6 +87,11 @@ export const useWordStore = create<WordState>((set, get) => ({
     if (result.success) {
       // Reload words to reflect the new addition
       await get().loadWords();
+
+      // 50単語マイルストーン到達時にApp Storeレビューをリクエスト（非同期・失敗許容）
+      WordService.getTotalWordCount().then((countResult) => {
+        if (countResult.success) requestReviewAtMilestone(countResult.data).catch(() => {});
+      });
 
       // PDS同期（非同期・バックグラウンド、失敗許容）
       const isAuthenticated = useAuthStore.getState().isAuthenticated;
