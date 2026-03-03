@@ -13,19 +13,39 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react-native';
+import { Ban, Check } from 'lucide-react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
 import { useTabColorStore, TAB_COLOR_PRESETS } from '../store/tabColorStore';
 
 interface SwatchRowProps {
-  selectedColor: string;
-  onSelect: (color: string) => void;
+  selectedColor: string | null;
+  onSelect: (color: string | null) => void;
 }
 
 function SwatchRow({ selectedColor, onSelect }: SwatchRowProps): React.JSX.Element {
+  const { t } = useTranslation('settings');
+  const { colors } = useTheme();
+  const isNoneSelected = selectedColor === null;
+
   return (
     <View style={styles.swatchRow}>
+      {/* No color option */}
+      <Pressable
+        onPress={() => onSelect(null)}
+        style={[
+          styles.swatch,
+          styles.swatchNone,
+          { borderColor: isNoneSelected ? colors.text : colors.border },
+          isNoneSelected && styles.swatchNoneSelected,
+        ]}
+        accessibilityRole="radio"
+        accessibilityState={{ selected: isNoneSelected }}
+        accessibilityLabel={t('tabColors.none')}
+      >
+        <Ban size={16} color={isNoneSelected ? colors.text : colors.border} strokeWidth={2} />
+      </Pressable>
+
       {TAB_COLOR_PRESETS.map((color) => {
         const isSelected = color === selectedColor;
         return (
@@ -51,8 +71,8 @@ function SwatchRow({ selectedColor, onSelect }: SwatchRowProps): React.JSX.Eleme
 
 interface SectionProps {
   label: string;
-  selectedColor: string;
-  onSelect: (color: string) => void;
+  selectedColor: string | null;
+  onSelect: (color: string | null) => void;
 }
 
 function ColorSection({ label, selectedColor, onSelect }: SectionProps): React.JSX.Element {
@@ -60,7 +80,14 @@ function ColorSection({ label, selectedColor, onSelect }: SectionProps): React.J
   return (
     <View style={[styles.section, { borderColor: colors.border }]}>
       <View style={styles.sectionHeader}>
-        <View style={[styles.sectionAccentDot, { backgroundColor: selectedColor }]} />
+        <View
+          style={[
+            styles.sectionAccentDot,
+            selectedColor
+              ? { backgroundColor: selectedColor }
+              : { borderWidth: 1.5, borderColor: colors.border },
+          ]}
+        />
         <Text style={[styles.sectionTitle, { color: colors.text }]}>{label}</Text>
       </View>
       <SwatchRow selectedColor={selectedColor} onSelect={onSelect} />
@@ -146,5 +173,11 @@ const styles = StyleSheet.create({
   swatchSelected: {
     borderWidth: 2.5,
     borderColor: 'rgba(255,255,255,0.8)',
+  },
+  swatchNone: {
+    borderWidth: 1.5,
+  },
+  swatchNoneSelected: {
+    borderWidth: 2.5,
   },
 });

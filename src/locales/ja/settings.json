@@ -159,7 +159,8 @@
     "subtitle": "フィードごとのアクセントカラー",
     "following": "Following",
     "customFeed": "カスタムフィード",
-    "profile": "プロフィール"
+    "profile": "プロフィール",
+    "none": "なし"
   },
   "haptic": {
     "title": "いいね時の振動",

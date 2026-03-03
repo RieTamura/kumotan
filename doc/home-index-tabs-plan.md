@@ -150,6 +150,14 @@
 - [x] **[Animation]** タブ切り替えアニメーション
 - [x] **[UX]** スワイプによるタブ切り替え
 
+### Phase 3: タブカラー設定
+
+- [x] **[Store]** `tabColorStore.ts`：各タブのアクセントカラーをZustandで永続管理
+- [x] **[Settings]** `TabColorSettingsScreen.tsx`：設定画面でタブごとの色を選択可能に
+- [x] **[Color: None]** 「なし」選択肢を追加（`string | null`型、Banアイコンで表示）
+- [x] **[Border]** 色なし時、タブの上・左・右に`colors.border`のボーダーを表示
+- [x] **[Border]** 色なし時、IndexTabsコンテナ下端へボーダーを追加。フィードエリアとタブが繋がって見えるUIを実現
+
 ---
 
 ## 8. 現在の実装状況（コード調査結果）

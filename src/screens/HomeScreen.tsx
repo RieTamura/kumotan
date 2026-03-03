@@ -88,7 +88,7 @@ export function HomeScreen(): React.JSX.Element {
   // Declarative tab configuration — ordered by tabOrder, customFeed only shown when selected
   const tabs = useMemo((): TabConfig[] => {
     const allTabs: Partial<Record<HomeTabKey, TabConfig>> = {
-      following: { key: 'following', label: t('tabs.following'), accentColor: followingColor },
+      following: { key: 'following', label: t('tabs.following'), accentColor: followingColor ?? undefined },
       ...(selectedFeedUri && selectedFeedDisplayName
         ? {
             customFeed: {
@@ -96,16 +96,18 @@ export function HomeScreen(): React.JSX.Element {
               label: selectedFeedDisplayName,
               onRemove: () => selectFeed(null, null),
               halfUnderPrev: true,
-              accentColor: customFeedColor,
+              accentColor: customFeedColor ?? undefined,
             },
           }
         : {}),
       profile: {
         key: 'profile',
         clipAtEdge: true,
-        accentColor: profileColor,
+        accentColor: profileColor ?? undefined,
         renderContent: (isActive: boolean) => {
-          const avatarColor = isLightColor(profileColor) ? '#14171A' : '#FFFFFF';
+          const avatarColor = profileColor
+            ? (isLightColor(profileColor) ? '#14171A' : '#FFFFFF')
+            : (isActive ? colors.indexTabTextActive : colors.indexTabText);
           return (
             <AvatarTabIcon
               isActive={isActive}

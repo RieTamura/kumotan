@@ -30,12 +30,12 @@ export const TAB_COLOR_PRESETS = [
 export type TabColorPreset = typeof TAB_COLOR_PRESETS[number];
 
 interface TabColorState {
-  followingColor: string;
-  customFeedColor: string;
-  profileColor: string;
-  setFollowingColor: (color: string) => void;
-  setCustomFeedColor: (color: string) => void;
-  setProfileColor: (color: string) => void;
+  followingColor: string | null;
+  customFeedColor: string | null;
+  profileColor: string | null;
+  setFollowingColor: (color: string | null) => void;
+  setCustomFeedColor: (color: string | null) => void;
+  setProfileColor: (color: string | null) => void;
 }
 
 export const useTabColorStore = create<TabColorState>()(

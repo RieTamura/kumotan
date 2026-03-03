@@ -189,6 +189,14 @@ export const IndexTabs = memo(function IndexTabs({
             zIndex: isActive
               ? tabs.length + 2
               : tabs.length + 1 - Math.abs(activeTabIndex - globalIndex),
+            // Show border on 3 sides (no bottom) when no accent color is set.
+            // The active tab's background covers the feed area's top border at the
+            // junction point, creating a connected look.
+            borderTopWidth: tab.accentColor ? 0 : 1,
+            borderLeftWidth: tab.accentColor ? 0 : 1,
+            borderRightWidth: tab.accentColor ? 0 : 1,
+            borderBottomWidth: 0,
+            borderColor: tab.accentColor ? undefined : colors.border,
           },
         ]}
       >
@@ -230,8 +238,13 @@ export const IndexTabs = memo(function IndexTabs({
     );
   };
 
+  const activeAccentColor = tabs.find(t => t.key === activeTab)?.accentColor;
+
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      !activeAccentColor && { borderBottomWidth: 1, borderBottomColor: colors.border },
+    ]}>
       <View style={styles.tabRow}>
         {row1.map((tab, i) => renderTabItem(tab, i, i === row1.length - 1))}
       </View>

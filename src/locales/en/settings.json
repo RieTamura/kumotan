@@ -159,7 +159,8 @@
     "subtitle": "Accent color per feed",
     "following": "Following",
     "customFeed": "Custom Feed",
-    "profile": "Profile"
+    "profile": "Profile",
+    "none": "None"
   },
   "haptic": {
     "title": "Vibrate on Like",
