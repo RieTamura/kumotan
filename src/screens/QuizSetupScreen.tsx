@@ -3,7 +3,7 @@
  * Allows users to configure quiz settings before starting
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,11 @@ import {
   Pressable,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, HelpCircle, Lightbulb } from 'lucide-react-native';
+import { ArrowRight, HelpCircle, Lightbulb, RefreshCw } from 'lucide-react-native';
 
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
@@ -80,18 +81,21 @@ export function QuizSetupScreen(): React.JSX.Element {
   const [availableWordCount, setAvailableWordCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load available word count
-  useEffect(() => {
-    async function loadWordCount() {
-      setIsLoading(true);
-      const result = await getQuizableWordCount();
-      if (result.success) {
-        setAvailableWordCount(result.data);
-      }
-      setIsLoading(false);
+  // Load available word count (runs on every focus)
+  const loadWordCount = useCallback(async () => {
+    setIsLoading(true);
+    const result = await getQuizableWordCount();
+    if (result.success) {
+      setAvailableWordCount(result.data);
     }
-    loadWordCount();
+    setIsLoading(false);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadWordCount();
+    }, [loadWordCount])
+  );
 
   // Check if quiz can start
   const canStartQuiz = availableWordCount >= questionCount;
@@ -148,9 +152,21 @@ export function QuizSetupScreen(): React.JSX.Element {
       {/* Available words info */}
       <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
         <HelpCircle size={20} color={colors.textSecondary} />
-        <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+        <Text style={[styles.infoText, { color: colors.textSecondary, flex: 1 }]}>
           {t('setup.availableWords', { count: availableWordCount })}
         </Text>
+        <Pressable
+          onPress={loadWordCount}
+          disabled={isLoading}
+          style={({ pressed }) => [
+            styles.reloadButton,
+            pressed && { opacity: 0.6 },
+            isLoading && { opacity: 0.4 },
+          ]}
+          accessibilityRole="button"
+        >
+          <RefreshCw size={16} color={colors.textSecondary} />
+        </Pressable>
       </View>
 
       {/* Question Type Selection */}
@@ -296,6 +312,9 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  reloadButton: {
+    padding: 4,
   },
 });
 

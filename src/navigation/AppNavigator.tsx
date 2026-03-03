@@ -382,6 +382,7 @@ function RootNavigator(): React.JSX.Element {
               headerStyle: { backgroundColor: colors.background },
               headerTitleStyle: { color: colors.text },
               headerLeft: () => null,
+              headerBackVisible: false,
             }}
           />
           <Stack.Screen
