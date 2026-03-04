@@ -86,11 +86,28 @@ export interface JapaneseWordInfo {
 }
 
 /**
+ * Build a user-specific SecureStore key by appending the current user's DID.
+ * This ensures API keys are isolated per Bluesky account on the same device.
+ */
+async function getUserSpecificKey(baseKey: string): Promise<string> {
+  try {
+    const userDid = await SecureStore.getItemAsync(STORAGE_KEYS.USER_DID);
+    if (userDid) {
+      // Sanitize DID: SecureStore keys must match [a-zA-Z0-9._-]
+      const sanitizedDid = userDid.replace(/[^a-zA-Z0-9._-]/g, '_');
+      return `${baseKey}_${sanitizedDid}`;
+    }
+  } catch {}
+  return baseKey;
+}
+
+/**
  * Get stored Yahoo! Client ID
  */
 export async function getClientId(): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync(STORAGE_KEYS.YAHOO_CLIENT_ID);
+    const key = await getUserSpecificKey(STORAGE_KEYS.YAHOO_CLIENT_ID);
+    return await SecureStore.getItemAsync(key);
   } catch (error) {
     if (__DEV__) {
       console.error('Failed to get Yahoo! Client ID:', error);
@@ -104,7 +121,8 @@ export async function getClientId(): Promise<string | null> {
  */
 export async function saveClientId(clientId: string): Promise<Result<void, AppError>> {
   try {
-    await SecureStore.setItemAsync(STORAGE_KEYS.YAHOO_CLIENT_ID, clientId);
+    const key = await getUserSpecificKey(STORAGE_KEYS.YAHOO_CLIENT_ID);
+    await SecureStore.setItemAsync(key, clientId);
     return { success: true, data: undefined };
   } catch (error) {
     return {
@@ -119,11 +137,19 @@ export async function saveClientId(clientId: string): Promise<Result<void, AppEr
 }
 
 /**
- * Delete Yahoo! Client ID from secure storage
+ * Delete Yahoo! Client ID from secure storage.
+ * If userDid is provided, deletes that user's key directly (used during logout).
  */
-export async function deleteClientId(): Promise<Result<void, AppError>> {
+export async function deleteClientId(userDid?: string): Promise<Result<void, AppError>> {
   try {
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.YAHOO_CLIENT_ID);
+    let key: string;
+    if (userDid) {
+      const sanitizedDid = userDid.replace(/[^a-zA-Z0-9._-]/g, '_');
+      key = `${STORAGE_KEYS.YAHOO_CLIENT_ID}_${sanitizedDid}`;
+    } else {
+      key = await getUserSpecificKey(STORAGE_KEYS.YAHOO_CLIENT_ID);
+    }
+    await SecureStore.deleteItemAsync(key);
     return { success: true, data: undefined };
   } catch (error) {
     return {

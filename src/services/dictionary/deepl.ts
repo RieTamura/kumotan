@@ -43,11 +43,28 @@ interface DeepLUsageResponse {
 }
 
 /**
+ * Build a user-specific SecureStore key by appending the current user's DID.
+ * This ensures API keys are isolated per Bluesky account on the same device.
+ */
+async function getUserSpecificKey(baseKey: string): Promise<string> {
+  try {
+    const userDid = await SecureStore.getItemAsync(STORAGE_KEYS.USER_DID);
+    if (userDid) {
+      // Sanitize DID: SecureStore keys must match [a-zA-Z0-9._-]
+      const sanitizedDid = userDid.replace(/[^a-zA-Z0-9._-]/g, '_');
+      return `${baseKey}_${sanitizedDid}`;
+    }
+  } catch {}
+  return baseKey;
+}
+
+/**
  * Get stored DeepL API key
  */
 export async function getApiKey(): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync(STORAGE_KEYS.DEEPL_API_KEY);
+    const key = await getUserSpecificKey(STORAGE_KEYS.DEEPL_API_KEY);
+    return await SecureStore.getItemAsync(key);
   } catch (error) {
     if (__DEV__) {
       console.error('Failed to get DeepL API key:', error);
@@ -61,7 +78,8 @@ export async function getApiKey(): Promise<string | null> {
  */
 export async function saveApiKey(apiKey: string): Promise<Result<void, AppError>> {
   try {
-    await SecureStore.setItemAsync(STORAGE_KEYS.DEEPL_API_KEY, apiKey);
+    const key = await getUserSpecificKey(STORAGE_KEYS.DEEPL_API_KEY);
+    await SecureStore.setItemAsync(key, apiKey);
     return { success: true, data: undefined };
   } catch (error) {
     return {
@@ -76,11 +94,19 @@ export async function saveApiKey(apiKey: string): Promise<Result<void, AppError>
 }
 
 /**
- * Delete DeepL API key from secure storage
+ * Delete DeepL API key from secure storage.
+ * If userDid is provided, deletes that user's key directly (used during logout).
  */
-export async function deleteApiKey(): Promise<Result<void, AppError>> {
+export async function deleteApiKey(userDid?: string): Promise<Result<void, AppError>> {
   try {
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.DEEPL_API_KEY);
+    let key: string;
+    if (userDid) {
+      const sanitizedDid = userDid.replace(/[^a-zA-Z0-9._-]/g, '_');
+      key = `${STORAGE_KEYS.DEEPL_API_KEY}_${sanitizedDid}`;
+    } else {
+      key = await getUserSpecificKey(STORAGE_KEYS.DEEPL_API_KEY);
+    }
+    await SecureStore.deleteItemAsync(key);
     return { success: true, data: undefined };
   } catch (error) {
     return {
