@@ -624,12 +624,14 @@ export function HomeScreen(): React.JSX.Element {
           accessibilityLabel={t('notifications.bell')}
           accessibilityRole="button"
         >
-          <Bell size={22} color={colors.text} />
-          {unreadCount > 0 && (
-            <View style={[styles.unreadBadge, { borderColor: colors.background }]}>
-              <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-            </View>
-          )}
+          <View style={styles.bellIconWrapper}>
+            <Bell size={22} color={colors.text} />
+            {unreadCount > 0 && (
+              <View style={[styles.unreadBadge, { borderColor: colors.background }]}>
+                <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
+          </View>
         </Pressable>
       </View>
     </View>
@@ -883,6 +885,10 @@ const styles = StyleSheet.create({
   headerIconButton: {
     padding: Spacing.sm,
     borderRadius: BorderRadius.full,
+  },
+  bellIconWrapper: {
+    width: 22,
+    height: 22,
   },
   unreadBadge: {
     position: 'absolute',
