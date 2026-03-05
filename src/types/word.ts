@@ -3,6 +3,14 @@
  */
 
 /**
+ * 単語の種別
+ * - 'word': 単語（デフォルト）
+ * - 'phrase': 熟語・フレーズ（複数単語）
+ * - 'sentence': 文章
+ */
+export type WordType = 'word' | 'phrase' | 'sentence';
+
+/**
  * 単語データ
  */
 export interface Word {
@@ -16,6 +24,7 @@ export interface Word {
   isRead: boolean;
   createdAt: string;
   readAt: string | null;
+  wordType: WordType;
 }
 
 /**
@@ -28,6 +37,7 @@ export interface CreateWordInput {
   definitionJa?: string | null;
   postUrl?: string | null;
   postText?: string | null;
+  wordType?: WordType;
 }
 
 /**

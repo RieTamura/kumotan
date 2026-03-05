@@ -11,6 +11,7 @@ import { insertWord } from '../services/database/words';
 import { syncWordToPds } from '../services/pds/vocabularySync';
 import { getAgent } from '../services/bluesky/auth';
 import { useAuthStore } from '../store/authStore';
+import { WordType } from '../types/word';
 
 /**
  * Word popup state interface
@@ -18,7 +19,7 @@ import { useAuthStore } from '../store/authStore';
 export interface WordPopupState {
   visible: boolean;
   word: string;
-  isSentenceMode: boolean;
+  wordType: WordType;
   postUri: string;
   postText: string;
 }
@@ -26,7 +27,7 @@ export interface WordPopupState {
 const initialWordPopupState: WordPopupState = {
   visible: false,
   word: '',
-  isSentenceMode: false,
+  wordType: 'word',
   postUri: '',
   postText: '',
 };
@@ -34,6 +35,7 @@ const initialWordPopupState: WordPopupState = {
 export interface UseWordRegistrationReturn {
   wordPopup: WordPopupState;
   handleWordSelect: (word: string, postUri: string, postText: string) => void;
+  handlePhraseSelect: (phrase: string, postUri: string, postText: string) => void;
   handleSentenceSelect: (sentence: string, postUri: string, postText: string) => void;
   closeWordPopup: () => void;
   handleAddWord: (
@@ -65,7 +67,23 @@ export function useWordRegistration(): UseWordRegistrationReturn {
       setWordPopup({
         visible: true,
         word: word.toLowerCase(),
-        isSentenceMode: false,
+        wordType: 'word',
+        postUri,
+        postText,
+      });
+    },
+    []
+  );
+
+  /**
+   * Handle phrase selection from a post (multi-word)
+   */
+  const handlePhraseSelect = useCallback(
+    (phrase: string, postUri: string, postText: string) => {
+      setWordPopup({
+        visible: true,
+        word: phrase.toLowerCase(),
+        wordType: 'phrase',
         postUri,
         postText,
       });
@@ -81,7 +99,7 @@ export function useWordRegistration(): UseWordRegistrationReturn {
       setWordPopup({
         visible: true,
         word: sentence,
-        isSentenceMode: true,
+        wordType: 'sentence',
         postUri,
         postText,
       });
@@ -148,6 +166,7 @@ export function useWordRegistration(): UseWordRegistrationReturn {
   return {
     wordPopup,
     handleWordSelect,
+    handlePhraseSelect,
     handleSentenceSelect,
     closeWordPopup,
     handleAddWord,

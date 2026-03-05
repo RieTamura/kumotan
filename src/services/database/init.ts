@@ -42,7 +42,8 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
       is_read INTEGER DEFAULT 0 CHECK(is_read IN (0, 1)),
       created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       read_at DATETIME,
-      pds_rkey TEXT DEFAULT NULL
+      pds_rkey TEXT DEFAULT NULL,
+      word_type TEXT NOT NULL DEFAULT 'word' CHECK(word_type IN ('word', 'phrase', 'sentence'))
     );
   `);
 
@@ -319,6 +320,23 @@ async function runMigrations(
 
     if (__DEV__) {
       console.log('Migration to version 7 completed: Added definition_ja column');
+    }
+  }
+
+  // Migration to version 8: Add word_type column for phrase support
+  if (currentVersion < 8) {
+    await database.execAsync(`
+      ALTER TABLE words ADD COLUMN word_type TEXT NOT NULL DEFAULT 'word'
+        CHECK(word_type IN ('word', 'phrase', 'sentence'));
+    `);
+
+    await database.runAsync(
+      'INSERT INTO schema_version (version) VALUES (?)',
+      [8]
+    );
+
+    if (__DEV__) {
+      console.log('Migration to version 8 completed: Added word_type column');
     }
   }
 

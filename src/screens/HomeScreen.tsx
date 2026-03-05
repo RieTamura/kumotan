@@ -327,6 +327,7 @@ export function HomeScreen(): React.JSX.Element {
   const {
     wordPopup,
     handleWordSelect,
+    handlePhraseSelect,
     handleSentenceSelect,
     closeWordPopup,
     handleAddWord,
@@ -691,6 +692,7 @@ export function HomeScreen(): React.JSX.Element {
                 wordPopupPostUri={wordPopup.postUri}
                 currentUserDid={user?.did}
                 onWordSelect={handleWordSelect}
+                onPhraseSelect={handlePhraseSelect}
                 onSentenceSelect={handleSentenceSelect}
                 onPostPress={handlePostPress}
                 onLikePress={handleLikePress}
@@ -714,6 +716,7 @@ export function HomeScreen(): React.JSX.Element {
                   currentUserDid={user?.did}
                   deletedUris={deletedUris}
                   onWordSelect={handleWordSelect}
+                  onPhraseSelect={handlePhraseSelect}
                   onSentenceSelect={handleSentenceSelect}
                   onPostPress={handlePostPress}
                   onLikePress={handleLikePress}
@@ -782,7 +785,7 @@ export function HomeScreen(): React.JSX.Element {
       <WordPopup
         visible={wordPopup.visible}
         word={wordPopup.word}
-        isSentenceMode={wordPopup.isSentenceMode}
+        wordType={wordPopup.wordType}
         postUri={wordPopup.postUri}
         postText={wordPopup.postText}
         onClose={closeWordPopup}

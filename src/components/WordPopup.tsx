@@ -20,7 +20,7 @@ import {
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useTheme } from '../hooks/useTheme';
-import { DictionaryResult, JapaneseWordInfo, WordInfo } from '../types/word';
+import { DictionaryResult, JapaneseWordInfo, WordInfo, WordType } from '../types/word';
 import { lookupWord } from '../services/dictionary/freeDictionary';
 import { useTranslation } from 'react-i18next';
 import {
@@ -192,7 +192,7 @@ function SwipeableWordCard({ wordInfo, onRemove }: SwipeableWordCardProps): Reac
 interface WordPopupProps {
   visible: boolean;
   word: string;
-  isSentenceMode?: boolean;  // True if displaying a sentence instead of a word
+  wordType?: WordType;
   postUri?: string;
   postText?: string;
   onClose: () => void;
@@ -225,12 +225,14 @@ interface LoadingState {
 export function WordPopup({
   visible,
   word,
-  isSentenceMode = false,
+  wordType = 'word',
   postUri,
   postText,
   onClose,
   onAddToWordList,
 }: WordPopupProps): React.JSX.Element {
+  const isSentenceMode = wordType === 'sentence';
+  const isPhraseMode = wordType === 'phrase';
   const { t } = useTranslation('wordPopup');
   const { colors, isDark } = useTheme();
   const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
@@ -758,7 +760,7 @@ export function WordPopup({
           Alert.alert(t('alerts.error'), result.error.message);
         }
       } else {
-        // English word
+        // English word or phrase
         const result = await addWordToStore({
           english: word,
           japanese: translation?.text ?? undefined,
@@ -766,6 +768,7 @@ export function WordPopup({
           definitionJa: definitionJa ?? undefined,
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
+          wordType,
         });
 
         if (result.success) {
@@ -844,6 +847,11 @@ export function WordPopup({
               {isSentenceMode && (
                 <View style={[styles.modeTag, { backgroundColor: colors.primary + '20' }]}>
                   <Text style={[styles.modeText, { color: colors.primary }]}>文章モード</Text>
+                </View>
+              )}
+              {isPhraseMode && (
+                <View style={[styles.modeTag, { backgroundColor: '#FF9800' + '30' }]}>
+                  <Text style={[styles.modeText, { color: '#FF9800' }]}>熟語モード</Text>
                 </View>
               )}
             </View>
@@ -1071,7 +1079,9 @@ export function WordPopup({
             <Button
               title={isSentenceMode
                 ? `単語を登録 (${wordsInfo.filter(w => !w.isRegistered).length}件)`
-                : '単語帳に追加'}
+                : isPhraseMode
+                  ? '熟語として登録'
+                  : '単語帳に追加'}
               onPress={handleAddToWordList}
               variant="primary"
               loading={isAdding}
