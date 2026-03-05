@@ -626,7 +626,7 @@ export function WordPopup({
       // Word mode - existing logic
       await fetchSingleWordData();
     }
-  }, [word, isSentenceMode, fetchSentenceData, fetchSingleWordData]);
+  }, [word, wordType, isSentenceMode, fetchSentenceData, fetchSingleWordData]);
 
   /**
    * Fetch word data when popup opens
@@ -788,7 +788,7 @@ export function WordPopup({
     } finally {
       setIsAdding(false);
     }
-  }, [word, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, translation, definition, definitionJa, postUri, postText, addWordToStore, onClose]);
+  }, [word, wordType, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, translation, definition, definitionJa, postUri, postText, addWordToStore, onClose]);
 
   /**
    * Handle backdrop press
