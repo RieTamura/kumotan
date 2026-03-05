@@ -48,9 +48,11 @@ export function useNotifications() {
   const { t: tc } = useTranslation('common');
   const {
     quizReminderEnabled,
+    quizReminderHour,
+    quizReminderMinute,
     wordReminderEnabled,
-    reminderHour,
-    reminderMinute,
+    wordReminderHour,
+    wordReminderMinute,
     setQuizReminderEnabled,
     setWordReminderEnabled,
     setBlueskyNotificationsEnabled,
@@ -67,29 +69,29 @@ export function useNotifications() {
     if (quizReminderEnabled) {
       scheduleReminder(
         QUIZ_REMINDER_ID,
-        reminderHour,
-        reminderMinute,
+        quizReminderHour,
+        quizReminderMinute,
         t('notifications.quizReminder'),
         t('notifications.quizReminderBody')
       ).catch(() => {});
     } else {
       cancelReminder(QUIZ_REMINDER_ID).catch(() => {});
     }
-  }, [quizReminderEnabled, reminderHour, reminderMinute, t]);
+  }, [quizReminderEnabled, quizReminderHour, quizReminderMinute, t]);
 
   useEffect(() => {
     if (wordReminderEnabled) {
       scheduleReminder(
         WORD_REMINDER_ID,
-        reminderHour,
-        reminderMinute,
+        wordReminderHour,
+        wordReminderMinute,
         t('notifications.wordReminder'),
         t('notifications.wordReminderBody')
       ).catch(() => {});
     } else {
       cancelReminder(WORD_REMINDER_ID).catch(() => {});
     }
-  }, [wordReminderEnabled, reminderHour, reminderMinute, t]);
+  }, [wordReminderEnabled, wordReminderHour, wordReminderMinute, t]);
 
   const showPermissionDeniedAlert = useCallback(() => {
     Alert.alert(

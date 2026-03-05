@@ -2,7 +2,7 @@
   "header": "設定",
   "sections": {
     "account": "アカウント",
-    "notifications": "学習リマインダー",
+    "notifications": "通知",
     "general": "一般",
     "feed": "フィード",
     "apiTranslation": "API・翻訳",

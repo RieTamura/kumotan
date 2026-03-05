@@ -110,7 +110,7 @@ function NavRow({ title, subtitle, onPress, isLast }: NavRowProps): React.JSX.El
 export function NotificationSettingsScreen(): React.JSX.Element {
   const { t } = useTranslation('settings');
   const { colors } = useTheme();
-  const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [activeTimePicker, setActiveTimePicker] = useState<'quiz' | 'word' | null>(null);
 
   const {
     // Bluesky push
@@ -128,10 +128,13 @@ export function NotificationSettingsScreen(): React.JSX.Element {
     setNotifyOnFollow,
     // Reminders
     quizReminderEnabled,
+    quizReminderHour,
+    quizReminderMinute,
+    setQuizReminderTime,
     wordReminderEnabled,
-    reminderHour,
-    reminderMinute,
-    setReminderTime,
+    wordReminderHour,
+    wordReminderMinute,
+    setWordReminderTime,
   } = useNotificationStore();
 
   const {
@@ -228,18 +231,25 @@ export function NotificationSettingsScreen(): React.JSX.Element {
               value={quizReminderEnabled}
               onValueChange={handleToggleQuizReminder}
             />
+            {quizReminderEnabled && (
+              <NavRow
+                title={t('notifications.reminderTime')}
+                subtitle={`${String(quizReminderHour).padStart(2, '0')}:${String(quizReminderMinute).padStart(2, '0')}`}
+                onPress={() => setActiveTimePicker('quiz')}
+              />
+            )}
             <SwitchRow
               title={t('notifications.wordReminder')}
               subtitle={t('notifications.wordReminderSubtitle')}
               value={wordReminderEnabled}
               onValueChange={handleToggleWordReminder}
-              isLast={!(quizReminderEnabled || wordReminderEnabled)}
+              isLast={!wordReminderEnabled}
             />
-            {(quizReminderEnabled || wordReminderEnabled) && (
+            {wordReminderEnabled && (
               <NavRow
                 title={t('notifications.reminderTime')}
-                subtitle={`${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`}
-                onPress={() => setTimePickerVisible(true)}
+                subtitle={`${String(wordReminderHour).padStart(2, '0')}:${String(wordReminderMinute).padStart(2, '0')}`}
+                onPress={() => setActiveTimePicker('word')}
                 isLast
               />
             )}
@@ -248,14 +258,15 @@ export function NotificationSettingsScreen(): React.JSX.Element {
       </ScrollView>
 
       <TimePickerModal
-        visible={timePickerVisible}
-        initialHour={reminderHour}
-        initialMinute={reminderMinute}
+        visible={activeTimePicker !== null}
+        initialHour={activeTimePicker === 'word' ? wordReminderHour : quizReminderHour}
+        initialMinute={activeTimePicker === 'word' ? wordReminderMinute : quizReminderMinute}
         onConfirm={(hour, minute) => {
-          setReminderTime(hour, minute);
-          setTimePickerVisible(false);
+          if (activeTimePicker === 'quiz') setQuizReminderTime(hour, minute);
+          else if (activeTimePicker === 'word') setWordReminderTime(hour, minute);
+          setActiveTimePicker(null);
         }}
-        onCancel={() => setTimePickerVisible(false)}
+        onCancel={() => setActiveTimePicker(null)}
       />
     </SafeAreaView>
   );

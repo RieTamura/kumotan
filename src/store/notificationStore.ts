@@ -16,14 +16,17 @@ const zustandStorage = {
 };
 
 interface NotificationState {
-  // Study reminders (existing)
+  // Study reminders
   quizReminderEnabled: boolean;
   setQuizReminderEnabled: (value: boolean) => void;
+  quizReminderHour: number;
+  quizReminderMinute: number;
+  setQuizReminderTime: (hour: number, minute: number) => void;
   wordReminderEnabled: boolean;
   setWordReminderEnabled: (value: boolean) => void;
-  reminderHour: number;
-  reminderMinute: number;
-  setReminderTime: (hour: number, minute: number) => void;
+  wordReminderHour: number;
+  wordReminderMinute: number;
+  setWordReminderTime: (hour: number, minute: number) => void;
 
   // Bluesky social push notifications
   blueskyNotificationsEnabled: boolean;
@@ -66,11 +69,14 @@ export const useNotificationStore = create<NotificationState>()(
       // Study reminders
       quizReminderEnabled: false,
       setQuizReminderEnabled: (value) => set({ quizReminderEnabled: value }),
+      quizReminderHour: 9,
+      quizReminderMinute: 0,
+      setQuizReminderTime: (hour, minute) => set({ quizReminderHour: hour, quizReminderMinute: minute }),
       wordReminderEnabled: false,
       setWordReminderEnabled: (value) => set({ wordReminderEnabled: value }),
-      reminderHour: 9,
-      reminderMinute: 0,
-      setReminderTime: (hour, minute) => set({ reminderHour: hour, reminderMinute: minute }),
+      wordReminderHour: 9,
+      wordReminderMinute: 0,
+      setWordReminderTime: (hour, minute) => set({ wordReminderHour: hour, wordReminderMinute: minute }),
 
       // Bluesky social push notifications
       blueskyNotificationsEnabled: false,
@@ -118,9 +124,11 @@ export const useNotificationStore = create<NotificationState>()(
       // アプリ更新情報はセッションをまたいで保持しない
       partialize: (state) => ({
         quizReminderEnabled: state.quizReminderEnabled,
+        quizReminderHour: state.quizReminderHour,
+        quizReminderMinute: state.quizReminderMinute,
         wordReminderEnabled: state.wordReminderEnabled,
-        reminderHour: state.reminderHour,
-        reminderMinute: state.reminderMinute,
+        wordReminderHour: state.wordReminderHour,
+        wordReminderMinute: state.wordReminderMinute,
         blueskyNotificationsEnabled: state.blueskyNotificationsEnabled,
         notifyOnLike: state.notifyOnLike,
         notifyOnReply: state.notifyOnReply,
