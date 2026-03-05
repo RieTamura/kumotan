@@ -5,7 +5,7 @@
 
 import * as SQLite from 'expo-sqlite';
 import { Result } from '../../types/result';
-import { Word, CreateWordInput, WordFilter } from '../../types/word';
+import { Word, CreateWordInput, WordFilter, WordType } from '../../types/word';
 import { AppError, ErrorCode, databaseError } from '../../utils/errors';
 import { sanitizeWord } from '../../utils/validators';
 
@@ -35,6 +35,10 @@ function getDatabase(): SQLite.SQLiteDatabase {
  * Convert database row to Word object
  */
 function rowToWord(row: Record<string, unknown>): Word {
+  const rawWordType = row.word_type as string | null;
+  const wordType: WordType =
+    rawWordType === 'phrase' || rawWordType === 'sentence' ? rawWordType : 'word';
+
   return {
     id: row.id as number,
     english: row.english as string,
@@ -46,6 +50,7 @@ function rowToWord(row: Record<string, unknown>): Word {
     isRead: (row.is_read as number) === 1,
     createdAt: row.created_at as string,
     readAt: row.read_at as string | null,
+    wordType,
   };
 }
 
@@ -77,8 +82,8 @@ export async function insertWord(
 
     // Insert the word with explicit local timestamp
     const result = await database.runAsync(
-      `INSERT INTO words (english, japanese, definition, definition_ja, post_url, post_text, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
+      `INSERT INTO words (english, japanese, definition, definition_ja, post_url, post_text, word_type, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
       [
         sanitizedEnglish,
         input.japanese ?? null,
@@ -86,6 +91,7 @@ export async function insertWord(
         input.definitionJa ?? null,
         input.postUrl ?? null,
         input.postText ?? null,
+        input.wordType ?? 'word',
       ]
     );
 

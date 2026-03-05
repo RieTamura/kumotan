@@ -33,6 +33,7 @@ import { useSettingsStore } from '../store/settingsStore';
 interface PostCardProps {
   post: TimelinePost;
   onWordSelect?: (word: string, postUri: string, postText: string) => void;
+  onPhraseSelect?: (phrase: string, postUri: string, postText: string) => void;
   onSentenceSelect?: (sentence: string, postUri: string, postText: string) => void;
   onPostPress?: (postUri: string) => void;
   onLikePress?: (post: TimelinePost, isLiked: boolean) => void;
@@ -483,6 +484,7 @@ function parseTextIntoTokens(text: string): TextToken[] {
 function PostCardComponent({
   post,
   onWordSelect,
+  onPhraseSelect,
   onSentenceSelect,
   onPostPress,
   onLikePress,
@@ -505,6 +507,7 @@ function PostCardComponent({
   const metricButtonPressed = React.useRef(false);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
+  const [phraseWords, setPhraseWords] = useState<string[]>([]);
   const [imageError, setImageError] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
@@ -547,6 +550,7 @@ function PostCardComponent({
     if (clearSelection) {
       setSelectedWord(null);
       setSelectedSentence(null);
+      setPhraseWords([]);
     }
   }, [clearSelection]);
 
@@ -689,25 +693,55 @@ function PostCardComponent({
   }, [post.uri, post.text, onSentenceSelect]);
 
   /**
+   * Handle single tap on a word - add/remove from phrase selection
+   */
+  const handleWordSingleTap = useCallback(
+    (word: string) => {
+      if (!onPhraseSelect) return;
+      setSelectedWord(null);
+      setSelectedSentence(null);
+      setPhraseWords(prev => {
+        if (prev.includes(word.toLowerCase())) {
+          return prev.filter(w => w !== word.toLowerCase());
+        }
+        return [...prev, word.toLowerCase()];
+      });
+    },
+    [onPhraseSelect]
+  );
+
+  /**
    * Handle word press with double-tap detection
    */
   const handleWordPress = useCallback(
     (word: string) => {
       if (longPressTimer) {
-        // Second tap within timer - treat as double tap
+        // Second tap within timer - treat as double tap; also clear any phrase selection
         clearTimeout(longPressTimer);
         setLongPressTimer(null);
+        setPhraseWords([]);
         handleWordDoubleTap(word);
       } else {
-        // First tap - start timer for double-tap detection
+        // First tap - start timer; on timeout treat as single tap (phrase mode)
         const timer = setTimeout(() => {
           setLongPressTimer(null);
+          handleWordSingleTap(word);
         }, 300); // 300ms window for double tap
         setLongPressTimer(timer);
       }
     },
-    [longPressTimer, handleWordDoubleTap]
+    [longPressTimer, handleWordDoubleTap, handleWordSingleTap]
   );
+
+  /**
+   * Confirm phrase selection and open phrase popup
+   */
+  const handlePhraseConfirm = useCallback(() => {
+    if (phraseWords.length < 2 || !onPhraseSelect) return;
+    const phrase = phraseWords.join(' ');
+    onPhraseSelect(phrase, post.uri, post.text);
+    setPhraseWords([]);
+  }, [phraseWords, post.uri, post.text, onPhraseSelect]);
 
   /**
    * Handle press to clear selection or navigate to thread
@@ -720,9 +754,10 @@ function PostCardComponent({
     }
 
     // If there's a selection, clear it first
-    if (selectedWord || selectedSentence) {
+    if (selectedWord || selectedSentence || phraseWords.length > 0) {
       setSelectedWord(null);
       setSelectedSentence(null);
+      setPhraseWords([]);
       if (longPressTimer) {
         clearTimeout(longPressTimer);
         setLongPressTimer(null);
@@ -730,8 +765,11 @@ function PostCardComponent({
       return;
     }
 
-    // If no selection and we have a double-tap timer pending, don't navigate yet
+    // If a double-tap timer is pending, cancel it and don't navigate
+    // (prevents the timer firing and adding the word to phraseWords)
     if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
       return;
     }
 
@@ -739,7 +777,7 @@ function PostCardComponent({
     if (onPostPress) {
       onPostPress(post.uri);
     }
-  }, [selectedWord, selectedSentence, longPressTimer, onPostPress, post.uri]);
+  }, [selectedWord, selectedSentence, phraseWords, longPressTimer, onPostPress, post.uri]);
 
   /**
    * Handle URL press - open in browser
@@ -983,6 +1021,7 @@ function PostCardComponent({
             const isWordSelected = selectedWord?.toLowerCase() === token.text.toLowerCase();
             const sentence = getSentenceContainingWord(token.text);
             const isSentenceSelected = selectedSentence && sentence === selectedSentence;
+            const isPhraseSelected = phraseWords.includes(token.text.toLowerCase());
 
             return (
               <Text
@@ -990,9 +1029,11 @@ function PostCardComponent({
                 style={[
                   isWordSelected
                     ? [styles.highlightedWord, { backgroundColor: colors.primary, color: '#FFF' }]
-                    : isSentenceSelected
-                      ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
-                      : [styles.selectableWord, { color: colors.text }]
+                    : isPhraseSelected
+                      ? [styles.highlightedWord, { backgroundColor: Colors.phraseHighlight, color: '#FFF' }]
+                      : isSentenceSelected
+                        ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
+                        : [styles.selectableWord, { color: colors.text }]
                 ]}
                 onLongPress={() => handleWordLongPress(token.text)}
                 onPress={() => handleWordPress(token.text)}
@@ -1006,6 +1047,7 @@ function PostCardComponent({
           if (token.isJapaneseWord) {
             const isWordSelected = selectedWord === token.text;
             const isSentenceSelected = selectedSentence && post.text.includes(selectedSentence) && selectedSentence.includes(token.text);
+            const isPhraseSelected = phraseWords.includes(token.text.toLowerCase());
 
             return (
               <Text
@@ -1013,9 +1055,11 @@ function PostCardComponent({
                 style={[
                   isWordSelected
                     ? [styles.highlightedWord, { backgroundColor: colors.primary, color: '#FFF' }]
-                    : isSentenceSelected
-                      ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
-                      : [styles.selectableJapanese, { color: colors.text }]
+                    : isPhraseSelected
+                      ? [styles.highlightedWord, { backgroundColor: Colors.phraseHighlight, color: '#FFF' }]
+                      : isSentenceSelected
+                        ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
+                        : [styles.selectableJapanese, { color: colors.text }]
                 ]}
                 onPress={() => handleWordPress(token.text)}
                 onLongPress={() => handleWordLongPress(token.text)}
@@ -1436,6 +1480,38 @@ function PostCardComponent({
         </View>
       </View>
 
+      {/* Phrase Selection Bar */}
+      {phraseWords.length > 0 && onPhraseSelect && (
+        <View style={[styles.phraseBar, { backgroundColor: Colors.phraseHighlightBg, borderColor: Colors.phraseHighlight }]}>
+          <Text style={[styles.phraseBarText, { color: Colors.phraseHighlight }]} numberOfLines={1}>
+            {t('home:phraseLabel')} {phraseWords.join(' ')}
+          </Text>
+          <View style={styles.phraseBarActions}>
+            <Pressable
+              onPress={handlePhraseConfirm}
+              disabled={phraseWords.length < 2}
+              style={[styles.phraseBarButton, phraseWords.length < 2 && styles.phraseBarButtonDisabled]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessible={true}
+              accessibilityLabel={t('home:phraseRegister')}
+              accessibilityRole="button"
+            >
+              <Text style={styles.phraseBarButtonText}>{t('home:phraseRegister')}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setPhraseWords([])}
+              style={styles.phraseBarCancelButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessible={true}
+              accessibilityLabel={t('home:phraseClear')}
+              accessibilityRole="button"
+            >
+              <Text style={styles.phraseBarCancelText}>{t('home:phraseClear')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {/* Image Viewer Modal */}
       <ImageViewing
         images={imageViewerImages}
@@ -1584,6 +1660,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.xs,
     marginLeft: 'auto',
+  },
+  // Phrase selection bar
+  phraseBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    marginTop: Spacing.xs,
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    justifyContent: 'space-between',
+  },
+  phraseBarText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
+    marginRight: Spacing.sm,
+  },
+  phraseBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  phraseBarButton: {
+    backgroundColor: Colors.phraseHighlight,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  phraseBarButtonDisabled: {
+    backgroundColor: Colors.phraseHighlightDisabled,
+  },
+  phraseBarButtonText: {
+    color: '#FFF',
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
+  },
+  phraseBarCancelButton: {
+    padding: Spacing.xs,
+  },
+  phraseBarCancelText: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
   },
   // Image styles
   singleImageContainer: {

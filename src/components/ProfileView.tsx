@@ -66,6 +66,7 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
   const {
     wordPopup,
     handleWordSelect,
+    handlePhraseSelect,
     handleSentenceSelect,
     closeWordPopup,
     handleAddWord,
@@ -364,6 +365,7 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
           onRepostPress={onRepostPress}
           onQuotePress={onQuotePress}
           onWordSelect={handleWordSelect}
+          onPhraseSelect={handlePhraseSelect}
           onSentenceSelect={handleSentenceSelect}
           onDeletePress={handleDeletePress}
           currentUserDid={user?.did}
@@ -371,7 +373,7 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
         />
       );
     },
-    [handlePostPress, handleLikePress, onReplyPress, onRepostPress, onQuotePress, handleWordSelect, handleSentenceSelect, handleDeletePress, user?.did, wordPopup.visible, wordPopup.postUri]
+    [handlePostPress, handleLikePress, onReplyPress, onRepostPress, onQuotePress, handleWordSelect, handlePhraseSelect, handleSentenceSelect, handleDeletePress, user?.did, wordPopup.visible, wordPopup.postUri]
   );
 
   /**
@@ -464,7 +466,7 @@ export const ProfileView = memo(function ProfileView({ flatListRef, onScroll, on
       <WordPopup
         visible={wordPopup.visible}
         word={wordPopup.word}
-        isSentenceMode={wordPopup.isSentenceMode}
+        wordType={wordPopup.wordType}
         postUri={wordPopup.postUri}
         postText={wordPopup.postText}
         onClose={closeWordPopup}

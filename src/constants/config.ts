@@ -133,7 +133,7 @@ export const GITHUB = {
  */
 export const DATABASE = {
   NAME: 'kumotan.db',
-  VERSION: 7,
+  VERSION: 8,
 } as const;
 
 /**

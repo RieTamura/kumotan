@@ -28,6 +28,7 @@ import { followUser, unfollowUser, blockUser, unblockUser } from '../services/bl
 import { ReplyToInfo, QuoteToInfo } from '../hooks/usePostCreation';
 import { useProfilePreview } from '../hooks/useProfilePreview';
 import { addWord } from '../services/database/words';
+import { WordType } from '../types/word';
 import { useSocialStore } from '../store/socialStore';
 import { useAuthUser } from '../store/authStore';
 import { ProfilePreviewModal } from '../components/ProfilePreviewModal';
@@ -47,7 +48,7 @@ interface ThreadData {
 interface WordPopupState {
   visible: boolean;
   word: string;
-  isSentenceMode: boolean;
+  wordType: WordType;
   postUri: string;
   postText: string;
 }
@@ -58,7 +59,7 @@ interface WordPopupState {
 const initialWordPopupState: WordPopupState = {
   visible: false,
   word: '',
-  isSentenceMode: false,
+  wordType: 'word',
   postUri: '',
   postText: '',
 };
@@ -254,7 +255,23 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
       setWordPopup({
         visible: true,
         word: word.toLowerCase(),
-        isSentenceMode: false,
+        wordType: 'word',
+        postUri: uri,
+        postText,
+      });
+    },
+    []
+  );
+
+  /**
+   * Handle phrase selection from a post (multi-word)
+   */
+  const handlePhraseSelect = useCallback(
+    (phrase: string, uri: string, postText: string) => {
+      setWordPopup({
+        visible: true,
+        word: phrase.toLowerCase(),
+        wordType: 'phrase',
         postUri: uri,
         postText,
       });
@@ -270,7 +287,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
       setWordPopup({
         visible: true,
         word: sentence,
-        isSentenceMode: true,
+        wordType: 'sentence',
         postUri: uri,
         postText,
       });
@@ -534,6 +551,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
             <PostCard
               post={threadData.parent}
               onWordSelect={handleWordSelect}
+              onPhraseSelect={handlePhraseSelect}
               onSentenceSelect={handleSentenceSelect}
               onPostPress={handlePostPress}
               onLikePress={handleLikePress}
@@ -552,6 +570,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
           <PostCard
             post={threadData.post}
             onWordSelect={handleWordSelect}
+            onPhraseSelect={handlePhraseSelect}
             onSentenceSelect={handleSentenceSelect}
             onPostPress={handlePostPress}
             onLikePress={handleLikePress}
@@ -574,7 +593,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
         )}
       </View>
     );
-  }, [threadData, t, handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user, wordPopup.visible, wordPopup.postUri]);
+  }, [threadData, t, handleWordSelect, handlePhraseSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Render reply item
@@ -586,6 +605,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
         <PostCard
           post={item}
           onWordSelect={handleWordSelect}
+          onPhraseSelect={handlePhraseSelect}
           onSentenceSelect={handleSentenceSelect}
           onPostPress={handlePostPress}
           onLikePress={handleLikePress}
@@ -598,7 +618,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
         />
       </View>
     );
-  }, [handleWordSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user, wordPopup.visible, wordPopup.postUri]);
+  }, [handleWordSelect, handlePhraseSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Key extractor
@@ -675,7 +695,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
       <WordPopup
         visible={wordPopup.visible}
         word={wordPopup.word}
-        isSentenceMode={wordPopup.isSentenceMode}
+        wordType={wordPopup.wordType}
         postUri={wordPopup.postUri}
         postText={wordPopup.postText}
         onClose={closeWordPopup}

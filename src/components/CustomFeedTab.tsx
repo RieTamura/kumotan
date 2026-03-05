@@ -41,6 +41,7 @@ export interface CustomFeedTabProps {
   currentUserDid?: string;
   deletedUris: Set<string>;
   onWordSelect: (word: string, postUri: string, postText: string) => void;
+  onPhraseSelect: (phrase: string, postUri: string, postText: string) => void;
   onSentenceSelect: (sentence: string, postUri: string, postText: string) => void;
   onPostPress: (postUri: string) => void;
   onLikePress: (post: TimelinePost, isLiked: boolean) => void;
@@ -60,6 +61,7 @@ export const CustomFeedTab = memo(function CustomFeedTab({
   currentUserDid,
   deletedUris,
   onWordSelect,
+  onPhraseSelect,
   onSentenceSelect,
   onPostPress,
   onLikePress,
@@ -114,6 +116,7 @@ export const CustomFeedTab = memo(function CustomFeedTab({
         <PostCard
           post={item}
           onWordSelect={onWordSelect}
+          onPhraseSelect={onPhraseSelect}
           onSentenceSelect={onSentenceSelect}
           onPostPress={onPostPress}
           onLikePress={onLikePress}
@@ -132,6 +135,7 @@ export const CustomFeedTab = memo(function CustomFeedTab({
       wordPopupPostUri,
       currentUserDid,
       onWordSelect,
+      onPhraseSelect,
       onSentenceSelect,
       onPostPress,
       onLikePress,
