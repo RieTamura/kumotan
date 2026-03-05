@@ -87,6 +87,11 @@ export const LightColors = {
   loginButtonBackground: '#FFFFFF',
   loginButtonText: '#1DA1F2',
   loginDivider: 'rgba(255, 255, 255, 0.3)',
+
+  // Phrase mode highlight
+  phraseHighlight: '#FF9800',
+  phraseHighlightBg: 'rgba(255, 152, 0, 0.08)',
+  phraseHighlightDisabled: 'rgba(255, 152, 0, 0.38)',
 } as const;
 
 export const DarkColors = {
@@ -173,6 +178,11 @@ export const DarkColors = {
   loginButtonBackground: '#1DA1F2',
   loginButtonText: '#FFFFFF',
   loginDivider: '#38444D',
+
+  // Phrase mode highlight
+  phraseHighlight: '#FF9800',
+  phraseHighlightBg: 'rgba(255, 152, 0, 0.08)',
+  phraseHighlightDisabled: 'rgba(255, 152, 0, 0.38)',
 } as const;
 
 export type ThemeColors = Record<keyof typeof LightColors, string>;

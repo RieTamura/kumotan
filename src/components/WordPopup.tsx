@@ -196,7 +196,8 @@ interface WordPopupProps {
   postUri?: string;
   postText?: string;
   onClose: () => void;
-  onAddToWordList: (
+  /** @deprecated WordPopup saves words internally via wordStore. This prop is no longer called. */
+  onAddToWordList?: (
     word: string,
     japanese: string | null,
     definition: string | null,
@@ -787,7 +788,7 @@ export function WordPopup({
     } finally {
       setIsAdding(false);
     }
-  }, [word, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, translation, definition, definitionJa, postUri, postText, addWordToStore, onAddToWordList, onClose]);
+  }, [word, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, translation, definition, definitionJa, postUri, postText, addWordToStore, onClose]);
 
   /**
    * Handle backdrop press

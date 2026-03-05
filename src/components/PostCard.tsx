@@ -765,8 +765,11 @@ function PostCardComponent({
       return;
     }
 
-    // If no selection and we have a double-tap timer pending, don't navigate yet
+    // If a double-tap timer is pending, cancel it and don't navigate
+    // (prevents the timer firing and adding the word to phraseWords)
     if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
       return;
     }
 
@@ -1027,7 +1030,7 @@ function PostCardComponent({
                   isWordSelected
                     ? [styles.highlightedWord, { backgroundColor: colors.primary, color: '#FFF' }]
                     : isPhraseSelected
-                      ? [styles.highlightedWord, { backgroundColor: '#FF9800', color: '#FFF' }]
+                      ? [styles.highlightedWord, { backgroundColor: Colors.phraseHighlight, color: '#FFF' }]
                       : isSentenceSelected
                         ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
                         : [styles.selectableWord, { color: colors.text }]
@@ -1053,7 +1056,7 @@ function PostCardComponent({
                   isWordSelected
                     ? [styles.highlightedWord, { backgroundColor: colors.primary, color: '#FFF' }]
                     : isPhraseSelected
-                      ? [styles.highlightedWord, { backgroundColor: '#FF9800', color: '#FFF' }]
+                      ? [styles.highlightedWord, { backgroundColor: Colors.phraseHighlight, color: '#FFF' }]
                       : isSentenceSelected
                         ? [styles.highlightedSentence, { backgroundColor: colors.primaryLight + '40' }]
                         : [styles.selectableJapanese, { color: colors.text }]
@@ -1479,8 +1482,8 @@ function PostCardComponent({
 
       {/* Phrase Selection Bar */}
       {phraseWords.length > 0 && onPhraseSelect && (
-        <View style={[styles.phraseBar, { backgroundColor: '#FF9800' + '15', borderColor: '#FF9800' }]}>
-          <Text style={[styles.phraseBarText, { color: '#FF9800' }]} numberOfLines={1}>
+        <View style={[styles.phraseBar, { backgroundColor: Colors.phraseHighlightBg, borderColor: Colors.phraseHighlight }]}>
+          <Text style={[styles.phraseBarText, { color: Colors.phraseHighlight }]} numberOfLines={1}>
             {t('home:phraseLabel')} {phraseWords.join(' ')}
           </Text>
           <View style={styles.phraseBarActions}>
@@ -1489,6 +1492,9 @@ function PostCardComponent({
               disabled={phraseWords.length < 2}
               style={[styles.phraseBarButton, phraseWords.length < 2 && styles.phraseBarButtonDisabled]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessible={true}
+              accessibilityLabel={t('home:phraseRegister')}
+              accessibilityRole="button"
             >
               <Text style={styles.phraseBarButtonText}>{t('home:phraseRegister')}</Text>
             </Pressable>
@@ -1496,6 +1502,9 @@ function PostCardComponent({
               onPress={() => setPhraseWords([])}
               style={styles.phraseBarCancelButton}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessible={true}
+              accessibilityLabel={t('home:phraseClear')}
+              accessibilityRole="button"
             >
               <Text style={styles.phraseBarCancelText}>{t('home:phraseClear')}</Text>
             </Pressable>
@@ -1675,13 +1684,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   phraseBarButton: {
-    backgroundColor: '#FF9800',
+    backgroundColor: Colors.phraseHighlight,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
   },
   phraseBarButtonDisabled: {
-    backgroundColor: '#FF980060',
+    backgroundColor: Colors.phraseHighlightDisabled,
   },
   phraseBarButtonText: {
     color: '#FFF',
