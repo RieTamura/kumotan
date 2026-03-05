@@ -788,7 +788,7 @@ export function WordPopup({
     } finally {
       setIsAdding(false);
     }
-  }, [word, wordType, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, translation, definition, definitionJa, postUri, postText, addWordToStore, onClose]);
+  }, [word, wordType, isSentenceMode, isJapanese, wordsInfo, japaneseInfo, englishTranslation, translation, definition, definitionJa, postUri, postText, addWordToStore, onClose]);
 
   /**
    * Handle backdrop press
