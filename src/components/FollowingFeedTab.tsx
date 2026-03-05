@@ -45,6 +45,7 @@ export interface FollowingFeedTabProps {
   // Post interaction handlers
   currentUserDid?: string;
   onWordSelect: (word: string, postUri: string, postText: string) => void;
+  onPhraseSelect: (phrase: string, postUri: string, postText: string) => void;
   onSentenceSelect: (sentence: string, postUri: string, postText: string) => void;
   onPostPress: (postUri: string) => void;
   onLikePress: (post: TimelinePost, isLiked: boolean) => void;
@@ -77,6 +78,7 @@ export const FollowingFeedTab = memo(function FollowingFeedTab({
   wordPopupPostUri,
   currentUserDid,
   onWordSelect,
+  onPhraseSelect,
   onSentenceSelect,
   onPostPress,
   onLikePress,
@@ -106,6 +108,7 @@ export const FollowingFeedTab = memo(function FollowingFeedTab({
         <PostCard
           post={item}
           onWordSelect={onWordSelect}
+          onPhraseSelect={onPhraseSelect}
           onSentenceSelect={onSentenceSelect}
           onPostPress={onPostPress}
           onLikePress={onLikePress}
@@ -125,6 +128,7 @@ export const FollowingFeedTab = memo(function FollowingFeedTab({
       wordPopupPostUri,
       currentUserDid,
       onWordSelect,
+      onPhraseSelect,
       onSentenceSelect,
       onPostPress,
       onLikePress,

@@ -716,9 +716,10 @@ function PostCardComponent({
   const handleWordPress = useCallback(
     (word: string) => {
       if (longPressTimer) {
-        // Second tap within timer - treat as double tap
+        // Second tap within timer - treat as double tap; also clear any phrase selection
         clearTimeout(longPressTimer);
         setLongPressTimer(null);
+        setPhraseWords([]);
         handleWordDoubleTap(word);
       } else {
         // First tap - start timer; on timeout treat as single tap (phrase mode)
@@ -1480,7 +1481,7 @@ function PostCardComponent({
       {phraseWords.length > 0 && onPhraseSelect && (
         <View style={[styles.phraseBar, { backgroundColor: '#FF9800' + '15', borderColor: '#FF9800' }]}>
           <Text style={[styles.phraseBarText, { color: '#FF9800' }]} numberOfLines={1}>
-            熟語: {phraseWords.join(' ')}
+            {t('home:phraseLabel')} {phraseWords.join(' ')}
           </Text>
           <View style={styles.phraseBarActions}>
             <Pressable
@@ -1489,14 +1490,14 @@ function PostCardComponent({
               style={[styles.phraseBarButton, phraseWords.length < 2 && styles.phraseBarButtonDisabled]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.phraseBarButtonText}>登録</Text>
+              <Text style={styles.phraseBarButtonText}>{t('home:phraseRegister')}</Text>
             </Pressable>
             <Pressable
               onPress={() => setPhraseWords([])}
               style={styles.phraseBarCancelButton}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.phraseBarCancelText}>✕</Text>
+              <Text style={styles.phraseBarCancelText}>{t('home:phraseClear')}</Text>
             </Pressable>
           </View>
         </View>

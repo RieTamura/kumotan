@@ -749,6 +749,7 @@ export function WordPopup({
           definition: definitionText,
           postUrl: postUri ?? undefined,
           postText: postText ?? undefined,
+          wordType,
         });
 
         if (result.success) {
