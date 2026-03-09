@@ -42,6 +42,6 @@
   },
   "ngslBadge": {
     "title": "Frequency Badge Guide",
-    "description": "The badges shown on each word indicate how frequently it appears in English.\n\n★★★ / ★★ / ★\nGeneral English frequency (NGSL). ★★★ is the most common, ★ is foundational.\n\nS★★★ / S★★ / S★\nSpoken English frequency (NGSL-S). Covers 721 everyday spoken words, marked with 'S'.\n\nWords with both badges are important in both general and spoken English."
+    "description": "The badges shown on each word indicate how frequently it appears in English.\n\n★★★ / ★★ / ★\nGeneral English frequency (NGSL). ★★★ is the most common, ★ is foundational.\n\nS★★★ / S★★ / S★\nSpoken English frequency (NGSL-S). Covers everyday spoken words, marked with 'S'.\n\nWords with both badges are important in both general and spoken English."
   }
 }

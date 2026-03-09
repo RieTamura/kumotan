@@ -125,15 +125,15 @@ export function WordListItem({
             {word.english}
           </Text>
           {ngslBand !== null && (
-            <View style={styles.ngslBadge}>
-              <Text style={styles.ngslBadgeText}>
+            <View style={[styles.ngslBadge, { backgroundColor: colors.warningLight }]}>
+              <Text style={[styles.ngslBadgeText, { color: colors.warning }]}>
                 {getNgslBandLabel(ngslBand)}
               </Text>
             </View>
           )}
           {ngslsBand !== null && (
-            <View style={styles.ngslsBadge}>
-              <Text style={styles.ngslsBadgeText}>
+            <View style={[styles.ngslsBadge, { backgroundColor: colors.primaryBackground }]}>
+              <Text style={[styles.ngslsBadgeText, { color: colors.primary }]}>
                 {getNgslsBandLabel(ngslsBand)}
               </Text>
             </View>
@@ -356,26 +356,22 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   ngslBadge: {
-    backgroundColor: Colors.warningLight,
     borderRadius: BorderRadius.sm,
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
   ngslBadgeText: {
     fontSize: FontSizes.xs,
-    color: Colors.warning,
     fontWeight: '600',
     letterSpacing: 0.5,
   },
   ngslsBadge: {
-    backgroundColor: '#E8F4FD',
     borderRadius: BorderRadius.sm,
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
   ngslsBadgeText: {
     fontSize: FontSizes.xs,
-    color: Colors.primary,
     fontWeight: '600',
     letterSpacing: 0.5,
   },

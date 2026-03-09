@@ -36,6 +36,8 @@ const API_URLS: Record<string, string> = {
   yahoo: 'https://developer.yahoo.co.jp/webapi/jlp/',
   dictionary: 'https://dictionaryapi.dev/',
   jmdict: 'https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project',
+  ngsl: 'https://www.newgeneralservicelist.org/',
+  ngsls: 'https://www.newgeneralservicelist.org/ngsls',
   bluesky: 'https://atproto.com/',
 };
 
@@ -269,6 +271,18 @@ export function LicenseScreen(): React.JSX.Element {
       license: t('apis.jmdict.license'),
       url: API_URLS.jmdict,
       description: t('apis.jmdict.description'),
+    },
+    {
+      name: t('apis.ngsl.name'),
+      license: t('apis.ngsl.license'),
+      url: API_URLS.ngsl,
+      description: t('apis.ngsl.description'),
+    },
+    {
+      name: t('apis.ngsls.name'),
+      license: t('apis.ngsls.license'),
+      url: API_URLS.ngsls,
+      description: t('apis.ngsls.description'),
     },
     {
       name: t('apis.bluesky.name'),
