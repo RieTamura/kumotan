@@ -2819,7 +2819,7 @@ export const NGSL_MAP: ReadonlyMap<string, NgslBand> = new Map<string, NgslBand>
   ["young", 1],
   ["yourself", 1],
   ["youth", 2],
-  "zone": 3
+  ["zone", 3],
 ]);
 
 /**
