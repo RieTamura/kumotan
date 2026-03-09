@@ -22,6 +22,7 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { Word } from '../types/word';
 import { getNgslBand, getNgslBandLabel } from '../constants/ngslWords';
+import { getNgslsBand, getNgslsBandLabel } from '../constants/ngslsWords';
 import { MessageSquareShare, Volume2, VolumeX } from 'lucide-react-native';
 import { FeedbackModal } from './FeedbackModal';
 import { useSpeech } from '../hooks/useSpeech';
@@ -56,6 +57,7 @@ export function WordListItem({
   const { speak, stop: stopSpeech, isSpeaking } = useSpeech();
 
   const ngslBand = word.wordType === 'word' ? getNgslBand(word.english) : null;
+  const ngslsBand = word.wordType === 'word' ? getNgslsBand(word.english) : null;
 
   /**
    * Handle item press - toggle expansion
@@ -126,6 +128,13 @@ export function WordListItem({
             <View style={styles.ngslBadge}>
               <Text style={styles.ngslBadgeText}>
                 {getNgslBandLabel(ngslBand)}
+              </Text>
+            </View>
+          )}
+          {ngslsBand !== null && (
+            <View style={styles.ngslsBadge}>
+              <Text style={styles.ngslsBadgeText}>
+                {getNgslsBandLabel(ngslsBand)}
               </Text>
             </View>
           )}
@@ -355,6 +364,18 @@ const styles = StyleSheet.create({
   ngslBadgeText: {
     fontSize: FontSizes.xs,
     color: Colors.warning,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  ngslsBadge: {
+    backgroundColor: '#E8F4FD',
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  ngslsBadgeText: {
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
     fontWeight: '600',
     letterSpacing: 0.5,
   },
