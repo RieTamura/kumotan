@@ -21,6 +21,7 @@ import {
 } from '../constants/colors';
 import { useTheme } from '../hooks/useTheme';
 import { Word } from '../types/word';
+import { getNgslBand, getNgslBandLabel } from '../constants/ngslWords';
 import { MessageSquareShare, Volume2, VolumeX } from 'lucide-react-native';
 import { FeedbackModal } from './FeedbackModal';
 import { useSpeech } from '../hooks/useSpeech';
@@ -53,6 +54,8 @@ export function WordListItem({
   const [expanded, setExpanded] = useState(false);
   const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
   const { speak, stop: stopSpeech, isSpeaking } = useSpeech();
+
+  const ngslBand = word.wordType === 'word' ? getNgslBand(word.english) : null;
 
   /**
    * Handle item press - toggle expansion
@@ -108,16 +111,25 @@ export function WordListItem({
 
       {/* Word content */}
       <View style={styles.content}>
-        <Text
-          style={[
-            styles.english,
-            { color: colors.text },
-            word.isRead && [styles.textRead, { color: colors.textTertiary }],
-          ]}
-          numberOfLines={expanded ? undefined : 1}
-        >
-          {word.english}
-        </Text>
+        <View style={styles.englishRow}>
+          <Text
+            style={[
+              styles.english,
+              { color: colors.text },
+              word.isRead && [styles.textRead, { color: colors.textTertiary }],
+            ]}
+            numberOfLines={expanded ? undefined : 1}
+          >
+            {word.english}
+          </Text>
+          {ngslBand !== null && (
+            <View style={styles.ngslBadge}>
+              <Text style={styles.ngslBadgeText}>
+                {getNgslBandLabel(ngslBand)}
+              </Text>
+            </View>
+          )}
+        </View>
 
         <Text
           style={[
@@ -321,11 +333,30 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.sm,
   },
+  englishRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
   english: {
     fontSize: FontSizes.lg,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.xs,
+    flexShrink: 1,
+  },
+  ngslBadge: {
+    backgroundColor: Colors.warningLight,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  ngslBadgeText: {
+    fontSize: FontSizes.xs,
+    color: Colors.warning,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   japanese: {
     fontSize: FontSizes.sm,
