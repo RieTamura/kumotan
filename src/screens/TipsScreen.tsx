@@ -23,6 +23,7 @@ import {
   MessageSquare,
   SpellCheck2,
   LayoutGrid,
+  Tag,
 } from 'lucide-react-native';
 import { Colors, Spacing, FontSizes, BorderRadius, Shadows } from '../constants/colors';
 import { useTheme } from '../hooks/useTheme';
@@ -136,6 +137,13 @@ export function TipsScreen(): React.JSX.Element {
           icon={<LayoutGrid size={24} color={iconColor} />}
           title={t('customFeed.title')}
           description={t('customFeed.description')}
+        />
+
+        {/* NGSL Badge Tip */}
+        <TipCard
+          icon={<Tag size={24} color={iconColor} />}
+          title={t('ngslBadge.title')}
+          description={t('ngslBadge.description')}
         />
       </ScrollView>
     </SafeAreaView>

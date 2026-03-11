@@ -21,6 +21,8 @@ import {
 } from '../constants/colors';
 import { useTheme } from '../hooks/useTheme';
 import { Word } from '../types/word';
+import { getNgslBand, getNgslBandLabel } from '../constants/ngslWords';
+import { getNgslsBand, getNgslsBandLabel } from '../constants/ngslsWords';
 import { MessageSquareShare, Volume2, VolumeX } from 'lucide-react-native';
 import { FeedbackModal } from './FeedbackModal';
 import { useSpeech } from '../hooks/useSpeech';
@@ -53,6 +55,9 @@ export function WordListItem({
   const [expanded, setExpanded] = useState(false);
   const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
   const { speak, stop: stopSpeech, isSpeaking } = useSpeech();
+
+  const ngslBand = word.wordType === 'word' ? getNgslBand(word.english) : null;
+  const ngslsBand = word.wordType === 'word' ? getNgslsBand(word.english) : null;
 
   /**
    * Handle item press - toggle expansion
@@ -108,16 +113,32 @@ export function WordListItem({
 
       {/* Word content */}
       <View style={styles.content}>
-        <Text
-          style={[
-            styles.english,
-            { color: colors.text },
-            word.isRead && [styles.textRead, { color: colors.textTertiary }],
-          ]}
-          numberOfLines={expanded ? undefined : 1}
-        >
-          {word.english}
-        </Text>
+        <View style={styles.englishRow}>
+          <Text
+            style={[
+              styles.english,
+              { color: colors.text },
+              word.isRead && [styles.textRead, { color: colors.textTertiary }],
+            ]}
+            numberOfLines={expanded ? undefined : 1}
+          >
+            {word.english}
+          </Text>
+          {ngslBand !== null && (
+            <View style={[styles.frequencyBadge, { backgroundColor: colors.warningLight }]}>
+              <Text style={[styles.frequencyBadgeText, { color: colors.warning }]}>
+                {getNgslBandLabel(ngslBand)}
+              </Text>
+            </View>
+          )}
+          {ngslsBand !== null && (
+            <View style={[styles.frequencyBadge, { backgroundColor: colors.primaryBackground }]}>
+              <Text style={[styles.frequencyBadgeText, { color: colors.primary }]}>
+                {getNgslsBandLabel(ngslsBand)}
+              </Text>
+            </View>
+          )}
+        </View>
 
         <Text
           style={[
@@ -321,11 +342,28 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.sm,
   },
+  englishRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
   english: {
     fontSize: FontSizes.lg,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.xs,
+    flexShrink: 1,
+  },
+  frequencyBadge: {
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  frequencyBadgeText: {
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   japanese: {
     fontSize: FontSizes.sm,

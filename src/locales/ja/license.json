@@ -27,6 +27,16 @@
       "license": "CC BY-SA 4.0",
       "description": "Electronic Dictionary Research and Development Group (EDRDG) が管理する日英辞書データ。英語→日本語、日本語→英語の翻訳に使用。"
     },
+    "ngsl": {
+      "name": "New General Service List (NGSL)",
+      "license": "CC BY-SA 4.0",
+      "description": "Browne・Culligan・Phillips による Cambridge English Corpus ベースの英語高頻出語 2,801 語リスト。一般英語の頻出度バッジ表示に使用。"
+    },
+    "ngsls": {
+      "name": "New General Service List – Spoken (NGSL-S)",
+      "license": "CC BY-SA 4.0",
+      "description": "Browne・Culligan・Phillips による会話英語コーパスベースの高頻出会話語リスト。会話英語の頻出度バッジ（S★）表示に使用。"
+    },
     "bluesky": {
       "name": "Bluesky AT Protocol API",
       "license": "MIT / Apache-2.0",

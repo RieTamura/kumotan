@@ -27,6 +27,16 @@
       "license": "CC BY-SA 4.0",
       "description": "Japanese-English dictionary data managed by Electronic Dictionary Research and Development Group (EDRDG). Used for English-Japanese and Japanese-English translation."
     },
+    "ngsl": {
+      "name": "New General Service List (NGSL)",
+      "license": "CC BY-SA 4.0",
+      "description": "A list of 2,801 high-frequency English words by Browne, Culligan & Phillips, based on the Cambridge English Corpus. Used for general English frequency badge display."
+    },
+    "ngsls": {
+      "name": "New General Service List – Spoken (NGSL-S)",
+      "license": "CC BY-SA 4.0",
+      "description": "A list of high-frequency spoken English words by Browne, Culligan & Phillips, derived from spoken English corpora. Used for spoken English frequency badge display."
+    },
     "bluesky": {
       "name": "Bluesky AT Protocol API",
       "license": "MIT / Apache-2.0",

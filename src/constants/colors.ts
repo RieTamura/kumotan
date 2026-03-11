@@ -31,6 +31,7 @@ export const LightColors = {
   warningLight: '#FFF8E6',
   error: '#E0245E',
   errorLight: '#FDEEF2',
+  primaryBackground: '#E8F4FD',
 
   // Interactive states
   hover: '#E8F5FE',
@@ -122,6 +123,7 @@ export const DarkColors = {
   warningLight: 'rgba(255, 173, 31, 0.15)',
   error: '#E0245E',
   errorLight: 'rgba(224, 36, 94, 0.15)',
+  primaryBackground: 'rgba(29, 161, 242, 0.15)',
 
   // Interactive states
   hover: 'rgba(29, 161, 242, 0.1)',
