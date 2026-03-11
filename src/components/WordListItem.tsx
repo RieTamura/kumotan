@@ -125,15 +125,15 @@ export function WordListItem({
             {word.english}
           </Text>
           {ngslBand !== null && (
-            <View style={[styles.ngslBadge, { backgroundColor: colors.warningLight }]}>
-              <Text style={[styles.ngslBadgeText, { color: colors.warning }]}>
+            <View style={[styles.frequencyBadge, { backgroundColor: colors.warningLight }]}>
+              <Text style={[styles.frequencyBadgeText, { color: colors.warning }]}>
                 {getNgslBandLabel(ngslBand)}
               </Text>
             </View>
           )}
           {ngslsBand !== null && (
-            <View style={[styles.ngslsBadge, { backgroundColor: colors.primaryBackground }]}>
-              <Text style={[styles.ngslsBadgeText, { color: colors.primary }]}>
+            <View style={[styles.frequencyBadge, { backgroundColor: colors.primaryBackground }]}>
+              <Text style={[styles.frequencyBadgeText, { color: colors.primary }]}>
                 {getNgslsBandLabel(ngslsBand)}
               </Text>
             </View>
@@ -355,22 +355,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     flexShrink: 1,
   },
-  ngslBadge: {
+  frequencyBadge: {
     borderRadius: BorderRadius.sm,
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
-  ngslBadgeText: {
-    fontSize: FontSizes.xs,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  ngslsBadge: {
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  ngslsBadgeText: {
+  frequencyBadgeText: {
     fontSize: FontSizes.xs,
     fontWeight: '600',
     letterSpacing: 0.5,

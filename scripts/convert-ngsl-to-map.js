@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /**
- * One-shot script: convert NGSL_MAP from Record object literal to Map
+ * One-shot migration script: convert NGSL_MAP from Record object literal to Map
  * to fix Biome lint/suspicious/noThenProperty ("then", "catch", "finally" keys).
+ *
+ * NOTE: Already applied on 2026-03-09. Do NOT run again.
+ * Kept for historical reference only.
  */
 
 const fs = require('fs');
