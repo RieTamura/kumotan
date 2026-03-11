@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { X, Send } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +21,19 @@ import { API, APP_INFO } from '../constants/config';
 import { getLogsAsString } from '../utils/logger';
 
 export type FeedbackType = 'word_search' | 'bug' | 'feature';
+
+const POS_OPTIONS = [
+  { code: 'n', label: '名詞' },
+  { code: 'vt', label: '他動詞' },
+  { code: 'vi', label: '自動詞' },
+  { code: 'adj-i', label: 'い形容詞' },
+  { code: 'adj-na', label: 'な形容詞' },
+  { code: 'adv', label: '副詞' },
+  { code: 'exp', label: 'フレーズ' },
+  { code: 'pn', label: '代名詞' },
+  { code: 'conj', label: '接続詞' },
+  { code: 'int', label: '感動詞' },
+];
 
 interface FeedbackModalProps {
   visible: boolean;
@@ -37,13 +51,15 @@ export function FeedbackModal({ visible, type = 'word_search', word: initialWord
   const [description, setDescription] = useState('');
   const [comment, setComment] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [selectedPos, setSelectedPos] = useState<string | undefined>(partOfSpeech);
 
   // Reset local state when initialWord changes (important for different entry points)
   React.useEffect(() => {
     setSubject(initialWord);
     setDescription('');
     setComment('');
-  }, [initialWord, visible]);
+    setSelectedPos(partOfSpeech);
+  }, [initialWord, visible, partOfSpeech]);
 
   const config = useMemo(() => {
     switch (type) {
@@ -112,7 +128,7 @@ export function FeedbackModal({ visible, type = 'word_search', word: initialWord
           expectation: description, // For backward compatibility
           description: description, // Preferred for bug/feature
           comment,
-          part_of_speech: partOfSpeech || '',
+          part_of_speech: selectedPos || '',
           post_url: postUrl || '',
           ...bugExtras,
         }),
@@ -168,6 +184,35 @@ export function FeedbackModal({ visible, type = 'word_search', word: initialWord
               placeholder={config.subjectPlaceholder}
               containerStyle={styles.input}
             />
+
+            {type === 'word_search' && (
+              <View style={styles.posContainer}>
+                <Text style={[styles.posLabel, { color: colors.text }]}>品詞</Text>
+                <View style={styles.posChips}>
+                  {POS_OPTIONS.map((pos) => {
+                    const isSelected = selectedPos === pos.code;
+                    return (
+                      <TouchableOpacity
+                        key={pos.code}
+                        onPress={() => setSelectedPos(isSelected ? undefined : pos.code)}
+                        style={[
+                          styles.posChip,
+                          { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
+                          isSelected && { borderColor: colors.primary, backgroundColor: colors.primary },
+                        ]}
+                      >
+                        <Text style={[styles.posChipText, { color: isSelected ? '#FFFFFF' : colors.textSecondary }]}>
+                          {pos.label}
+                        </Text>
+                        <Text style={[styles.posChipCode, { color: isSelected ? 'rgba(255,255,255,0.7)' : colors.placeholder }]}>
+                          {pos.code}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
 
             <Input
               label={config.descLabel}
@@ -264,5 +309,34 @@ const styles = StyleSheet.create({
   sendButton: {
     marginTop: Spacing.md,
     marginBottom: Spacing.xl,
+  },
+  posContainer: {
+    marginBottom: Spacing.md,
+  },
+  posLabel: {
+    fontSize: FontSizes.md,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  posChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  posChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    gap: 4,
+  },
+  posChipText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '500',
+  },
+  posChipCode: {
+    fontSize: FontSizes.xs,
   },
 });
