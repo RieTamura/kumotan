@@ -7,6 +7,13 @@
       "jaToEn": "日本語 → 英語",
       "mixed": "ミックス"
     },
+    "wordFilter": {
+      "title": "単語の種類",
+      "all": "すべて",
+      "ngsl": "NGSL",
+      "ngslS": "NGSL-S",
+      "ngslAny": "NGSL/S"
+    },
     "questionCount": {
       "title": "出題数",
       "questions": "{{count}}問"

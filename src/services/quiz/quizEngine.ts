@@ -13,7 +13,9 @@ import {
 } from '../../types/quiz';
 import { Result } from '../../types/result';
 import { AppError, ErrorCode } from '../../utils/errors';
-import { getRandomWordsForQuiz, saveQuizAttempt, saveQuizSession } from '../database/quiz';
+import { getRandomWordsForQuiz, getAllQuizableWords, saveQuizAttempt, saveQuizSession } from '../database/quiz';
+import { getNgslBand } from '../../constants/ngslWords';
+import { getNgslsBand } from '../../constants/ngslsWords';
 import {
   isAnswerCorrect,
   getAllAcceptableAnswers,
@@ -21,19 +23,51 @@ import {
 } from './answerValidator';
 
 /**
+ * Shuffle an array using Fisher-Yates algorithm
+ */
+function shuffleArray<T>(arr: T[]): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/**
  * Generate quiz questions from settings
  */
 export async function generateQuiz(
   settings: QuizSettings
 ): Promise<Result<QuizSession, AppError>> {
-  // Get random words
-  const wordsResult = await getRandomWordsForQuiz(settings.questionCount);
+  let words: Word[];
 
-  if (!wordsResult.success) {
-    return wordsResult as Result<never, AppError>;
+  if (settings.ngslFilter) {
+    // Fetch all quizable words and apply NGSL filter in-memory
+    const allWordsResult = await getAllQuizableWords();
+    if (!allWordsResult.success) {
+      return allWordsResult as Result<never, AppError>;
+    }
+
+    const filtered = allWordsResult.data.filter((word) => {
+      if (word.wordType !== 'word') return false;
+      if (settings.ngslFilter === 'ngsl') return getNgslBand(word.english) !== null;
+      if (settings.ngslFilter === 'ngsl-s') return getNgslsBand(word.english) !== null;
+      if (settings.ngslFilter === 'ngsl_any') {
+        return getNgslBand(word.english) !== null || getNgslsBand(word.english) !== null;
+      }
+      return true;
+    });
+
+    words = shuffleArray(filtered).slice(0, settings.questionCount);
+  } else {
+    // No NGSL filter: use random DB query (efficient)
+    const wordsResult = await getRandomWordsForQuiz(settings.questionCount);
+    if (!wordsResult.success) {
+      return wordsResult as Result<never, AppError>;
+    }
+    words = wordsResult.data;
   }
-
-  const words = wordsResult.data;
 
   if (words.length < settings.questionCount) {
     return {

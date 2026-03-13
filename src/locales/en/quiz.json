@@ -7,6 +7,13 @@
       "jaToEn": "Japanese → English",
       "mixed": "Mixed"
     },
+    "wordFilter": {
+      "title": "Word Type",
+      "all": "All",
+      "ngsl": "NGSL",
+      "ngslS": "NGSL-S",
+      "ngslAny": "NGSL/S"
+    },
     "questionCount": {
       "title": "Number of Questions",
       "questions": "{{count}} questions"

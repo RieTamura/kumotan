@@ -15,11 +15,21 @@ export type QuestionType = 'en_to_ja' | 'ja_to_en' | 'mixed';
 export type QuestionCount = 5 | 10 | 20;
 
 /**
+ * NGSL/NGSL-S 単語フィルター
+ * - null: フィルターなし（すべての単語）
+ * - 'ngsl': NGSL収録単語のみ
+ * - 'ngsl-s': NGSL-S収録単語のみ
+ * - 'ngsl_any': NGSL または NGSL-S 収録単語
+ */
+export type NgslWordFilter = 'ngsl' | 'ngsl-s' | 'ngsl_any' | null;
+
+/**
  * クイズ設定
  */
 export interface QuizSettings {
   questionType: QuestionType;
   questionCount: QuestionCount;
+  ngslFilter: NgslWordFilter;
 }
 
 /**

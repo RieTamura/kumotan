@@ -10,6 +10,7 @@ import {
   QuizAttempt,
   QuizSessionRecord,
   QuizStats,
+  NgslWordFilter,
   CreateQuizAttemptInput,
   CreateQuizSessionInput,
 } from '../../types/quiz';
@@ -52,6 +53,7 @@ function rowToWord(row: Record<string, unknown>): Word {
     isRead: (row.is_read as number) === 1,
     createdAt: row.created_at as string,
     readAt: row.read_at as string | null,
+    wordType: (row.word_type as Word['wordType']) ?? 'word',
   };
 }
 
@@ -77,6 +79,28 @@ export async function getRandomWordsForQuiz(
     const words: Word[] = rows.map(rowToWord);
 
     return { success: true, data: words };
+  } catch (error) {
+    return {
+      success: false,
+      error: databaseError('クイズ用単語の取得に失敗しました。', error),
+    };
+  }
+}
+
+/**
+ * Get all words available for quiz (no LIMIT)
+ * Used when NGSL filter is applied in-memory
+ */
+export async function getAllQuizableWords(): Promise<Result<Word[], AppError>> {
+  try {
+    const database = getDatabase();
+
+    const rows = await database.getAllAsync<Record<string, unknown>>(
+      `SELECT * FROM words
+       WHERE japanese IS NOT NULL AND japanese != ''`
+    );
+
+    return { success: true, data: rows.map(rowToWord) };
   } catch (error) {
     return {
       success: false,
@@ -281,20 +305,46 @@ export async function getQuizStats(): Promise<Result<QuizStats, AppError>> {
 
 /**
  * Get count of words available for quiz
- * Only words with Japanese translation are counted
+ * Only words with Japanese translation are counted.
+ * When ngslFilter is provided, counts words matching the NGSL filter in-memory.
  */
-export async function getQuizableWordCount(): Promise<Result<number, AppError>> {
-  try {
-    const database = getDatabase();
-    const result = await database.getFirstAsync<{ count: number }>(
-      `SELECT COUNT(*) as count FROM words
-       WHERE japanese IS NOT NULL AND japanese != ''`
-    );
-    return { success: true, data: result?.count ?? 0 };
-  } catch (error) {
-    return {
-      success: false,
-      error: databaseError('クイズ可能な単語数の取得に失敗しました。', error),
-    };
+export async function getQuizableWordCount(
+  ngslFilter?: NgslWordFilter
+): Promise<Result<number, AppError>> {
+  if (!ngslFilter) {
+    try {
+      const database = getDatabase();
+      const result = await database.getFirstAsync<{ count: number }>(
+        `SELECT COUNT(*) as count FROM words
+         WHERE japanese IS NOT NULL AND japanese != ''`
+      );
+      return { success: true, data: result?.count ?? 0 };
+    } catch (error) {
+      return {
+        success: false,
+        error: databaseError('クイズ可能な単語数の取得に失敗しました。', error),
+      };
+    }
   }
+
+  // NGSL filter: fetch all words and count in-memory
+  const wordsResult = await getAllQuizableWords();
+  if (!wordsResult.success) {
+    return wordsResult as Result<never, AppError>;
+  }
+
+  const { getNgslBand } = await import('../../constants/ngslWords');
+  const { getNgslsBand } = await import('../../constants/ngslsWords');
+
+  const count = wordsResult.data.filter((word) => {
+    if (word.wordType !== 'word') return false;
+    if (ngslFilter === 'ngsl') return getNgslBand(word.english) !== null;
+    if (ngslFilter === 'ngsl-s') return getNgslsBand(word.english) !== null;
+    if (ngslFilter === 'ngsl_any') {
+      return getNgslBand(word.english) !== null || getNgslsBand(word.english) !== null;
+    }
+    return true;
+  }).length;
+
+  return { success: true, data: count };
 }

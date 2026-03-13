@@ -24,7 +24,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useTheme } from '../hooks/useTheme';
 import { Spacing, FontSizes, BorderRadius } from '../constants/colors';
 import { Button } from '../components/common/Button';
-import { QuestionType, QuestionCount, QuizSettings } from '../types/quiz';
+import { QuestionType, QuestionCount, QuizSettings, NgslWordFilter } from '../types/quiz';
 import { getQuizableWordCount } from '../services/database/quiz';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -78,18 +78,19 @@ export function QuizSetupScreen(): React.JSX.Element {
   // Quiz settings state
   const [questionType, setQuestionType] = useState<QuestionType>('en_to_ja');
   const [questionCount, setQuestionCount] = useState<QuestionCount>(10);
+  const [ngslFilter, setNgslFilter] = useState<NgslWordFilter>(null);
   const [availableWordCount, setAvailableWordCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load available word count (runs on every focus)
+  // Load available word count (runs on every focus or when ngslFilter changes)
   const loadWordCount = useCallback(async () => {
     setIsLoading(true);
-    const result = await getQuizableWordCount();
+    const result = await getQuizableWordCount(ngslFilter ?? undefined);
     if (result.success) {
       setAvailableWordCount(result.data);
     }
     setIsLoading(false);
-  }, []);
+  }, [ngslFilter]);
 
   useFocusEffect(
     useCallback(() => {
@@ -113,10 +114,11 @@ export function QuizSetupScreen(): React.JSX.Element {
     const settings: QuizSettings = {
       questionType,
       questionCount,
+      ngslFilter,
     };
 
     navigation.navigate('Quiz', { settings });
-  }, [canStartQuiz, questionType, questionCount, navigation, t]);
+  }, [canStartQuiz, questionType, questionCount, ngslFilter, navigation, t]);
 
   const questionCountOptions: QuestionCount[] = [5, 10, 20];
 
@@ -189,6 +191,35 @@ export function QuizSetupScreen(): React.JSX.Element {
             label={t('setup.questionType.mixed')}
             selected={questionType === 'mixed'}
             onPress={() => setQuestionType('mixed')}
+          />
+        </View>
+      </View>
+
+      {/* Word Filter Selection */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          {t('setup.wordFilter.title')}
+        </Text>
+        <View style={styles.optionsRow}>
+          <OptionButton
+            label={t('setup.wordFilter.all')}
+            selected={ngslFilter === null}
+            onPress={() => setNgslFilter(null)}
+          />
+          <OptionButton
+            label={t('setup.wordFilter.ngsl')}
+            selected={ngslFilter === 'ngsl'}
+            onPress={() => setNgslFilter('ngsl')}
+          />
+          <OptionButton
+            label={t('setup.wordFilter.ngslS')}
+            selected={ngslFilter === 'ngsl-s'}
+            onPress={() => setNgslFilter('ngsl-s')}
+          />
+          <OptionButton
+            label={t('setup.wordFilter.ngslAny')}
+            selected={ngslFilter === 'ngsl_any'}
+            onPress={() => setNgslFilter('ngsl_any')}
           />
         </View>
       </View>
