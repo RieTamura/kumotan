@@ -44,6 +44,8 @@ import { FeedbackModal } from './FeedbackModal';
 import { API } from '../constants/config';
 import { translateToJapanese, hasApiKey as hasDeepLApiKey } from '../services/dictionary/deepl';
 import { useSettingsStore } from '../store/settingsStore';
+import { getNgslBand, getNgslBandLabel } from '../constants/ngslWords';
+import { getNgslsBand, getNgslsBandLabel } from '../constants/ngslsWords';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_POPUP_HEIGHT = SCREEN_HEIGHT * 0.85; // Maximum 85% of screen height
@@ -234,6 +236,8 @@ export function WordPopup({
 }: WordPopupProps): React.JSX.Element {
   const isSentenceMode = wordType === 'sentence';
   const isPhraseMode = wordType === 'phrase';
+  const ngslBand = wordType === 'word' ? getNgslBand(word) : null;
+  const ngslsBand = wordType === 'word' ? getNgslsBand(word) : null;
   const { t } = useTranslation('wordPopup');
   const { colors, isDark } = useTheme();
   const [slideAnim] = useState(new Animated.Value(MAX_POPUP_HEIGHT));
@@ -846,6 +850,20 @@ export function WordPopup({
                   <Text style={[styles.posText, { color: colors.textSecondary }]}>{definition.partOfSpeech}</Text>
                 </View>
               )}
+              {!isJapanese && ngslBand !== null && (
+                <View style={[styles.frequencyBadge, { backgroundColor: colors.warningLight }]}>
+                  <Text style={[styles.frequencyBadgeText, { color: colors.warning }]}>
+                    {getNgslBandLabel(ngslBand)}
+                  </Text>
+                </View>
+              )}
+              {!isJapanese && ngslsBand !== null && (
+                <View style={[styles.frequencyBadge, { backgroundColor: colors.primaryBackground }]}>
+                  <Text style={[styles.frequencyBadgeText, { color: colors.primary }]}>
+                    {getNgslsBandLabel(ngslsBand)}
+                  </Text>
+                </View>
+              )}
               {isSentenceMode && (
                 <View style={[styles.modeTag, { backgroundColor: colors.primary + '20' }]}>
                   <Text style={[styles.modeText, { color: colors.primary }]}>文章モード</Text>
@@ -1207,6 +1225,16 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  frequencyBadge: {
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  frequencyBadgeText: {
+    fontSize: FontSizes.xs,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   scrollContent: {
     flex: 1,
