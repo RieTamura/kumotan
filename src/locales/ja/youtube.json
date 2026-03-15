@@ -1,0 +1,11 @@
+{
+  "header": "字幕から学ぶ",
+  "loading": "字幕を取得中...",
+  "noSubtitles": "英語字幕が見つかりませんでした",
+  "noSubtitlesHint": "自動生成字幕がある動画のみ対応しています",
+  "error": "字幕の取得に失敗しました",
+  "retry": "再試行",
+  "wordSaveHint": "単語を長押しして登録",
+  "subtitleCount": "{{count}}件の字幕",
+  "openInYouTube": "YouTubeで開く"
+}

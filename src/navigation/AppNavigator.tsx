@@ -43,6 +43,7 @@ import { BlueskyNotificationsScreen } from '../screens/BlueskyNotificationsScree
 import { ApiTranslationSettingsScreen } from '../screens/ApiTranslationSettingsScreen';
 import { DataManagementScreen } from '../screens/DataManagementScreen';
 import { TabColorSettingsScreen } from '../screens/TabColorSettingsScreen';
+import { YoutubeSubtitleScreen } from '../screens/YoutubeSubtitleScreen';
 
 /**
  * Stack Navigator Types
@@ -66,6 +67,12 @@ export type RootStackParamList = {
   ApiTranslationSettings: undefined;
   DataManagement: undefined;
   TabColorSettings: undefined;
+  YoutubeSubtitle: {
+    videoId: string;
+    videoTitle: string;
+    videoThumb?: string;
+    videoUrl: string;
+  };
 };
 
 /**
@@ -444,6 +451,18 @@ function RootNavigator(): React.JSX.Element {
               headerTitleStyle: { color: colors.text },
               headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
             }}
+          />
+          <Stack.Screen
+            name="YoutubeSubtitle"
+            component={YoutubeSubtitleScreen}
+            options={({ route }) => ({
+              headerShown: true,
+              headerTitle: route.params.videoTitle || t('headers.youtubeSubtitle'),
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
+              headerTitleStyle: { color: colors.text, fontSize: 14 },
+              headerLeft: ({ tintColor }) => <FlatBackButton tintColor={tintColor} />,
+            })}
           />
         </Stack.Group>
       ) : (

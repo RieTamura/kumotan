@@ -381,6 +381,36 @@ export function HomeScreen(): React.JSX.Element {
   );
 
   /**
+   * Handle YouTube subtitle press - navigate to YoutubeSubtitleScreen
+   */
+  const handleYouTubeSubtitlePress = useCallback(
+    (uri: string, title: string, thumb?: string) => {
+      const videoId = (() => {
+        try {
+          const urlObj = new URL(uri);
+          const hostname = urlObj.hostname.replace(/^www\./, '');
+          if (hostname === 'youtu.be') return urlObj.pathname.slice(1).split('/')[0] || '';
+          if (hostname === 'youtube.com') {
+            if (urlObj.pathname.startsWith('/shorts/') || urlObj.pathname.startsWith('/embed/')) {
+              return urlObj.pathname.split('/')[2] || '';
+            }
+            return urlObj.searchParams.get('v') ?? '';
+          }
+        } catch {}
+        return '';
+      })();
+      if (!videoId) return;
+      navigation.navigate('YoutubeSubtitle', {
+        videoId,
+        videoTitle: title,
+        videoThumb: thumb,
+        videoUrl: uri,
+      });
+    },
+    [navigation]
+  );
+
+  /**
    * Handle like press
    */
   const handleLikePress = useCallback(
@@ -701,6 +731,7 @@ export function HomeScreen(): React.JSX.Element {
                 onQuotePress={handleQuotePress}
                 onAvatarPress={handleAvatarPress}
                 onDeletePress={handleDeletePress}
+                onYouTubeSubtitlePress={handleYouTubeSubtitlePress}
                 onPostLayoutElements={handlePostLayoutElements}
               />
             </View>,
@@ -725,6 +756,7 @@ export function HomeScreen(): React.JSX.Element {
                   onQuotePress={handleQuotePress}
                   onAvatarPress={handleAvatarPress}
                   onDeletePress={handleDeletePress}
+                  onYouTubeSubtitlePress={handleYouTubeSubtitlePress}
                 />
               </View>
             ) : null,

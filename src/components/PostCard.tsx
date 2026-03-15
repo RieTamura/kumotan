@@ -16,7 +16,7 @@ import {
   Alert,
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
-import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink, AlertTriangle, Trash2 } from 'lucide-react-native';
+import { MessageCircle, MessageCircleDashed, MessageCircleOff, Repeat2, Heart, BookSearch, X, ExternalLink, AlertTriangle, Trash2, ClosedCaption } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from 'react-i18next';
 import { TimelinePost, RichTextFacet } from '../types/bluesky';
@@ -42,6 +42,7 @@ interface PostCardProps {
   onQuotePress?: (post: TimelinePost) => void;
   onAvatarPress?: (author: TimelinePost['author']) => void;
   onDeletePress?: (post: TimelinePost) => void;
+  onYouTubeSubtitlePress?: (uri: string, title: string, thumb?: string) => void;
   currentUserDid?: string;
   clearSelection?: boolean;
   onLayoutElements?: (elements: {
@@ -493,6 +494,7 @@ function PostCardComponent({
   onQuotePress,
   onAvatarPress,
   onDeletePress,
+  onYouTubeSubtitlePress,
   currentUserDid,
   clearSelection,
   onLayoutElements,
@@ -522,6 +524,17 @@ function PostCardComponent({
   const [isRepostLoading, setIsRepostLoading] = useState(false);
 
   const isOwnPost = post.author.did === currentUserDid;
+
+  // YouTube embed detection
+  const youTubeEmbed = (() => {
+    const ext = post.embed?.external;
+    if (!ext?.uri) return null;
+    const hostname = (() => {
+      try { return new URL(ext.uri).hostname.replace(/^www\./, ''); } catch { return ''; }
+    })();
+    if (hostname === 'youtube.com' || hostname === 'youtu.be') return ext;
+    return null;
+  })();
 
   // Image viewer state
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -1462,6 +1475,24 @@ function PostCardComponent({
                 accessibilityRole="button"
               >
                 <BookSearch size={16} color={Colors.textSecondary} />
+              </Pressable>
+            )}
+            {youTubeEmbed && onYouTubeSubtitlePress && (
+              <Pressable
+                style={styles.metric}
+                onPress={() =>
+                  onYouTubeSubtitlePress(
+                    youTubeEmbed.uri,
+                    youTubeEmbed.title ?? '',
+                    youTubeEmbed.thumb
+                  )
+                }
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessible={true}
+                accessibilityLabel="字幕から学ぶ"
+                accessibilityRole="button"
+              >
+                <ClosedCaption size={16} color={colors.textSecondary} />
               </Pressable>
             )}
             {isOwnPost && onDeletePress && (

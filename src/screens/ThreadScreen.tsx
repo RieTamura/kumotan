@@ -316,6 +316,36 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
   );
 
   /**
+   * Handle YouTube subtitle press - navigate to YoutubeSubtitleScreen
+   */
+  const handleYouTubeSubtitlePress = useCallback(
+    (uri: string, title: string, thumb?: string) => {
+      const videoId = (() => {
+        try {
+          const urlObj = new URL(uri);
+          const hostname = urlObj.hostname.replace(/^www\./, '');
+          if (hostname === 'youtu.be') return urlObj.pathname.slice(1).split('/')[0] || '';
+          if (hostname === 'youtube.com') {
+            if (urlObj.pathname.startsWith('/shorts/') || urlObj.pathname.startsWith('/embed/')) {
+              return urlObj.pathname.split('/')[2] || '';
+            }
+            return urlObj.searchParams.get('v') ?? '';
+          }
+        } catch {}
+        return '';
+      })();
+      if (!videoId) return;
+      navigation.navigate('YoutubeSubtitle', {
+        videoId,
+        videoTitle: title,
+        videoThumb: thumb,
+        videoUrl: uri,
+      });
+    },
+    [navigation]
+  );
+
+  /**
    * Handle add word to vocabulary
    */
   const handleAddWord = useCallback(
@@ -559,6 +589,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
               onRepostPress={handleRepostPress}
               onQuotePress={handleQuotePress}
               onAvatarPress={handleAvatarPress}
+              onYouTubeSubtitlePress={handleYouTubeSubtitlePress}
               currentUserDid={user?.did}
               clearSelection={shouldClearParentSelection}
             />
@@ -578,6 +609,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
             onRepostPress={handleRepostPress}
             onQuotePress={handleQuotePress}
             onAvatarPress={handleAvatarPress}
+            onYouTubeSubtitlePress={handleYouTubeSubtitlePress}
             currentUserDid={user?.did}
             clearSelection={shouldClearMainSelection}
           />
@@ -593,7 +625,7 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
         )}
       </View>
     );
-  }, [threadData, t, handleWordSelect, handlePhraseSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user, wordPopup.visible, wordPopup.postUri]);
+  }, [threadData, t, handleWordSelect, handlePhraseSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, handleYouTubeSubtitlePress, user, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Render reply item
@@ -613,12 +645,13 @@ export function ThreadScreen({ route, navigation }: ThreadScreenProps): React.JS
           onRepostPress={handleRepostPress}
           onQuotePress={handleQuotePress}
           onAvatarPress={handleAvatarPress}
+          onYouTubeSubtitlePress={handleYouTubeSubtitlePress}
           currentUserDid={user?.did}
           clearSelection={shouldClearSelection}
         />
       </View>
     );
-  }, [handleWordSelect, handlePhraseSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, user, wordPopup.visible, wordPopup.postUri]);
+  }, [handleWordSelect, handlePhraseSelect, handleSentenceSelect, handlePostPress, handleLikePress, handleReplyPress, handleRepostPress, handleQuotePress, handleAvatarPress, handleYouTubeSubtitlePress, user, wordPopup.visible, wordPopup.postUri]);
 
   /**
    * Key extractor

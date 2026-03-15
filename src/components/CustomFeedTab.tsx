@@ -50,6 +50,7 @@ export interface CustomFeedTabProps {
   onQuotePress: (post: TimelinePost) => void;
   onAvatarPress: (author: TimelinePost['author']) => void;
   onDeletePress: (post: TimelinePost) => void;
+  onYouTubeSubtitlePress?: (uri: string, title: string, thumb?: string) => void;
 }
 
 export const CustomFeedTab = memo(function CustomFeedTab({
@@ -70,6 +71,7 @@ export const CustomFeedTab = memo(function CustomFeedTab({
   onQuotePress,
   onAvatarPress,
   onDeletePress,
+  onYouTubeSubtitlePress,
 }: CustomFeedTabProps): React.JSX.Element {
   const { t } = useTranslation('home');
   const { colors } = useTheme();
@@ -125,6 +127,7 @@ export const CustomFeedTab = memo(function CustomFeedTab({
           onQuotePress={onQuotePress}
           onAvatarPress={onAvatarPress}
           onDeletePress={onDeletePress}
+          onYouTubeSubtitlePress={onYouTubeSubtitlePress}
           currentUserDid={currentUserDid}
           clearSelection={shouldClearSelection}
         />
@@ -144,6 +147,7 @@ export const CustomFeedTab = memo(function CustomFeedTab({
       onQuotePress,
       onAvatarPress,
       onDeletePress,
+      onYouTubeSubtitlePress,
     ]
   );
 

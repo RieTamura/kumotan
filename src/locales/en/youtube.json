@@ -1,0 +1,11 @@
+{
+  "header": "Learn from Subtitles",
+  "loading": "Fetching subtitles...",
+  "noSubtitles": "No English subtitles found",
+  "noSubtitlesHint": "Only videos with auto-generated captions are supported",
+  "error": "Failed to fetch subtitles",
+  "retry": "Retry",
+  "wordSaveHint": "Long press a word to save it",
+  "subtitleCount": "{{count}} subtitles",
+  "openInYouTube": "Open in YouTube"
+}

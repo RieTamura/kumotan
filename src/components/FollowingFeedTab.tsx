@@ -54,6 +54,7 @@ export interface FollowingFeedTabProps {
   onQuotePress: (post: TimelinePost) => void;
   onAvatarPress: (author: TimelinePost['author']) => void;
   onDeletePress: (post: TimelinePost) => void;
+  onYouTubeSubtitlePress?: (uri: string, title: string, thumb?: string) => void;
 
   // Tutorial layout measurement (only called for the first post)
   onPostLayoutElements: (elements: {
@@ -87,6 +88,7 @@ export const FollowingFeedTab = memo(function FollowingFeedTab({
   onQuotePress,
   onAvatarPress,
   onDeletePress,
+  onYouTubeSubtitlePress,
   onPostLayoutElements,
 }: FollowingFeedTabProps): React.JSX.Element {
   const { t } = useTranslation('home');
@@ -117,6 +119,7 @@ export const FollowingFeedTab = memo(function FollowingFeedTab({
           onQuotePress={onQuotePress}
           onAvatarPress={onAvatarPress}
           onDeletePress={onDeletePress}
+          onYouTubeSubtitlePress={onYouTubeSubtitlePress}
           currentUserDid={currentUserDid}
           clearSelection={shouldClearSelection}
           onLayoutElements={index === 0 ? onPostLayoutElements : undefined}
@@ -137,6 +140,7 @@ export const FollowingFeedTab = memo(function FollowingFeedTab({
       onQuotePress,
       onAvatarPress,
       onDeletePress,
+      onYouTubeSubtitlePress,
       onPostLayoutElements,
     ]
   );
